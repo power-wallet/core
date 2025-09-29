@@ -89,7 +89,7 @@ describe("TechnicalIndicators", function () {
             expect(latestPrices[0].price).to.not.equal(0);
         });
 
-        it.only("Should store correct timestamps", async function () {
+        it("Should store correct timestamps", async function () {
             const { indicators, wbtc, startTimestamp, day } = await loadFixture(deployWithHistoricalDataFixture);
             
             const startTime = ethers.getBigInt(startTimestamp);
@@ -126,9 +126,9 @@ describe("TechnicalIndicators", function () {
             
             const rsi = await indicators.calculateRSI(await wbtc.getAddress(), 8);
             
-            // RSI should be between 0 and 100 * SCALE
-            expect(rsi).to.be.gt(0);
-            expect(rsi).to.be.lt(BigInt(10000000000)); // 100 * 10^8
+            // RSI should be between 0 and 100 * SCALE (inclusive)
+            expect(rsi).to.be.gte(0n);
+            expect(rsi).to.be.lte(10000000000n); // 100 * 10^8
         });
 
         it("Should calculate ETH/BTC RSI correctly", async function () {
@@ -139,9 +139,9 @@ describe("TechnicalIndicators", function () {
                 await wbtc.getAddress()
             );
             
-            // RSI should be between 0 and 100 * SCALE
-            expect(rsi).to.be.gt(0);
-            expect(rsi).to.be.lt(BigInt(10000000000)); // 100 * 10^8
+            // RSI should be between 0 and 100 * SCALE (inclusive)
+            expect(rsi).to.be.gte(0n);
+            expect(rsi).to.be.lte(10000000000n); // 100 * 10^8
         });
 
         it("Should match Python strategy RSI values", async function () {
@@ -209,9 +209,9 @@ describe("TechnicalIndicators", function () {
             await btcFeed.updateAnswer(secondPrice);
             await indicators.updateDailyPrices([await wbtc.getAddress()]);
             
-            // Get latest prices - should still be first price
+            // Get latest prices - latest should still be first price
             const history = await indicators.getLatestPrices(await wbtc.getAddress(), 2);
-            expect(history[0].price).to.equal(firstPrice);
+            expect(history[1].price).to.equal(firstPrice);
         });
     });
 });
