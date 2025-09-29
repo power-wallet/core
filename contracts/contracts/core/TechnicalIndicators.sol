@@ -6,6 +6,11 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
+/**
+ * @title TechnicalIndicators
+ * @notice Calculates and stores technical indicators (RSI, SMA) for trading strategy
+ * @dev Uses Chainlink price feeds and stores daily closes for calculations
+ */
 contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct DailyPrice {
         uint256 timestamp;  // UTC midnight
@@ -39,6 +44,13 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         _disableInitializers();
     }
 
+    /**
+     * @notice Initializes the contract with historical price data
+     * @param tokens Array of token addresses
+     * @param priceFeeds Array of Chainlink price feed addresses
+     * @param historicalPrices Array of historical prices for each token
+     * @param startTimestamps Array of start timestamps for historical data
+     */
     function initialize(
         address[] calldata tokens,
         address[] calldata priceFeeds,
@@ -71,7 +83,12 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         }
     }
 
+    /**
+     * @notice Updates daily prices for specified tokens using Chainlink price feeds
+     * @param tokens Array of token addresses to update prices for
+     */
     function updateDailyPrices(address[] calldata tokens) external {
+        // unix timestamp (seconds) of the start of the day
         uint256 today = block.timestamp - (block.timestamp % 1 days);
 
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -107,6 +124,11 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         }
     }
 
+    /**
+     * @notice Calculates Simple Moving Average (SMA) for a token
+     * @param token Token address
+     * @return SMA value scaled by SCALE
+     */
     function calculateSMA(address token) public view returns (uint256) {
         DailyPrice[] storage prices = priceHistory[token];
         require(prices.length >= SMA_PERIOD, "Insufficient data");
@@ -119,6 +141,12 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         return sum / SMA_PERIOD;
     }
 
+    /**
+     * @notice Calculates Relative Strength Index (RSI) for a token
+     * @param token Token address
+     * @param period RSI period
+     * @return RSI value scaled by SCALE (0-100 * SCALE)
+     */
     function calculateRSI(address token, uint256 period) public view returns (uint256) {
         DailyPrice[] storage prices = priceHistory[token];
         require(prices.length >= period + 1, "Insufficient data");
@@ -148,6 +176,12 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         return (100 * SCALE) - ((100 * SCALE * SCALE) / (SCALE + rs));
     }
 
+    /**
+     * @notice Calculates RSI for ETH/BTC ratio
+     * @param ethToken ETH token address
+     * @param btcToken BTC token address
+     * @return RSI value scaled by SCALE (0-100 * SCALE)
+     */
     function calculateEthBtcRSI(address ethToken, address btcToken) public view returns (uint256) {
         DailyPrice[] storage ethPrices = priceHistory[ethToken];
         DailyPrice[] storage btcPrices = priceHistory[btcToken];
@@ -187,6 +221,13 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         return (100 * SCALE) - ((100 * SCALE * SCALE) / (SCALE + rs));
     }
 
+    /**
+     * @notice Gets historical price data for a token
+     * @param token Token address
+     * @param startTime Start timestamp (inclusive)
+     * @param endTime End timestamp (exclusive)
+     * @return Array of DailyPrice structs
+     */
     function getPriceHistory(
         address token,
         uint256 startTime,
@@ -222,6 +263,12 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         return result;
     }
 
+    /**
+     * @notice Gets the most recent prices for a token
+     * @param token Token address
+     * @param count Number of prices to return
+     * @return Array of most recent DailyPrice structs
+     */
     function getLatestPrices(address token, uint256 count) 
         external 
         view 
@@ -241,5 +288,8 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         return result;
     }
 
+    /**
+     * @notice Required by UUPSUpgradeable - only owner can upgrade
+     */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
