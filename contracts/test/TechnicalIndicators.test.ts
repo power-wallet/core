@@ -77,33 +77,27 @@ describe("TechnicalIndicators", function () {
             // Get RSI from contract
             const rsi = await indicators.calculateRSI(await wbtc.getAddress(), 8);
             
-            // Calculate RSI using the same logic as the Python code
-            function calculateRSI(prices: number[], period: number): number {
-                let gains = 0;
-                let losses = 0;
-                
-                for (let i = prices.length - period - 1; i < prices.length - 1; i++) {
-                    const diff = prices[i + 1] - prices[i];
-                    if (diff > 0) gains += diff;
-                    else losses -= diff;
+            // Calculate RSI using the exact same integer math and scaling as the contract
+            function calculateRSIScaled(prices: number[], period: number): bigint {
+                const SCALE = 10n ** 8n;
+                const scaled = prices.map(p => BigInt(Math.round(p * 1e8)));
+                let gains = 0n;
+                let losses = 0n;
+                for (let i = scaled.length - period - 1; i < scaled.length - 1; i++) {
+                    const diff = scaled[i + 1] - scaled[i];
+                    if (diff > 0n) gains += diff; else losses += -diff;
                 }
-                
-                const avgGain = gains / period;
-                const avgLoss = losses / period;
-                
-                if (avgLoss === 0) return 100;
-                
-                const rs = avgGain / avgLoss;
-                return 100 - (100 / (1 + rs));
+                let avgGain = (gains * SCALE) / BigInt(period);
+                let avgLoss = (losses * SCALE) / BigInt(period);
+                if (avgLoss === 0n) return 100n * SCALE;
+                const rs = (avgGain * SCALE) / avgLoss;
+                return (100n * SCALE) - ((100n * SCALE * SCALE) / (SCALE + rs));
             }
-            
+
             const prices = btcData.map(d => d.price);
-            const expectedRsi = calculateRSI(prices, 8);
-            const expectedRsiScaled = ethers.parseUnits(expectedRsi.toString(), 8);
-            
-            // Allow for small rounding differences
-            const difference = rsi - expectedRsiScaled;
-            expect(Math.abs(Number(difference))).to.be.lessThan(1e8); // Less than $1 difference
+            const expectedRsiScaled = calculateRSIScaled(prices, 8);
+
+            expect(rsi).to.equal(expectedRsiScaled);
         });
     });
 
