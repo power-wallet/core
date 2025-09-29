@@ -3,8 +3,17 @@ import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { deployWithHistoricalDataFixture, deployDeterministicSep28Fixture } from "./helpers";
 
-describe("TechnicalIndicators", function () {
-    // using shared fixture from helpers.ts
+describe("TechnicalIndicators - Core Functionality", function () {
+    // Helper to move to next day at midnight + 1 second (within 1-hour window)
+    async function moveToNextDayStart() {
+        const block = await ethers.provider.getBlock("latest");
+        const currentTime = block!.timestamp;
+        const today = currentTime - (currentTime % 86400);
+        const tomorrow = today + 86400;
+        const timeToAdd = tomorrow - currentTime + 1; // +1 second into new day
+        await ethers.provider.send("evm_increaseTime", [timeToAdd]);
+        await ethers.provider.send("evm_mine", []);
+    }
 
     describe("Deployment", function () {
         it("Should deploy with historical data", async function () {
@@ -193,7 +202,7 @@ describe("TechnicalIndicators", function () {
                 const rs = (avgGain * SCALE) / avgLoss;
                 return (100n * SCALE) - ((100n * SCALE * SCALE) / (SCALE + rs));
             }
-
+            
             const prices = btcData.map(d => d.price);
             const expected = calculateWildersRSIScaled(prices, period);
             
@@ -228,14 +237,17 @@ describe("TechnicalIndicators", function () {
         it("Should update prices correctly", async function () {
             const { indicators, wbtc, btcFeed } = await loadFixture(deployWithHistoricalDataFixture);
             
+            // Move to next day start (within 1-hour window)
+            await moveToNextDayStart();
+            
             // Update price feed
             const newPrice = ethers.parseUnits("55000", 8);
             await btcFeed.updateAnswer(newPrice);
             
-            // Update prices in contract
+            // Update prices in contract (now within 1 hour after midnight)
             await indicators.updateDailyPrices([await wbtc.getAddress()]);
             
-            // Get latest price
+            // Get latest price - should be stored with yesterday's timestamp
             const latestPrices = await indicators.getLatestPrices(await wbtc.getAddress(), 1);
             expect(latestPrices[0].price).to.equal(newPrice);
         });
@@ -243,19 +255,22 @@ describe("TechnicalIndicators", function () {
         it("Should not allow multiple updates in same day", async function () {
             const { indicators, wbtc, btcFeed } = await loadFixture(deployWithHistoricalDataFixture);
             
-            // First update
+            // Move to next day start
+            await moveToNextDayStart();
+            
+            // First update within 1 hour window
             const firstPrice = ethers.parseUnits("55000", 8);
             await btcFeed.updateAnswer(firstPrice);
             await indicators.updateDailyPrices([await wbtc.getAddress()]);
             
-            // Second update in same day
+            // Second update attempt in same day (still within 1 hour window)
             const secondPrice = ethers.parseUnits("56000", 8);
             await btcFeed.updateAnswer(secondPrice);
             await indicators.updateDailyPrices([await wbtc.getAddress()]);
             
-            // Get latest prices - latest should still be first price
-            const history = await indicators.getLatestPrices(await wbtc.getAddress(), 2);
-            expect(history[1].price).to.equal(firstPrice);
+            // Get latest prices - should still be first price (no duplicate entry)
+            const history = await indicators.getLatestPrices(await wbtc.getAddress(), 1);
+            expect(history[0].price).to.equal(firstPrice);
         });
     });
 });

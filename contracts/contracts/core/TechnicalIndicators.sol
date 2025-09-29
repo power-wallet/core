@@ -5,13 +5,14 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 
 /**
  * @title TechnicalIndicators
  * @notice Calculates and stores technical indicators (RSI, SMA) for trading strategy
  * @dev Uses Chainlink price feeds and stores daily closes for calculations
  */
-contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeable, AutomationCompatibleInterface {
     struct DailyPrice {
         uint256 timestamp;  // UTC midnight
         uint256 price;      // Price scaled by 1e8
@@ -25,6 +26,7 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     // Storage
     mapping(address => DailyPrice[]) public priceHistory;  // token => prices
     mapping(address => TokenConfig) public tokenConfigs;   // token => config
+    address[] public trackedTokens;  // Array of tokens for automation updates
 
     // Constants
     uint256 public constant PRICE_DECIMALS = 8;
@@ -65,6 +67,7 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         require(tokens.length == startTimestamps.length, "Length mismatch");
 
         // Initialize historical data and token configs
+        trackedTokens = tokens;
         for (uint256 i = 0; i < tokens.length; i++) {
             tokenConfigs[tokens[i]] = TokenConfig({
                 priceFeed: priceFeeds[i],
@@ -88,40 +91,15 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
      * @param tokens Array of token addresses to update prices for
      */
     function updateDailyPrices(address[] calldata tokens) external {
-        // unix timestamp (seconds) of the start of the day
         uint256 today = block.timestamp - (block.timestamp % 1 days);
-
+        
+        // Convert calldata to memory for internal function
+        address[] memory tokensMemory = new address[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
-            address token = tokens[i];
-            TokenConfig storage config = tokenConfigs[token];
-            require(config.priceFeed != address(0), "Token not configured");
-
-            // Check if we already updated today
-            if (config.lastUpdateTimestamp >= today) {
-                continue;
-            }
-
-            // Get latest price from Chainlink
-            (, int256 price,,,) = AggregatorV3Interface(config.priceFeed).latestRoundData();
-            require(price > 0, "Invalid price");
-
-            // Convert to our scale (Chainlink uses 8 decimals)
-            uint256 scaledPrice = uint256(price);
-
-            // Update or add price
-            DailyPrice[] storage prices = priceHistory[token];
-            if (prices.length > 0 && prices[prices.length - 1].timestamp == today) {
-                prices[prices.length - 1].price = scaledPrice;
-            } else {
-                prices.push(DailyPrice({
-                    timestamp: today,
-                    price: scaledPrice
-                }));
-            }
-
-            config.lastUpdateTimestamp = today;
-            emit PriceAdded(token, today, scaledPrice);
+            tokensMemory[i] = tokens[i];
         }
+        
+        _updatePrices(tokensMemory, today);
     }
 
     /**
@@ -340,6 +318,186 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         }
         
         return result;
+    }
+
+    /**
+     * @notice Chainlink Automation check if upkeep is needed
+     * @dev Called by Chainlink Keeper to check if daily price update is needed
+     * @param checkData Not used in this implementation
+     * @return upkeepNeeded True if a new day has started since last update
+     * @return performData Encoded array of tracked tokens to update
+     */
+    function checkUpkeep(bytes calldata checkData) 
+        external 
+        view 
+        override 
+        returns (bool upkeepNeeded, bytes memory performData) 
+    {
+        checkData; // Silence unused parameter warning
+        
+        uint256 today = block.timestamp - (block.timestamp % 1 days);
+        
+        // Check if any token needs updating
+        for (uint256 i = 0; i < trackedTokens.length; i++) {
+            address token = trackedTokens[i];
+            TokenConfig storage config = tokenConfigs[token];
+            
+            if (config.priceFeed != address(0) && config.lastUpdateTimestamp < today) {
+                upkeepNeeded = true;
+                break;
+            }
+        }
+        
+        // Return tracked tokens as performData
+        performData = abi.encode(trackedTokens);
+    }
+
+    /**
+     * @notice Chainlink Automation performs the upkeep
+     * @dev Called by Chainlink Keeper to update daily prices
+     * @param performData Encoded array of tokens to update
+     */
+    function performUpkeep(bytes calldata performData) external override {
+        address[] memory tokens = abi.decode(performData, (address[]));
+        
+        // Validate that update is still needed
+        uint256 today = block.timestamp - (block.timestamp % 1 days);
+        bool updateNeeded = false;
+        
+        for (uint256 i = 0; i < tokens.length; i++) {
+            TokenConfig storage config = tokenConfigs[tokens[i]];
+            if (config.priceFeed != address(0) && config.lastUpdateTimestamp < today) {
+                updateNeeded = true;
+                break;
+            }
+        }
+        
+        require(updateNeeded, "No update needed");
+        
+        // Perform the update - call internal update logic
+        _updatePrices(tokens, today);
+    }
+    
+    /**
+     * @notice Internal function to update prices
+     * @param tokens Array of token addresses to update
+     * @param today Current day timestamp (UTC midnight)
+     */
+    function _updatePrices(address[] memory tokens, uint256 today) private {
+        // Calculate yesterday's timestamp
+        // When called shortly after midnight, we're recording yesterday's closing price
+        uint256 yesterday = today - 1 days;
+        
+        // Time window: only allow updates within first hour after midnight
+        // This prevents mid-day calls from overwriting yesterday's close
+        uint256 timeIntoDay = block.timestamp - today;
+        require(timeIntoDay < 1 hours, "Updates only allowed within 1 hour after midnight UTC");
+        
+        for (uint256 i = 0; i < tokens.length; i++) {
+            address token = tokens[i];
+            TokenConfig storage config = tokenConfigs[token];
+            
+            if (config.priceFeed == address(0)) continue;
+            if (config.lastUpdateTimestamp >= today) continue;
+
+            // Get latest price from Chainlink
+            (, int256 price,,,) = AggregatorV3Interface(config.priceFeed).latestRoundData();
+            if (price <= 0) continue;
+
+            // Convert to our scale (Chainlink uses 8 decimals)
+            uint256 scaledPrice = uint256(price);
+
+            // Store price with yesterday's timestamp (this is yesterday's close)
+            DailyPrice[] storage prices = priceHistory[token];
+            
+            // Gap prevention: ensure we have data for the day before yesterday
+            // (except for the very first entry after initialization)
+            if (prices.length > 0) {
+                uint256 lastTimestamp = prices[prices.length - 1].timestamp;
+                
+                // Skip if we already have yesterday's price
+                if (lastTimestamp == yesterday) {
+                    continue;
+                }
+                
+                // Require no gaps: last entry should be day before yesterday
+                uint256 dayBeforeYesterday = yesterday - 1 days;
+                require(lastTimestamp == dayBeforeYesterday, "Gap detected: missing previous day price");
+            }
+            
+            // Add new entry for yesterday's close
+            prices.push(DailyPrice({
+                timestamp: yesterday,
+                price: scaledPrice
+            }));
+
+            config.lastUpdateTimestamp = today;
+            emit PriceAdded(token, yesterday, scaledPrice);
+        }
+    }
+
+    /**
+     * @notice Manually backfill missing daily prices (owner only)
+     * @dev Use this to recover from keeper failures or fill gaps
+     * @param token Token address to backfill
+     * @param timestamps Array of UTC midnight timestamps to fill (start of the day for the daily closing price)
+     * @param prices Array of closing prices (scaled by 1e8)
+     */
+    function backfillDailyPrices(
+        address token,
+        uint256[] calldata timestamps,
+        uint256[] calldata prices
+    ) external onlyOwner {
+        require(timestamps.length == prices.length, "Length mismatch");
+        require(timestamps.length > 0, "Empty arrays");
+        
+        TokenConfig storage config = tokenConfigs[token];
+        require(config.priceFeed != address(0), "Token not configured");
+        
+        DailyPrice[] storage priceHistory_ = priceHistory[token];
+        uint256 lastTimestamp = priceHistory_.length > 0 ? priceHistory_[priceHistory_.length - 1].timestamp : 0;
+        
+        for (uint256 i = 0; i < timestamps.length; i++) {
+            uint256 ts = timestamps[i];
+            uint256 price = prices[i];
+            
+            // Validate timestamp is UTC midnight
+            require(ts % 1 days == 0, "Timestamp must be UTC midnight");
+            
+            // Validate price is positive
+            require(price > 0, "Invalid price");
+            
+            // Ensure chronological order and no duplicates
+            require(ts > lastTimestamp, "Timestamps must be chronological and after existing data");
+            
+            // Validate no gaps (each entry should be exactly 1 day after previous)
+            if (i > 0) {
+                require(ts == timestamps[i - 1] + 1 days, "Gap in backfill timestamps");
+            } else if (priceHistory_.length > 0) {
+                require(ts == lastTimestamp + 1 days, "Gap between existing data and backfill");
+            }
+            
+            // Add price entry
+            priceHistory_.push(DailyPrice({
+                timestamp: ts,
+                price: price
+            }));
+            
+            emit PriceAdded(token, ts, price);
+            lastTimestamp = ts;
+        }
+        
+        // Update lastUpdateTimestamp to prevent immediate automation overwrite
+        // Set it to the day after the last backfilled entry
+        config.lastUpdateTimestamp = lastTimestamp + 1 days;
+    }
+
+    /**
+     * @notice Get list of tracked tokens for automation
+     * @return Array of tracked token addresses
+     */
+    function getTrackedTokens() external view returns (address[] memory) {
+        return trackedTokens;
     }
 
     /**
