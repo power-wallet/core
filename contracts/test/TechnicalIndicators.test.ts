@@ -48,19 +48,11 @@ describe("TechnicalIndicators", function () {
             expect(Math.abs(Number(difference))).to.be.lessThan(1e8); // Less than $1 difference
         });
 
-        it.only("Should calculate 14-day RSI for BTC on deterministic 2025-09-28 dataset", async function () {
+        it("Should calculate 14-day RSI for BTC on deterministic 2025-09-28 dataset", async function () {
             const { indicators, wbtc, btcData } = await loadFixture(deployDeterministicSep28Fixture);
-            
-            // print btc prices
-            btcData.forEach(d => {
-                // convert timestamp to date
-                const date = new Date(d.timestamp * 1000).toISOString().split('T')[0];
-                console.log(`BTC Price on ${date} ${d.timestamp}: ${d.price}`);
-            });
 
             const period = 14n;
             const rsi = await indicators.calculateRSI(await wbtc.getAddress(), Number(period));
-            console.log(`RSI (14-day) for BTC on 2025-09-28: ${Number(rsi) / 1e8}`);
 
             function calculateRSIScaled(prices: number[], p: number): bigint {
                 const SCALE = 10n ** 8n;
@@ -80,7 +72,6 @@ describe("TechnicalIndicators", function () {
 
             const prices = btcData.map(d => d.price);
             const expected = calculateRSIScaled(prices, Number(period));
-            console.log(`Expected RSI (14-day) for BTC on 2025-09-28: ${Number(expected) / 1e8}`);
             expect(rsi).to.equal(expected);
         });
 
@@ -134,6 +125,102 @@ describe("TechnicalIndicators", function () {
             const expectedRsiScaled = calculateRSIScaled(prices, 8);
 
             expect(rsi).to.equal(expectedRsiScaled);
+        });
+
+        it("Should calculate Simple 14-day RSI for BTC on deterministic 2025-09-28 dataset", async function () {
+            const { indicators, wbtc, btcData } = await loadFixture(deployDeterministicSep28Fixture);
+
+            const period = 14;
+            const rsi = await indicators.calculateRSI(await wbtc.getAddress(), period);
+
+            // Calculate RSI using the exact same integer math and scaling as the contract
+            function calculateRSIScaled(prices: number[], period: number): bigint {
+                const SCALE = 10n ** 8n;
+                const scaled = prices.map(p => BigInt(Math.round(p * 1e8)));
+                let gains = 0n;
+                let losses = 0n;
+                for (let i = scaled.length - period - 1; i < scaled.length - 1; i++) {
+                    const diff = scaled[i + 1] - scaled[i];
+                    if (diff > 0n) gains += diff; else losses += -diff;
+                }
+                let avgGain = (gains * SCALE) / BigInt(period);
+                let avgLoss = (losses * SCALE) / BigInt(period);
+                if (avgLoss === 0n) return 100n * SCALE;
+                const rs = (avgGain * SCALE) / avgLoss;
+                return (100n * SCALE) - ((100n * SCALE * SCALE) / (SCALE + rs));
+            }
+
+            const prices = btcData.map(d => d.price);
+            const expected = calculateRSIScaled(prices, period);
+            
+            expect(rsi).to.equal(expected);
+            
+            // Log for comparison with TradingView
+            console.log(`        Simple RSI(14): ${ethers.formatUnits(rsi, 8)}`);
+        });
+
+        it("Should calculate Wilder's 14-day RSI for BTC on deterministic 2025-09-28 dataset", async function () {
+            const { indicators, wbtc, btcData } = await loadFixture(deployDeterministicSep28Fixture);
+
+            const period = 14;
+            const wildersRsi = await indicators.calculateWildersRSI(await wbtc.getAddress(), period);
+
+            // Wilder's smoothed RSI implementation
+            function calculateWildersRSIScaled(prices: number[], p: number): bigint {
+                const SCALE = 10n ** 8n;
+                const scaled = prices.map(v => BigInt(Math.round(v * 1e8)));
+                
+                // Initial averages from first p changes
+                let sumGain = 0n;
+                let sumLoss = 0n;
+                for (let i = 0; i < p; i++) {
+                    const diff = scaled[i + 1] - scaled[i];
+                    if (diff > 0n) sumGain += diff; else sumLoss += -diff;
+                }
+                let avgGain = (sumGain * SCALE) / BigInt(p);
+                let avgLoss = (sumLoss * SCALE) / BigInt(p);
+                
+                // Wilder's smoothing for remaining periods
+                for (let i = p; i < scaled.length - 1; i++) {
+                    const diff = scaled[i + 1] - scaled[i];
+                    const currentGain = diff > 0n ? diff * SCALE : 0n;
+                    const currentLoss = diff < 0n ? -diff * SCALE : 0n;
+                    avgGain = (avgGain * BigInt(p - 1) + currentGain) / BigInt(p);
+                    avgLoss = (avgLoss * BigInt(p - 1) + currentLoss) / BigInt(p);
+                }
+                
+                if (avgLoss === 0n) return 100n * SCALE;
+                const rs = (avgGain * SCALE) / avgLoss;
+                return (100n * SCALE) - ((100n * SCALE * SCALE) / (SCALE + rs));
+            }
+
+            const prices = btcData.map(d => d.price);
+            const expected = calculateWildersRSIScaled(prices, period);
+            
+            expect(wildersRsi).to.equal(expected);
+            
+            // Log for comparison with TradingView
+            console.log(`        Wilder's RSI(14): ${ethers.formatUnits(wildersRsi, 8)}`);
+        });
+
+        it("Should compare gas usage between simple and Wilder's RSI", async function () {
+            const { indicators, wbtc } = await loadFixture(deployDeterministicSep28Fixture);
+            
+            const period = 14;
+            
+            // Estimate gas for simple RSI
+            const simpleGas = await indicators.calculateRSI.estimateGas(await wbtc.getAddress(), period);
+            
+            // Estimate gas for Wilder's RSI
+            const wildersGas = await indicators.calculateWildersRSI.estimateGas(await wbtc.getAddress(), period);
+            
+            console.log(`        Simple RSI gas: ${simpleGas}`);
+            console.log(`        Wilder's RSI gas: ${wildersGas}`);
+            console.log(`        Gas overhead: ${(Number(wildersGas) / Number(simpleGas) - 1) * 100}%`);
+            
+            // Both should be reasonable for view functions
+            expect(Number(simpleGas)).to.be.lessThan(1000000);
+            expect(Number(wildersGas)).to.be.lessThan(5000000);
         });
     });
 

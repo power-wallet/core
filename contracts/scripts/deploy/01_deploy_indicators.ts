@@ -69,7 +69,7 @@ async function main() {
   const historicalPrices = [btcHistoricalPrices, ethHistoricalPrices];
   const startTimes = [startTimestamp, startTimestamp];
 
-    console.log("Deployment parameters:");
+  console.log("Deployment parameters:");
   console.log("- Tokens:", tokens);
   console.log("- Price Feeds:", priceFeeds);
   console.log("- Start Time:", new Date(startTimestamp * 1000).toISOString());

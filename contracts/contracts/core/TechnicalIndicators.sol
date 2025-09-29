@@ -177,6 +177,60 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     }
 
     /**
+     * @notice Calculates Wilder's Smoothed RSI for a token (industry standard)
+     * @dev Uses exponential smoothing: avgGain = (prevAvg * (period-1) + currentGain) / period
+     * @param token Token address
+     * @param period RSI period
+     * @return RSI value scaled by SCALE (0-100 * SCALE)
+     */
+    function calculateWildersRSI(address token, uint256 period) public view returns (uint256) {
+        DailyPrice[] storage prices = priceHistory[token];
+        require(prices.length >= period + 1, "Insufficient data");
+        require(period > 0, "Invalid period");
+
+        // Calculate initial averages from first 'period' changes
+        uint256 sumGain;
+        uint256 sumLoss;
+        
+        for (uint256 i = 0; i < period; i++) {
+            if (prices[i + 1].price > prices[i].price) {
+                sumGain += prices[i + 1].price - prices[i].price;
+            } else {
+                sumLoss += prices[i].price - prices[i + 1].price;
+            }
+        }
+        
+        // Initial averages (scaled)
+        uint256 avgGain = (sumGain * SCALE) / period;
+        uint256 avgLoss = (sumLoss * SCALE) / period;
+        
+        // Apply Wilder's smoothing for remaining periods
+        // Formula: avgGain = (prevAvgGain * (period - 1) + currentGain) / period
+        for (uint256 i = period; i < prices.length - 1; i++) {
+            uint256 currentGain;
+            uint256 currentLoss;
+            
+            if (prices[i + 1].price > prices[i].price) {
+                currentGain = (prices[i + 1].price - prices[i].price) * SCALE;
+            } else {
+                currentLoss = (prices[i].price - prices[i + 1].price) * SCALE;
+            }
+            
+            // Wilder's exponential smoothing
+            avgGain = (avgGain * (period - 1) + currentGain) / period;
+            avgLoss = (avgLoss * (period - 1) + currentLoss) / period;
+        }
+        
+        // Calculate RSI
+        if (avgLoss == 0) {
+            return 100 * SCALE;
+        }
+        
+        uint256 rs = (avgGain * SCALE) / avgLoss;
+        return (100 * SCALE) - ((100 * SCALE * SCALE) / (SCALE + rs));
+    }
+
+    /**
      * @notice Calculates RSI for ETH/BTC ratio
      * @param ethToken ETH token address
      * @param btcToken BTC token address
