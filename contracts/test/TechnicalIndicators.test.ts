@@ -1,83 +1,10 @@
 import { expect } from "chai";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { TechnicalIndicators } from "../typechain-types";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import * as fs from 'fs';
-import * as path from 'path';
-
-interface PriceData {
-    timestamp: number;
-    price: number;
-}
+import { deployWithHistoricalDataFixture } from "./helpers";
 
 describe("TechnicalIndicators", function () {
-    // Fixture that deploys the contract with real historical data
-    async function deployWithHistoricalDataFixture() {
-        const [owner] = await ethers.getSigners();
-
-        // Deploy mock tokens
-        const MockToken = await ethers.getContractFactory("MockERC20");
-        const wbtc = await MockToken.deploy("Wrapped Bitcoin", "WBTC");
-        const weth = await MockToken.deploy("Wrapped Ether", "WETH");
-
-        // Deploy mock price feeds
-        const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
-        const btcFeed = await MockV3Aggregator.deploy(8, ethers.parseUnits("50000", 8));
-        const ethFeed = await MockV3Aggregator.deploy(8, ethers.parseUnits("3000", 8));
-
-        // Use a fixed start time for testing (Jan 1, 2024 00:00:00 UTC)
-        const startTimestamp = 1704067200;
-        const day = 24 * 60 * 60;
-        
-        const mockData = (basePrice: number): PriceData[] => {
-            return Array.from({ length: 200 }, (_, i) => ({
-                timestamp: startTimestamp + (i * day),
-                price: basePrice + (i * 100)  // Price increases by $100 each day
-            }));
-        };
-
-        const btcData = mockData(40000);  // BTC starting at 40k
-        const ethData = mockData(2000);   // ETH starting at 2k
-
-        // Use all 200 days of data
-        const sortedBtcData = btcData;
-        const sortedEthData = ethData;
-
-        // Convert prices to BigNumber with 8 decimals
-        const btcPrices = sortedBtcData.map(d => ethers.parseUnits(d.price.toString(), 8));
-        const ethPrices = sortedEthData.map(d => ethers.parseUnits(d.price.toString(), 8));
-        
-        // Convert timestamps to ethers.BigNumber
-        const btcTimestamps = ethers.getBigInt(startTimestamp);  // no decimals for timestamp
-        const ethTimestamps = ethers.getBigInt(startTimestamp);
-
-        // Deploy TechnicalIndicators
-        const TechnicalIndicators = await ethers.getContractFactory("TechnicalIndicators");
-        const indicators = await upgrades.deployProxy(
-            TechnicalIndicators,
-            [
-                [await wbtc.getAddress(), await weth.getAddress()],
-                [await btcFeed.getAddress(), await ethFeed.getAddress()],
-                [btcPrices, ethPrices],
-                [btcTimestamps, ethTimestamps]
-            ],
-            { kind: "uups" }
-        );
-
-        return {
-            indicators,
-            owner,
-            wbtc,
-            weth,
-            btcFeed,
-            ethFeed,
-            btcData: sortedBtcData,
-            ethData: sortedEthData,
-            startTimestamp,
-            day
-        };
-    }
+    // using shared fixture from helpers.ts
 
     describe("Deployment", function () {
         it("Should deploy with historical data", async function () {
