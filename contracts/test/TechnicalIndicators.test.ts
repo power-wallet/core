@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { deployWithHistoricalDataFixture } from "./helpers";
+import { deployWithHistoricalDataFixture, deployDeterministicSep28Fixture } from "./helpers";
 
 describe("TechnicalIndicators", function () {
     // using shared fixture from helpers.ts
@@ -46,6 +46,42 @@ describe("TechnicalIndicators", function () {
             // Allow for small rounding differences
             const difference = sma - expectedSmaScaled;
             expect(Math.abs(Number(difference))).to.be.lessThan(1e8); // Less than $1 difference
+        });
+
+        it.only("Should calculate 14-day RSI for BTC on deterministic 2025-09-28 dataset", async function () {
+            const { indicators, wbtc, btcData } = await loadFixture(deployDeterministicSep28Fixture);
+            
+            // print btc prices
+            btcData.forEach(d => {
+                // convert timestamp to date
+                const date = new Date(d.timestamp * 1000).toISOString().split('T')[0];
+                console.log(`BTC Price on ${date} ${d.timestamp}: ${d.price}`);
+            });
+
+            const period = 14n;
+            const rsi = await indicators.calculateRSI(await wbtc.getAddress(), Number(period));
+            console.log(`RSI (14-day) for BTC on 2025-09-28: ${Number(rsi) / 1e8}`);
+
+            function calculateRSIScaled(prices: number[], p: number): bigint {
+                const SCALE = 10n ** 8n;
+                const scaled = prices.map(v => BigInt(Math.round(v * 1e8)));
+                let gains = 0n;
+                let losses = 0n;
+                for (let i = scaled.length - p - 1; i < scaled.length - 1; i++) {
+                    const diff = scaled[i + 1] - scaled[i];
+                    if (diff > 0n) gains += diff; else losses += -diff;
+                }
+                let avgGain = (gains * SCALE) / BigInt(p);
+                let avgLoss = (losses * SCALE) / BigInt(p);
+                if (avgLoss === 0n) return 100n * SCALE;
+                const rs = (avgGain * SCALE) / avgLoss;
+                return (100n * SCALE) - ((100n * SCALE * SCALE) / (SCALE + rs));
+            }
+
+            const prices = btcData.map(d => d.price);
+            const expected = calculateRSIScaled(prices, Number(period));
+            console.log(`Expected RSI (14-day) for BTC on 2025-09-28: ${Number(expected) / 1e8}`);
+            expect(rsi).to.equal(expected);
         });
 
         it("Should calculate RSI correctly", async function () {
