@@ -3,7 +3,7 @@ import { ethers, upgrades, network } from "hardhat";
 // Proxy addresses for each network
 const PROXY_ADDRESSES: { [key: string]: string } = {
   "base": "",      // TODO: Add Base mainnet proxy address after deployment
-  "base-sepolia": "", // TODO: Add Base Sepolia proxy address after deployment
+  "base-sepolia": "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
   "sepolia": ""    // TODO: Add Sepolia proxy address after deployment
 };
 

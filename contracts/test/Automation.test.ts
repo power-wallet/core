@@ -206,6 +206,39 @@ describe("Chainlink Automation & Backfill", function () {
                 indicators.updateDailyPrices([await wbtc.getAddress()])
             ).to.be.revertedWith("Gap detected: missing previous day price");
         });
+
+        it("Should measure gas usage for performUpkeep", async function () {
+            const { indicators, wbtc, weth, btcFeed, ethFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present for both tokens
+            await closeGapToPresent(indicators, owner, wbtc);
+            await closeGapToPresent(indicators, owner, weth, "3000");
+            
+            // Move to next day start
+            await moveToNextDayStart();
+            
+            // Set new prices
+            const newBtcPrice = ethers.parseUnits("60000", 8);
+            const newEthPrice = ethers.parseUnits("3500", 8);
+            await btcFeed.updateAnswer(newBtcPrice);
+            await ethFeed.updateAnswer(newEthPrice);
+            
+            // Check upkeep
+            const [upkeepNeeded, performData] = await indicators.checkUpkeep("0x");
+            expect(upkeepNeeded).to.be.true;
+            
+            // Perform upkeep and measure gas
+            const tx = await indicators.performUpkeep(performData);
+            const receipt = await tx.wait();
+            
+            console.log(`\n      Gas used for performUpkeep (2 tokens): ${receipt?.gasUsed.toString()}`);
+            
+            // Verify prices were updated
+            const btcLatest = await indicators.getLatestPrices(await wbtc.getAddress(), 1);
+            const ethLatest = await indicators.getLatestPrices(await weth.getAddress(), 1);
+            expect(btcLatest[0].price).to.equal(newBtcPrice);
+            expect(ethLatest[0].price).to.equal(newEthPrice);
+        });
     });
 
     describe("Manual Backfill", function () {

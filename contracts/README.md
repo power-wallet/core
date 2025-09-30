@@ -1,8 +1,7 @@
 # Base Sepolia Contract Addresses
 
-TechnicalIndicators deployed to: 0xC5D8030DF3BED5A63Ad492cbC466128FFacd0e07
-Implementation deployed to: 0xfB1b64e658Cd1A7DdcEF9Cf263dFd800fc708987
-Admin address: 0x0000000000000000000000000000000000000000
+TechnicalIndicators deployed to: 0x7A0F3B371A2563627EfE1967E7645812909Eb6c5
+
 
 # Deployment 
 
