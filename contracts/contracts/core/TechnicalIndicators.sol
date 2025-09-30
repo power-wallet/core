@@ -34,8 +34,12 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     
     // Indicator parameters (from Python strategy)
     uint256 public constant RSI_PERIOD = 8;           // RSI period for BTC and ETH
-    uint256 public constant ETHBTC_RSI_PERIOD = 5;    // RSI period for ETH/BTC ratio
-    uint256 public constant SMA_PERIOD = 200;         // SMA period for regime filter
+    
+    // Parameter limits for configurable indicators
+    uint256 public constant MIN_SMA_PERIOD = 5;
+    uint256 public constant MAX_SMA_PERIOD = 200;
+    uint256 public constant MIN_ETHBTC_RSI_PERIOD = 5;
+    uint256 public constant MAX_ETHBTC_RSI_PERIOD = 50;
 
     // Events
     event PriceAdded(address token, uint256 timestamp, uint256 price);
@@ -105,18 +109,21 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     /**
      * @notice Calculates Simple Moving Average (SMA) for a token
      * @param token Token address
+     * @param period SMA period (must be between MIN_SMA_PERIOD and MAX_SMA_PERIOD)
      * @return SMA value scaled by SCALE
      */
-    function calculateSMA(address token) public view returns (uint256) {
+    function calculateSMA(address token, uint256 period) public view returns (uint256) {
+        require(period >= MIN_SMA_PERIOD && period <= MAX_SMA_PERIOD, "Period out of range");
+        
         DailyPrice[] storage prices = priceHistory[token];
-        require(prices.length >= SMA_PERIOD, "Insufficient data");
+        require(prices.length >= period, "Insufficient data");
 
         uint256 sum;
-        for (uint256 i = prices.length - SMA_PERIOD; i < prices.length; i++) {
+        for (uint256 i = prices.length - period; i < prices.length; i++) {
             sum += prices[i].price;
         }
 
-        return sum / SMA_PERIOD;
+        return sum / period;
     }
 
     /**
@@ -212,14 +219,17 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
      * @notice Calculates RSI for ETH/BTC ratio
      * @param ethToken ETH token address
      * @param btcToken BTC token address
+     * @param period RSI period (must be between MIN_ETHBTC_RSI_PERIOD and MAX_ETHBTC_RSI_PERIOD)
      * @return RSI value scaled by SCALE (0-100 * SCALE)
      */
-    function calculateEthBtcRSI(address ethToken, address btcToken) public view returns (uint256) {
+    function calculateEthBtcRSI(address ethToken, address btcToken, uint256 period) public view returns (uint256) {
+        require(period >= MIN_ETHBTC_RSI_PERIOD && period <= MAX_ETHBTC_RSI_PERIOD, "Period out of range");
+        
         DailyPrice[] storage ethPrices = priceHistory[ethToken];
         DailyPrice[] storage btcPrices = priceHistory[btcToken];
         
         require(ethPrices.length == btcPrices.length, "Price history length mismatch");
-        require(ethPrices.length >= ETHBTC_RSI_PERIOD + 1, "Insufficient data");
+        require(ethPrices.length >= period + 1, "Insufficient data");
 
         // Create ETH/BTC ratio prices
         uint256[] memory ratioPrices = new uint256[](ethPrices.length);
@@ -233,7 +243,7 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         uint256 avgLoss;
 
         // First pass: calculate initial averages
-        for (uint256 i = ratioPrices.length - ETHBTC_RSI_PERIOD - 1; i < ratioPrices.length - 1; i++) {
+        for (uint256 i = ratioPrices.length - period - 1; i < ratioPrices.length - 1; i++) {
             if (ratioPrices[i + 1] > ratioPrices[i]) {
                 avgGain += ratioPrices[i + 1] - ratioPrices[i];
             } else {
@@ -241,8 +251,8 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
             }
         }
 
-        avgGain = (avgGain * SCALE) / ETHBTC_RSI_PERIOD;
-        avgLoss = (avgLoss * SCALE) / ETHBTC_RSI_PERIOD;
+        avgGain = (avgGain * SCALE) / period;
+        avgLoss = (avgLoss * SCALE) / period;
 
         // Calculate RSI
         if (avgLoss == 0) {

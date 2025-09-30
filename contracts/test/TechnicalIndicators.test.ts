@@ -76,7 +76,7 @@ describe("TechnicalIndicators - Core Functionality", function () {
         it("Should calculate 200-day SMA correctly", async function () {
             const { indicators, wbtc, btcData } = await loadFixture(deployWithHistoricalDataFixture);
             
-            const sma = await indicators.calculateSMA(await wbtc.getAddress());
+            const sma = await indicators.calculateSMA(await wbtc.getAddress(), 200);
             
             // Calculate expected SMA
             const expectedSma = btcData.reduce((sum, data) => sum + data.price, 0) / btcData.length;
@@ -129,12 +129,92 @@ describe("TechnicalIndicators - Core Functionality", function () {
             
             const rsi = await indicators.calculateEthBtcRSI(
                 await weth.getAddress(),
-                await wbtc.getAddress()
+                await wbtc.getAddress(),
+                5  // Default period from original constant
             );
             
             // RSI should be between 0 and 100 * SCALE (inclusive)
             expect(rsi).to.be.gte(0n);
             expect(rsi).to.be.lte(10000000000n); // 100 * 10^8
+        });
+
+        it("Should calculate SMA with different periods", async function () {
+            const { indicators, wbtc } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Test different valid periods
+            const sma5 = await indicators.calculateSMA(await wbtc.getAddress(), 5);
+            const sma50 = await indicators.calculateSMA(await wbtc.getAddress(), 50);
+            const sma200 = await indicators.calculateSMA(await wbtc.getAddress(), 200);
+            
+            // All should be valid values
+            expect(sma5).to.be.gt(0n);
+            expect(sma50).to.be.gt(0n);
+            expect(sma200).to.be.gt(0n);
+            
+            // Shorter periods should be more reactive (may differ more from longer periods)
+            // Just verify they're all within reasonable bounds
+        });
+
+        it("Should reject SMA period out of range", async function () {
+            const { indicators, wbtc } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Test below minimum
+            await expect(
+                indicators.calculateSMA(await wbtc.getAddress(), 4)
+            ).to.be.revertedWith("Period out of range");
+            
+            // Test above maximum
+            await expect(
+                indicators.calculateSMA(await wbtc.getAddress(), 201)
+            ).to.be.revertedWith("Period out of range");
+        });
+
+        it("Should calculate ETH/BTC RSI with different periods", async function () {
+            const { indicators, wbtc, weth } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Test different valid periods
+            const rsi5 = await indicators.calculateEthBtcRSI(
+                await weth.getAddress(),
+                await wbtc.getAddress(),
+                5
+            );
+            const rsi14 = await indicators.calculateEthBtcRSI(
+                await weth.getAddress(),
+                await wbtc.getAddress(),
+                14
+            );
+            const rsi50 = await indicators.calculateEthBtcRSI(
+                await weth.getAddress(),
+                await wbtc.getAddress(),
+                50
+            );
+            
+            // All should be valid RSI values (0-100 * SCALE)
+            expect(rsi5).to.be.gte(0n).and.lte(10000000000n);
+            expect(rsi14).to.be.gte(0n).and.lte(10000000000n);
+            expect(rsi50).to.be.gte(0n).and.lte(10000000000n);
+        });
+
+        it("Should reject ETH/BTC RSI period out of range", async function () {
+            const { indicators, wbtc, weth } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Test below minimum
+            await expect(
+                indicators.calculateEthBtcRSI(
+                    await weth.getAddress(),
+                    await wbtc.getAddress(),
+                    4
+                )
+            ).to.be.revertedWith("Period out of range");
+            
+            // Test above maximum
+            await expect(
+                indicators.calculateEthBtcRSI(
+                    await weth.getAddress(),
+                    await wbtc.getAddress(),
+                    51
+                )
+            ).to.be.revertedWith("Period out of range");
         });
 
         it("Should match Python strategy RSI values", async function () {
