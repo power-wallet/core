@@ -70,6 +70,27 @@ describe("TechnicalIndicators - Core Functionality", function () {
             expect(history[0].timestamp).to.equal(startTime);
             expect(history[history.length - 1].timestamp).to.equal(ethers.getBigInt(startTimestamp + (199 * day)));
         });
+
+        it("Should return full price history", async function () {
+            const { indicators, wbtc } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            const fullHistory = await indicators.getFullPriceHistory(await wbtc.getAddress());
+            
+            // Should have 200 days of historical data
+            expect(fullHistory.length).to.equal(200);
+            
+            // Verify all timestamps are in chronological order
+            for (let i = 0; i < fullHistory.length - 1; i++) {
+                expect(fullHistory[i].timestamp).to.be.lt(fullHistory[i + 1].timestamp);
+                // Each day should be exactly 1 day (86400 seconds) apart
+                expect(fullHistory[i + 1].timestamp - fullHistory[i].timestamp).to.equal(86400n);
+            }
+            
+            // Verify all prices are positive
+            for (let i = 0; i < fullHistory.length; i++) {
+                expect(fullHistory[i].price).to.be.gt(0n);
+            }
+        });
     });
 
     describe("Technical Indicators", function () {

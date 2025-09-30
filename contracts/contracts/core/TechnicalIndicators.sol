@@ -14,7 +14,7 @@ import "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatible
  */
 contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeable, AutomationCompatibleInterface {
     struct DailyPrice {
-        uint256 timestamp;  // UTC midnight
+        uint256 timestamp;  // UTC midnight (start of the day)
         uint256 price;      // Price scaled by 1e8
     }
 
@@ -264,7 +264,25 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     }
 
     /**
-     * @notice Gets historical price data for a token
+     * @notice Gets the complete price history for a token
+     * @param token Token address
+     * @return Array of all DailyPrice structs for the token
+     */
+    function getFullPriceHistory(address token) external view returns (DailyPrice[] memory) {
+        DailyPrice[] storage prices = priceHistory[token];
+        require(prices.length > 0, "No price history");
+        
+        // Create a memory copy of the entire price history
+        DailyPrice[] memory result = new DailyPrice[](prices.length);
+        for (uint256 i = 0; i < prices.length; i++) {
+            result[i] = prices[i];
+        }
+        
+        return result;
+    }
+
+    /**
+     * @notice Gets historical price data for a token within a time range
      * @param token Token address
      * @param startTime Start timestamp (inclusive)
      * @param endTime End timestamp (exclusive)
@@ -416,7 +434,7 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     /**
      * @notice Internal function to update prices
      * @param tokens Array of token addresses to update
-     * @param today Current day timestamp (UTC midnight)
+     * @param today Current day timestamp (UTC midnight) - the start of the today
      */
     function _updatePrices(address[] memory tokens, uint256 today) private {
         // Calculate yesterday's timestamp
