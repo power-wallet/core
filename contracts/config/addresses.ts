@@ -41,13 +41,14 @@ export const addresses: Record<string, ChainAddresses> = {
     uniswapV3Router: "0x4F84662a1317BE05B8F66F31AeA0c3e5398CC5f1",
     
     // Tokens
-    usdc: "0x036CbD53842c5426634e7929541eC2018491cf960",  // Mock USDC
+    usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",  // Mock USDC
     weth: "0x4200000000000000000000000000000000000006",
     wbtc: "0x29f2D40B0605204364af54EC677bD022dA425d03",  // Mock WBTC
+    cbBTC: "0xcbB7C0006F23900c38EB856149F799620fcb8A4a",  // cbBTC
     
     // Chainlink Price Feeds
-    btcUsdPriceFeed: "0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43",
-    ethUsdPriceFeed: "0xcD2A119bD1F7DF95d706DE6F2057fDD45A0503E2"
+    btcUsdPriceFeed: "0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298",
+    ethUsdPriceFeed: "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1"
   },
   
   // Ethereum Sepolia (Testnet)

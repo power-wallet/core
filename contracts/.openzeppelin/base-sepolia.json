@@ -1,0 +1,185 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xC5D8030DF3BED5A63Ad492cbC466128FFacd0e07",
+      "txHash": "0x618beef000958f00c1f25484efa342f85f2798887c3cfbb5f05f987389ac6f13",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3631a5844B4e01cD8D4225CB53a7481720526fDd",
+      "txHash": "0xa44f2c76a4b59926f52bec7156bbfc071063702d7d644755929bd21195257e2d",
+      "kind": "uups"
+    },
+    {
+      "address": "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
+      "txHash": "0xc5527a011282c6e5820340cb5f190dd50eeedfcbdb8de8ad93d5418914c657a6",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "f3cdecc13900bc2ef724e9c29bc4641c2e07424e5294699a956510c66632518f": {
+      "address": "0xfB1b64e658Cd1A7DdcEF9Cf263dFd800fc708987",
+      "txHash": "0x73db70c3d431fb79d7342e24d252c5ad0a0773c5226f282c1c0808195ed326b8",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "priceHistory",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_array(t_struct(DailyPrice)1517_storage)dyn_storage)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:27"
+          },
+          {
+            "label": "tokenConfigs",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_struct(TokenConfig)1522_storage)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:28"
+          },
+          {
+            "label": "trackedTokens",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_address)dyn_storage",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:29"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)136_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)76_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_struct(DailyPrice)1517_storage)dyn_storage": {
+            "label": "struct TechnicalIndicators.DailyPrice[]",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_array(t_struct(DailyPrice)1517_storage)dyn_storage)": {
+            "label": "mapping(address => struct TechnicalIndicators.DailyPrice[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(TokenConfig)1522_storage)": {
+            "label": "mapping(address => struct TechnicalIndicators.TokenConfig)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(DailyPrice)1517_storage": {
+            "label": "struct TechnicalIndicators.DailyPrice",
+            "members": [
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "price",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(TokenConfig)1522_storage": {
+            "label": "struct TechnicalIndicators.TokenConfig",
+            "members": [
+              {
+                "label": "priceFeed",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "lastUpdateTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -32,12 +32,12 @@ const config: HardhatUserConfig = {
       gasPrice: "auto",
     },
   },
+  sourcify: {
+    enabled: true
+  },
   etherscan: {
-    apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY || "",
-      "base-sepolia": process.env.BASESCAN_API_KEY || "",
-      base: process.env.BASESCAN_API_KEY || "",
-    },
+    // V2 API format - single API key
+    apiKey: process.env.BASESCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "",
     customChains: [
       {
         network: "base-sepolia",
@@ -53,6 +53,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org"
+        }
+      },
+      {
+        network: "sepolia",
+        chainId: 11155111,
+        urls: {
+          apiURL: "https://api-sepolia.etherscan.io/api",
+          browserURL: "https://sepolia.etherscan.io"
         }
       }
     ]

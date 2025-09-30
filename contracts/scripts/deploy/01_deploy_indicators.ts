@@ -62,7 +62,7 @@ async function main() {
     tokens = [await wbtc.getAddress(), await weth.getAddress()];
     priceFeeds = [await btcFeed.getAddress(), await ethFeed.getAddress()];
   } else {
-    tokens = [networkAddresses.wbtc, networkAddresses.weth];
+    tokens = [networkAddresses.cbBTC, networkAddresses.weth];
     priceFeeds = [networkAddresses.btcUsdPriceFeed, networkAddresses.ethUsdPriceFeed];
   }
 
