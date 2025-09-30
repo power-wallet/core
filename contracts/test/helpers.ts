@@ -43,10 +43,14 @@ export async function deployWithHistoricalDataFixture() {
     };
 
     const startTimestamp = parseUtcMidnight(last200Dates[0]);
+    const endTimestamp = parseUtcMidnight(last200Dates[last200Dates.length - 1]);
     const btcPrices = last200Dates.map(d => ethers.parseUnits(btcByDate.get(d)!.toString(), 8));
     const ethPrices = last200Dates.map(d => ethers.parseUnits(ethByDate.get(d)!.toString(), 8));
     const btcTimestamps = ethers.getBigInt(startTimestamp);
     const ethTimestamps = ethers.getBigInt(startTimestamp);
+
+    // No need to manipulate time - loadFixture resets the EVM state for each test
+    // Tests will handle time progression as needed
 
     // Initial feed prices set to the latest values
     const btcLatest = btcPrices[btcPrices.length - 1];

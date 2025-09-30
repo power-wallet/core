@@ -323,8 +323,9 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     /**
      * @notice Chainlink Automation check if upkeep is needed
      * @dev Called by Chainlink Keeper to check if daily price update is needed
+     * @dev Will return false if gap detected to prevent corrupting price history
      * @param checkData Not used in this implementation
-     * @return upkeepNeeded True if a new day has started since last update
+     * @return upkeepNeeded True if update needed and no gaps detected
      * @return performData Encoded array of tracked tokens to update
      */
     function checkUpkeep(bytes calldata checkData) 
@@ -336,16 +337,40 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         checkData; // Silence unused parameter warning
         
         uint256 today = block.timestamp - (block.timestamp % 1 days);
+        uint256 yesterday = today - 1 days;
+        uint256 dayBeforeYesterday = yesterday - 1 days;
         
-        // Check if any token needs updating
+        // Check if any token needs updating AND has no gaps
         for (uint256 i = 0; i < trackedTokens.length; i++) {
             address token = trackedTokens[i];
             TokenConfig storage config = tokenConfigs[token];
+            DailyPrice[] storage prices = priceHistory[token];
             
-            if (config.priceFeed != address(0) && config.lastUpdateTimestamp < today) {
-                upkeepNeeded = true;
-                break;
+            // Skip if already updated or not configured
+            if (config.priceFeed == address(0) || config.lastUpdateTimestamp >= today) {
+                continue;
             }
+            
+            // Check for gaps: if we have existing data, last entry must be day before yesterday
+            if (prices.length > 0) {
+                uint256 lastTimestamp = prices[prices.length - 1].timestamp;
+                
+                // Skip if we already have yesterday's price (shouldn't happen but be safe)
+                if (lastTimestamp == yesterday) {
+                    continue;
+                }
+                
+                // Check for gap: last entry must be day before yesterday
+                if (lastTimestamp != dayBeforeYesterday) {
+                    // Gap detected - don't set upkeepNeeded
+                    // Owner must backfill before automation can resume
+                    continue;
+                }
+            }
+            
+            // This token needs update and has no gaps
+            upkeepNeeded = true;
+            break;
         }
         
         // Return tracked tokens as performData

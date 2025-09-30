@@ -15,6 +15,36 @@ describe("Chainlink Automation & Backfill", function () {
         await ethers.provider.send("evm_mine", []);
     }
 
+    // Helper to close any gap between historical data and current time
+    async function closeGapToPresent(indicators: any, owner: any, token: any, dummyPrice: string = "65000") {
+        const history = await indicators.getLatestPrices(await token.getAddress(), 1);
+        const lastTimestamp = history[0].timestamp;
+        
+        const block = await ethers.provider.getBlock("latest");
+        const currentTime = block!.timestamp;
+        const today = currentTime - (currentTime % 86400);
+        const yesterday = today - 86400;
+        
+        // Backfill from day after last timestamp up to and including yesterday
+        const timestamps = [];
+        const prices = [];
+        
+        let ts = lastTimestamp + 86400n;
+        while (ts <= yesterday) {
+            timestamps.push(ts);
+            prices.push(ethers.parseUnits(dummyPrice, 8)); // Dummy price
+            ts += 86400n;
+        }
+        
+        if (timestamps.length > 0) {
+            await indicators.connect(owner).backfillDailyPrices(
+                await token.getAddress(),
+                timestamps,
+                prices
+            );
+        }
+    }
+
     describe("Chainlink Automation", function () {
         it("Should return tracked tokens", async function () {
             const { indicators, wbtc, weth } = await loadFixture(deployWithHistoricalDataFixture);
@@ -26,7 +56,11 @@ describe("Chainlink Automation & Backfill", function () {
         });
 
         it("Should indicate upkeep is not needed on same day", async function () {
-            const { indicators, wbtc, weth, btcFeed, ethFeed } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, weth, btcFeed, ethFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
+            await closeGapToPresent(indicators, owner, weth);
             
             // Move to next day start
             await moveToNextDayStart();
@@ -44,7 +78,11 @@ describe("Chainlink Automation & Backfill", function () {
         });
 
         it("Should indicate upkeep is needed on new day", async function () {
-            const { indicators, wbtc, weth } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, weth, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
+            await closeGapToPresent(indicators, owner, weth);
             
             // Move to next day start
             await moveToNextDayStart();
@@ -60,7 +98,11 @@ describe("Chainlink Automation & Backfill", function () {
         });
 
         it("Should perform upkeep and update prices", async function () {
-            const { indicators, wbtc, weth, btcFeed, ethFeed } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, weth, btcFeed, ethFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
+            await closeGapToPresent(indicators, owner, weth);
             
             // Move to next day start
             await moveToNextDayStart();
@@ -86,7 +128,11 @@ describe("Chainlink Automation & Backfill", function () {
         });
 
         it("Should not perform upkeep when not needed", async function () {
-            const { indicators, wbtc, weth, btcFeed, ethFeed } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, weth, btcFeed, ethFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
+            await closeGapToPresent(indicators, owner, weth);
             
             // Move to next day start
             await moveToNextDayStart();
@@ -106,7 +152,11 @@ describe("Chainlink Automation & Backfill", function () {
         });
 
         it("Should only perform upkeep once per day", async function () {
-            const { indicators, wbtc, btcFeed } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, weth, btcFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present for both tokens
+            await closeGapToPresent(indicators, owner, wbtc);
+            await closeGapToPresent(indicators, owner, weth, "3000");
             
             // Move to next day start
             await moveToNextDayStart();
@@ -126,6 +176,35 @@ describe("Chainlink Automation & Backfill", function () {
             // Check upkeep should return false
             const [upkeepNeeded] = await indicators.checkUpkeep("0x");
             expect(upkeepNeeded).to.be.false;
+        });
+
+        it("Should prevent upkeep when gap would be created", async function () {
+            const { indicators, wbtc, btcFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
+            
+            // Move forward 1 day and update (this works)
+            await moveToNextDayStart();
+            const price1 = ethers.parseUnits("70000", 8);
+            await btcFeed.updateAnswer(price1);
+            await indicators.updateDailyPrices([await wbtc.getAddress()]);
+            
+            // Move forward 2 more days (skip day 2) - creating a gap scenario
+            await moveToNextDayStart();
+            await moveToNextDayStart();
+            
+            const price2 = ethers.parseUnits("72000", 8);
+            await btcFeed.updateAnswer(price2);
+            
+            // checkUpkeep should return false due to gap detection
+            const [upkeepNeeded] = await indicators.checkUpkeep("0x");
+            expect(upkeepNeeded).to.be.false;
+            
+            // Manual update should also fail
+            await expect(
+                indicators.updateDailyPrices([await wbtc.getAddress()])
+            ).to.be.revertedWith("Gap detected: missing previous day price");
         });
     });
 
@@ -228,7 +307,10 @@ describe("Chainlink Automation & Backfill", function () {
         });
 
         it("Should prevent automation from creating gaps", async function () {
-            const { indicators, wbtc, btcFeed } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, btcFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
             
             // Move forward 1 day and update (this works)
             await moveToNextDayStart();

@@ -15,6 +15,36 @@ describe("TechnicalIndicators - Core Functionality", function () {
         await ethers.provider.send("evm_mine", []);
     }
 
+    // Helper to close any gap between historical data and current time
+    async function closeGapToPresent(indicators: any, owner: any, token: any, dummyPrice: string = "65000") {
+        const history = await indicators.getLatestPrices(await token.getAddress(), 1);
+        const lastTimestamp = history[0].timestamp;
+        
+        const block = await ethers.provider.getBlock("latest");
+        const currentTime = block!.timestamp;
+        const today = currentTime - (currentTime % 86400);
+        const yesterday = today - 86400;
+        
+        // Backfill from day after last timestamp up to and including yesterday
+        const timestamps = [];
+        const prices = [];
+        
+        let ts = lastTimestamp + 86400n;
+        while (ts <= yesterday) {
+            timestamps.push(ts);
+            prices.push(ethers.parseUnits(dummyPrice, 8)); // Dummy price
+            ts += 86400n;
+        }
+        
+        if (timestamps.length > 0) {
+            await indicators.connect(owner).backfillDailyPrices(
+                await token.getAddress(),
+                timestamps,
+                prices
+            );
+        }
+    }
+
     describe("Deployment", function () {
         it("Should deploy with historical data", async function () {
             const { indicators, wbtc } = await loadFixture(deployWithHistoricalDataFixture);
@@ -235,7 +265,10 @@ describe("TechnicalIndicators - Core Functionality", function () {
 
     describe("Price Updates", function () {
         it("Should update prices correctly", async function () {
-            const { indicators, wbtc, btcFeed } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, btcFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
             
             // Move to next day start (within 1-hour window)
             await moveToNextDayStart();
@@ -253,7 +286,10 @@ describe("TechnicalIndicators - Core Functionality", function () {
         });
 
         it("Should not allow multiple updates in same day", async function () {
-            const { indicators, wbtc, btcFeed } = await loadFixture(deployWithHistoricalDataFixture);
+            const { indicators, wbtc, btcFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+            
+            // Close gap to present
+            await closeGapToPresent(indicators, owner, wbtc);
             
             // Move to next day start
             await moveToNextDayStart();
