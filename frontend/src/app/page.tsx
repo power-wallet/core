@@ -131,11 +131,18 @@ export default function Home() {
             <Grid item xs={12} md={6}>
               <Box
                 sx={{
-                  textAlign: 'center',
-                  fontSize: { xs: 120, md: 200 },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                💰
+                <AccountBalanceWalletIcon
+                  sx={{
+                    fontSize: { xs: 120, md: 200 },
+                    color: 'primary.main',
+                    filter: 'drop-shadow(0 0 30px rgba(245, 158, 11, 0.5))',
+                  }}
+                />
               </Box>
             </Grid>
           </Grid>

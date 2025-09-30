@@ -112,7 +112,15 @@ const Navbar = () => {
               <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
                 {menuItems.map((item) => (
                   <Link key={item.text} href={item.href} passHref style={{ textDecoration: 'none' }}>
-                    <Button color="inherit">
+                    <Button 
+                      sx={{ 
+                        color: 'white',
+                        '&:hover': {
+                          color: 'primary.main',
+                          bgcolor: 'rgba(245, 158, 11, 0.1)',
+                        },
+                      }}
+                    >
                       {item.text}
                     </Button>
                   </Link>

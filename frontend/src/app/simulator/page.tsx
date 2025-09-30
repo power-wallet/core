@@ -1,57 +1,92 @@
 'use client';
 
-import React from 'react';
-import {
-  Container,
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Stack,
-} from '@mui/material';
-import ConstructionIcon from '@mui/icons-material/Construction';
+import React, { useState } from 'react';
+import { Container, Box, Typography, Alert, AlertTitle } from '@mui/material';
+import SimulatorControls, { type SimulationParams } from '@/components/simulator/SimulatorControls';
+import StatsSummary from '@/components/simulator/StatsSummary';
+import SimulatorCharts from '@/components/simulator/SimulatorCharts';
+import TradesTable from '@/components/simulator/TradesTable';
+import { runSimulation } from '@/lib/simulator';
+import type { SimulationResult } from '@/lib/types';
 
-export default function Simulator() {
+export default function SimulatorPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<SimulationResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleRunSimulation = async (params: SimulationParams) => {
+    setIsLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const simulationResult = await runSimulation(
+        params.initialCapital,
+        params.startDate,
+        params.endDate
+      );
+      setResult(simulationResult);
+    } catch (err) {
+      console.error('Simulation error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred during simulation');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Card sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center' }}>
-        <CardContent sx={{ py: 6 }}>
-          <Stack spacing={3} alignItems="center">
-            <ConstructionIcon sx={{ fontSize: 80, color: 'primary.main' }} />
-            <Typography variant="h4" component="h1" fontWeight="bold">
-              Strategy Simulator
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+      <Container maxWidth="xl">
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h3" component="h1" gutterBottom fontWeight="bold">
+            Strategy Simulator
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Backtest trading strategies with historical data and analyze performance metrics
+          </Typography>
+        </Box>
+
+        <SimulatorControls onRunSimulation={handleRunSimulation} isLoading={isLoading} />
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 4 }}>
+            <AlertTitle>Simulation Error</AlertTitle>
+            {error}
+          </Alert>
+        )}
+
+        {result && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {/* Summary Stats */}
+            <StatsSummary result={result} />
+
+            {/* Charts */}
+            <SimulatorCharts result={result} />
+
+            {/* Trades Table */}
+            <TradesTable result={result} />
+          </Box>
+        )}
+
+        {!result && !isLoading && !error && (
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: 8,
+              px: 2,
+              border: '2px dashed #2D2D2D',
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Ready to backtest
             </Typography>
-            <Typography variant="body1" color="text.secondary">
-              The strategy backtesting simulator is coming soon. Here you&apos;ll be able to:
+            <Typography variant="body2" color="text.secondary">
+              Configure your simulation parameters above and click &quot;Run Simulation&quot; to begin
             </Typography>
-            <Box component="ul" sx={{ textAlign: 'left', pl: 4 }}>
-              <li>
-                <Typography variant="body2" color="text.secondary">
-                  Test different trading strategies with historical data
-                </Typography>
-              </li>
-              <li>
-                <Typography variant="body2" color="text.secondary">
-                  Compare performance metrics across strategies
-                </Typography>
-              </li>
-              <li>
-                <Typography variant="body2" color="text.secondary">
-                  Optimize parameters for maximum returns
-                </Typography>
-              </li>
-              <li>
-                <Typography variant="body2" color="text.secondary">
-                  Analyze risk-adjusted performance
-                </Typography>
-              </li>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ pt: 2 }}>
-              Stay tuned for updates!
-            </Typography>
-          </Stack>
-        </CardContent>
-      </Card>
-    </Container>
+          </Box>
+        )}
+      </Container>
+    </Box>
   );
 }
