@@ -71,14 +71,7 @@ const RSIAndSignalsChart: React.FC<Props> = ({ result }) => {
             <XAxis dataKey="date" stroke="#999" tick={{ fontSize: 12 }} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
             <YAxis domain={[0, 100]} stroke="#999" tick={{ fontSize: 12 }} />
             <Tooltip content={<TooltipContent />} />
-            <Legend payload={[
-              { value: 'BTC RSI', type: 'line', id: 'btcRsi', color: '#F97316' },
-              { value: 'ETH RSI', type: 'line', id: 'ethRsi', color: '#9CA3AF' },
-              { value: 'Entry threshold', type: 'line', id: 'entryLine', color: '#10B981' },
-              { value: 'Exit threshold', type: 'line', id: 'exitLine', color: '#EF4444' },
-              { value: 'Both eligible', type: 'circle', id: 'bothEligible', color: '#3B82F6' },
-              { value: 'Both allocated', type: 'circle', id: 'bothAllocated', color: '#FB923C' },
-            ]} />
+            <Legend />
 
             {/* RSI lines */}
             <Line type="monotone" dataKey="btcRsi" name="BTC RSI" stroke="#F97316" strokeWidth={2} dot={false} />
