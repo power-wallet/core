@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Box, Card, CardContent, Typography } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Box, Card, CardContent, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { 
   LineChart, 
   Line, 
@@ -122,12 +122,41 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
     return null;
   };
 
+  const [scale, setScale] = useState<'linear' | 'log'>('linear');
+  const handleScaleChange = (_: any, next: 'linear' | 'log' | null) => {
+    if (next) setScale(next);
+  };
+
+  const leftTickFormatter = useMemo(() => (value: number) => `$${(value / 1000).toFixed(0)}k`, []);
+  const rightTickFormatter = useMemo(() => (value: number) => `$${(value / 1000).toFixed(1)}k`, []);
+
   return (
     <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D', mb: 3 }}>
       <CardContent>
-        <Typography variant="h6" gutterBottom fontWeight="bold">
-          Asset Prices & Trades
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="h6" fontWeight="bold">
+            Asset Prices & Trades
+          </Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={scale}
+            onChange={handleScaleChange}
+            sx={{
+              '& .MuiToggleButton-root': {
+                color: '#D1D5DB',
+                borderColor: '#2D2D2D',
+              },
+              '& .Mui-selected': {
+                color: '#111827',
+                backgroundColor: '#F59E0B',
+              },
+            }}
+          >
+            <ToggleButton value="linear">Linear</ToggleButton>
+            <ToggleButton value="log">Log</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
         <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
@@ -145,7 +174,10 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="left"
               stroke="#F97316"
               tick={{ fontSize: 12 }}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              scale={scale}
+              domain={['auto','auto']}
+              allowDataOverflow
+              tickFormatter={leftTickFormatter}
               label={{ value: 'BTC Price', angle: -90, position: 'insideLeft', style: { fill: '#F97316' } }}
             />
             {/* Right Y-axis for ETH */}
@@ -154,7 +186,10 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               orientation="right"
               stroke="#9CA3AF"
               tick={{ fontSize: 12 }}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
+              scale={scale}
+              domain={['auto','auto']}
+              allowDataOverflow
+              tickFormatter={rightTickFormatter}
               label={{ value: 'ETH Price', angle: 90, position: 'insideRight', style: { fill: '#9CA3AF' } }}
             />
             <Tooltip content={<CustomTooltip />} />

@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Card, CardContent, Typography } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Card, CardContent, Typography, ToggleButton, ToggleButtonGroup, Box } from '@mui/material';
 import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter } from 'recharts';
 import type { SimulationResult } from '@/lib/types';
 
@@ -45,15 +45,52 @@ const PowerLawChart: React.FC<Props> = ({ result }) => {
     );
   };
 
+  const [scale, setScale] = useState<'linear' | 'log'>('linear');
+  const handleScaleChange = (_: any, next: 'linear' | 'log' | null) => {
+    if (next) setScale(next);
+  };
+
+  const tickFormatter = useMemo(() => {
+    return (v: number) => `$${(v / 1000).toFixed(0)}k`;
+  }, []);
+
   return (
     <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D', mb: 3 }}>
       <CardContent>
-        <Typography variant="h6" gutterBottom fontWeight="bold">Power Law & Signals</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="h6" fontWeight="bold">Power Law & Signals</Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={scale}
+            onChange={handleScaleChange}
+            sx={{
+              '& .MuiToggleButton-root': {
+                color: '#D1D5DB',
+                borderColor: '#2D2D2D',
+              },
+              '& .Mui-selected': {
+                color: '#111827',
+                backgroundColor: '#F59E0B',
+              },
+            }}
+          >
+            <ToggleButton value="linear">Linear</ToggleButton>
+            <ToggleButton value="log">Log</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
         <ResponsiveContainer width="100%" height={360}>
           <ComposedChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
             <XAxis dataKey="date" stroke="#999" tick={{ fontSize: 12 }} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
-            <YAxis stroke="#999" tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+            <YAxis
+              stroke="#999"
+              tick={{ fontSize: 12 }}
+              scale={scale}
+              domain={['auto', 'auto']}
+              allowDataOverflow
+              tickFormatter={tickFormatter}
+            />
             <Tooltip content={<TooltipContent />} />
             <Legend />
 
