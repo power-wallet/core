@@ -27,11 +27,39 @@ export interface SimulationParams {
 }
 
 const SimulatorControls: React.FC<SimulatorControlsProps> = ({ onRunSimulation, isLoading }) => {
+  const STORAGE_KEY = 'simulator:settings';
   const [strategy, setStrategy] = useState('btc-eth-momentum');
   const [startDate, setStartDate] = useState('2025-01-01');
   const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [initialCapital, setInitialCapital] = useState(10000);
   const [error, setError] = useState('');
+
+  // Load saved settings once on mount (client only)
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved?.strategy) setStrategy(saved.strategy);
+        if (saved?.startDate) setStartDate(saved.startDate);
+        if (saved?.endDate) setEndDate(saved.endDate);
+        if (typeof saved?.initialCapital === 'number') setInitialCapital(saved.initialCapital);
+      }
+    } catch (_) {
+      // ignore
+    }
+  }, []);
+
+  // Persist settings whenever they change
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const payload = { strategy, startDate, endDate, initialCapital };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (_) {
+      // ignore
+    }
+  }, [strategy, startDate, endDate, initialCapital]);
 
   // Validate dates
   useEffect(() => {
