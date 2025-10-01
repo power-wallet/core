@@ -61,10 +61,14 @@ export interface SimulationResult {
     cagr: number;
     maxDrawdown: number;
     totalTrades: number;
+    sharpeRatio: number;
+    sortinoRatio: number;
     btcHodlFinalValue: number;
     btcHodlReturn: number;
     btcHodlCagr: number;
     btcHodlMaxDrawdown: number;
+    btcHodlSharpeRatio: number;
+    btcHodlSortinoRatio: number;
     outperformance: number;
   };
 }

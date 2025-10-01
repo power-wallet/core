@@ -17,10 +17,14 @@ const ComparisonCard: React.FC<{
   benchmarkValue: string;
   strategyChange?: number;
   suffix?: string;
-}> = ({ label, strategyValue, benchmarkValue, strategyChange, suffix = '' }) => {
-  const isPositive = strategyChange !== undefined ? strategyChange >= 0 : undefined;
-  const color = strategyChange !== undefined 
-    ? (strategyChange >= 0 ? 'success.main' : 'error.main')
+  invertSign?: boolean; // when true, smaller (more negative) is better (e.g., drawdown)
+}> = ({ label, strategyValue, benchmarkValue, strategyChange, suffix = '', invertSign = false }) => {
+  const effectiveChange = strategyChange !== undefined 
+    ? (invertSign ? -strategyChange : strategyChange) 
+    : undefined;
+  const isPositive = effectiveChange !== undefined ? effectiveChange >= 0 : undefined;
+  const color = isPositive !== undefined 
+    ? (isPositive ? 'success.main' : 'error.main')
     : 'white';
   
   return (
@@ -61,21 +65,33 @@ const ComparisonCard: React.FC<{
   );
 };
 
-// Card for strategy-only metrics (no benchmark)
-const StatCard: React.FC<{ label: string; value: string; suffix?: string }> = ({ 
+// Card for strategy-only metrics (optionally with trend)
+const StatCard: React.FC<{ label: string; value: string; suffix?: string; change?: number }> = ({ 
   label, 
   value, 
-  suffix = '' 
+  suffix = '',
+  change,
 }) => {
+  const isPositive = change !== undefined ? change >= 0 : undefined;
+  const color = change !== undefined ? (isPositive ? 'success.main' : 'error.main') : 'white';
   return (
     <Card sx={{ height: '100%', bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
       <CardContent>
         <Typography variant="caption" color="text.secondary" gutterBottom>
           {label}
         </Typography>
-        <Typography variant="h4" fontWeight="bold" color="white">
-          {value}{suffix}
-        </Typography>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Typography variant="h4" fontWeight="bold" sx={{ color }}>
+            {value}{suffix}
+          </Typography>
+          {isPositive !== undefined && (
+            isPositive ? (
+              <TrendingUpIcon sx={{ color: 'success.main', fontSize: 24 }} />
+            ) : (
+              <TrendingDownIcon sx={{ color: 'error.main', fontSize: 24 }} />
+            )
+          )}
+        </Box>
       </CardContent>
     </Card>
   );
@@ -145,7 +161,7 @@ const StatsSummary: React.FC<StatsSummaryProps> = ({ result }) => {
           />
         </Grid>
         
-        {/* Max Drawdown */}
+        {/* Max Drawdown (invert sign so smaller absolute drawdown is greener) */}
         <Grid item xs={12} sm={6} md={3}>
           <ComparisonCard
             label="Max Drawdown"
@@ -153,25 +169,41 @@ const StatsSummary: React.FC<StatsSummaryProps> = ({ result }) => {
             benchmarkValue={summary.btcHodlMaxDrawdown.toFixed(2)}
             strategyChange={summary.maxDrawdown}
             suffix="%"
+            invertSign
           />
         </Grid>
         
-        {/* Outperformance */}
+        {/* Outperformance (green if >= 0, red otherwise) */}
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             label="Outperformance"
             value={summary.outperformance.toFixed(2)}
             suffix="%"
+            change={summary.outperformance}
           />
         </Grid>
         
-        {/* Total Trades - Strategy only */}
+        {/* Sharpe Ratio */}
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            label="Total Trades"
-            value={summary.totalTrades.toString()}
+          <ComparisonCard
+            label="Sharpe Ratio"
+            strategyValue={summary.sharpeRatio.toFixed(2)}
+            benchmarkValue={summary.btcHodlSharpeRatio.toFixed(2)}
+            strategyChange={summary.sharpeRatio - summary.btcHodlSharpeRatio}
           />
         </Grid>
+        
+        {/* Sortino Ratio */}
+        <Grid item xs={12} sm={6} md={3}>
+          <ComparisonCard
+            label="Sortino Ratio"
+            strategyValue={summary.sortinoRatio.toFixed(2)}
+            benchmarkValue={summary.btcHodlSortinoRatio.toFixed(2)}
+            strategyChange={summary.sortinoRatio - summary.btcHodlSortinoRatio}
+          />
+        </Grid>
+        
+        {/* Removed Total Trades card as requested */}
       </Grid>
     </Box>
   );
