@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
 import {
   LineChart,
@@ -44,6 +44,61 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
     strategy: d.drawdown,
     hodl: d.btcHodlDrawdown,
   }));
+
+  // Visibility toggles
+  const [showPvStrategy, setShowPvStrategy] = useState(true);
+  const [showPvHodl, setShowPvHodl] = useState(true);
+  const [showDdStrategy, setShowDdStrategy] = useState(true);
+  const [showDdHodl, setShowDdHodl] = useState(true);
+  const [showUSDC, setShowUSDC] = useState(true);
+  const [showBTC, setShowBTC] = useState(true);
+  const [showETH, setShowETH] = useState(true);
+
+  // Dynamic Y domains based on visible series
+  const pvDomain = useMemo(() => {
+    const keys: Array<'strategy'|'hodl'> = [];
+    if (showPvStrategy) keys.push('strategy');
+    if (showPvHodl) keys.push('hodl');
+    const values: number[] = [];
+    for (const d of portfolioData) {
+      for (const k of keys) {
+        const v = (d as any)[k];
+        if (typeof v === 'number' && isFinite(v)) values.push(v);
+      }
+    }
+    if (values.length === 0) return ['auto', 'auto'] as const;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const pad = (max - min) * 0.05;
+    return [Math.max(0, min - pad), max + pad] as const;
+  }, [portfolioData, showPvStrategy, showPvHodl]);
+
+  const ddDomain = useMemo(() => {
+    const keys: Array<'strategy'|'hodl'> = [];
+    if (showDdStrategy) keys.push('strategy');
+    if (showDdHodl) keys.push('hodl');
+    const values: number[] = [];
+    for (const d of drawdownData) {
+      for (const k of keys) {
+        const v = (d as any)[k];
+        if (typeof v === 'number' && isFinite(v)) values.push(v);
+      }
+    }
+    if (values.length === 0) return ['auto', 'auto'] as const;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const pad = (max - min) * 0.05;
+    return [min - pad, max + pad] as const;
+  }, [drawdownData, showDdStrategy, showDdHodl]);
+
+  const allocDomain = useMemo(() => {
+    // Sum only visible series for each day
+    const totals = allocationData.map(d => (showUSDC ? d.USDC : 0) + (showBTC ? d.BTC : 0) + (showETH ? d.ETH : 0));
+    const max = totals.length ? Math.max(...totals) : 0;
+    return [0, max * 1.05] as const;
+  }, [allocationData, showUSDC, showBTC, showETH]);
+
+  const getLegendKey = (e: any): string | undefined => e?.dataKey ?? e?.payload?.dataKey ?? e?.value;
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -101,10 +156,18 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                   <YAxis
                     stroke="#D1D5DB"
                     tick={{ fill: '#D1D5DB', fontSize: 12 }}
-                    tickFormatter={(value) => `$${value.toLocaleString()}`}
+                    tickFormatter={(value) => `$${(value as number).toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
+                    domain={pvDomain as any}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ color: '#D1D5DB' }} />
+                  <Legend
+                    wrapperStyle={{ color: '#D1D5DB', cursor: 'pointer' }}
+                    onClick={(e: any) => {
+                      const key = getLegendKey(e);
+                      if (key === 'strategy' || key === 'Strategy') setShowPvStrategy(v => !v);
+                      if (key === 'hodl' || key === 'BTC HODL') setShowPvHodl(v => !v);
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="strategy"
@@ -112,6 +175,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     stroke="#3B82F6"
                     strokeWidth={2}
                     dot={false}
+                    hide={!showPvStrategy}
                   />
                   <Line
                     type="monotone"
@@ -121,6 +185,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     strokeWidth={2}
                     dot={false}
                     strokeDasharray="5 5"
+                    hide={!showPvHodl}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -147,10 +212,19 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                   <YAxis
                     stroke="#D1D5DB"
                     tick={{ fill: '#D1D5DB', fontSize: 12 }}
-                    tickFormatter={(value) => `$${value.toLocaleString()}`}
+                    tickFormatter={(value) => `$${(value as number).toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
+                    domain={allocDomain as any}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ color: '#D1D5DB' }} />
+                  <Legend
+                    wrapperStyle={{ color: '#D1D5DB', cursor: 'pointer' }}
+                    onClick={(e: any) => {
+                      const key = getLegendKey(e);
+                      if (key === 'USDC') setShowUSDC(v => !v);
+                      if (key === 'BTC') setShowBTC(v => !v);
+                      if (key === 'ETH') setShowETH(v => !v);
+                    }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="USDC"
@@ -158,6 +232,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     stroke="#10B981"
                     fill="#10B981"
                     fillOpacity={0.6}
+                    hide={!showUSDC}
                   />
                   <Area
                     type="monotone"
@@ -166,6 +241,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     stroke="#F59E0B"
                     fill="#F59E0B"
                     fillOpacity={0.6}
+                    hide={!showBTC}
                   />
                   <Area
                     type="monotone"
@@ -174,6 +250,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     stroke="#9CA3AF"
                     fill="#9CA3AF"
                     fillOpacity={0.6}
+                    hide={!showETH}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -201,9 +278,17 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     stroke="#D1D5DB"
                     tick={{ fill: '#D1D5DB', fontSize: 12 }}
                     tickFormatter={(value) => `${value.toFixed(0)}%`}
+                    domain={ddDomain as any}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ color: '#D1D5DB' }} />
+                  <Legend
+                    wrapperStyle={{ color: '#D1D5DB', cursor: 'pointer' }}
+                    onClick={(e: any) => {
+                      const key = getLegendKey(e);
+                      if (key === 'strategy' || key === 'Strategy DD') setShowDdStrategy(v => !v);
+                      if (key === 'hodl' || key === 'HODL DD') setShowDdHodl(v => !v);
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="strategy"
@@ -211,6 +296,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     stroke="#3B82F6"
                     strokeWidth={2}
                     dot={false}
+                    hide={!showDdStrategy}
                   />
                   <Line
                     type="monotone"
@@ -220,6 +306,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     strokeWidth={2}
                     dot={false}
                     strokeDasharray="5 5"
+                    hide={!showDdHodl}
                   />
                 </LineChart>
               </ResponsiveContainer>
