@@ -117,7 +117,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps> = ({ onRunSimulation, 
                 }}
               >
                 <MenuItem value="btc-eth-momentum">BTC-ETH Momentum RSI</MenuItem>
-                <MenuItem value="coming-soon" disabled>More strategies coming soon...</MenuItem>
+                <MenuItem value="smart-btc-dca">Smart BTC DCA (Power Law)</MenuItem>
               </TextField>
             </Grid>
 

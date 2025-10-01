@@ -49,12 +49,17 @@ export interface DailyPerformance {
   btcHodlDrawdown: number;
   btcPrice: number;
   ethPrice: number;
+  // Optional fields for strategy-specific visuals
+  btcModel?: number;
+  btcUpperBand?: number;
+  btcLowerBand?: number;
 }
 
 export interface SimulationResult {
   dailyPerformance: DailyPerformance[];
   trades: Trade[];
   rsiSignals?: DailyRsiSignals[];
+  strategyId?: string;
   summary: {
     initialCapital: number;
     finalValue: number;

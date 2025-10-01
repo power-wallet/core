@@ -108,8 +108,8 @@ const StatsSummary: React.FC<StatsSummaryProps> = ({ result }) => {
   // Format USD values with comma separator
   const formatUSD = (value: number): string => {
     return value.toLocaleString('en-US', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 0 
     });
   };
   

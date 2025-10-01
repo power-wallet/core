@@ -10,7 +10,8 @@ import PortfolioValueChart from '@/components/simulator/PortfolioValueChart';
 import PortfolioAllocationChart from '@/components/simulator/PortfolioAllocationChart';
 import DrawdownChart from '@/components/simulator/DrawdownChart';
 import TradesTable from '@/components/simulator/TradesTable';
-import { runSimulation } from '@/lib/simulator';
+import PowerLawChart from '@/components/simulator/PowerLawChart';
+import { runStrategy } from '@/lib/strategies/registry';
 import type { SimulationResult } from '@/lib/types';
 
 export default function SimulatorPage() {
@@ -25,7 +26,8 @@ export default function SimulatorPage() {
     setResult(null);
 
     try {
-      const simulationResult = await runSimulation(
+      const simulationResult = await runStrategy(
+        params.strategy as any,
         params.initialCapital,
         params.startDate,
         params.endDate
@@ -163,8 +165,13 @@ export default function SimulatorPage() {
             {/* Price Chart with Trade Markers */}
             <PriceChart result={result} />
 
-            {/* RSI & Signals Chart */}
-            <RSIAndSignalsChart result={result} />
+            {/* Strategy-specific chart */}
+            {result.strategyId === 'btc-eth-momentum' && (
+              <RSIAndSignalsChart result={result} />
+            )}
+            {result.strategyId === 'smart-btc-dca' && (
+              <PowerLawChart result={result} />
+            )}
 
             {/* Trades Table */}
             <TradesTable result={result} />
