@@ -189,7 +189,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="left"
               dataKey="btcBuy" 
               fill="#10B981" 
-              shape={<TriangleUp />}
+              shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? null : <TriangleUp {...props} />)}
               name="BTC Buy"
             />
             
@@ -198,7 +198,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="left"
               dataKey="btcSell" 
               fill="#EF4444" 
-              shape={<TriangleDown />}
+              shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? null : <TriangleDown {...props} />)}
               name="BTC Sell"
             />
             
@@ -207,7 +207,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="right"
               dataKey="ethBuy" 
               fill="#10B981" 
-              shape={<TriangleUp />}
+              shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? null : <TriangleUp {...props} />)}
               name="ETH Buy"
             />
             
@@ -216,7 +216,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="right"
               dataKey="ethSell" 
               fill="#EF4444" 
-              shape={<TriangleDown />}
+              shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? null : <TriangleDown {...props} />)}
               name="ETH Sell"
             />
           </ComposedChart>
