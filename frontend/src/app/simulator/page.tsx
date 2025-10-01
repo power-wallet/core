@@ -6,7 +6,9 @@ import SimulatorControls, { type SimulationParams } from '@/components/simulator
 import StatsSummary from '@/components/simulator/StatsSummary';
 import PriceChart from '@/components/simulator/PriceChart';
 import RSIAndSignalsChart from '@/components/simulator/RSIAndSignalsChart';
-import SimulatorCharts from '@/components/simulator/SimulatorCharts';
+import PortfolioValueChart from '@/components/simulator/PortfolioValueChart';
+import PortfolioAllocationChart from '@/components/simulator/PortfolioAllocationChart';
+import DrawdownChart from '@/components/simulator/DrawdownChart';
 import TradesTable from '@/components/simulator/TradesTable';
 import { runSimulation } from '@/lib/simulator';
 import type { SimulationResult } from '@/lib/types';
@@ -149,14 +151,20 @@ export default function SimulatorPage() {
             {/* Summary Stats */}
             <StatsSummary result={result} />
 
+            <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 1 }}>
+              Performance Charts
+            </Typography>
+
+            {/* Charts */}
+            <PortfolioValueChart result={result} />
+            <PortfolioAllocationChart result={result} />
+            <DrawdownChart result={result} />
+
             {/* Price Chart with Trade Markers */}
             <PriceChart result={result} />
 
             {/* RSI & Signals Chart */}
             <RSIAndSignalsChart result={result} />
-
-            {/* Charts */}
-            <SimulatorCharts result={result} />
 
             {/* Trades Table */}
             <TradesTable result={result} />

@@ -132,10 +132,6 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
-        Performance Charts
-      </Typography>
-
       <Grid container spacing={3}>
         {/* Portfolio Value Chart */}
         <Grid item xs={12}>
