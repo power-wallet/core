@@ -1,0 +1,206 @@
+'use client';
+
+import React from 'react';
+import { Box, Card, CardContent, Typography } from '@mui/material';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  Scatter,
+  ComposedChart
+} from 'recharts';
+import type { SimulationResult } from '@/lib/types';
+
+interface PriceChartProps {
+  result: SimulationResult;
+}
+
+// Custom inverted triangle shape for sell markers
+const InvertedTriangle = (props: any) => {
+  const { cx, cy, fill } = props;
+  const size = 8;
+  return (
+    <polygon
+      points={`${cx},${cy + size} ${cx - size},${cy - size} ${cx + size},${cy - size}`}
+      fill={fill}
+    />
+  );
+};
+
+const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
+  const { dailyPerformance, trades } = result;
+  
+  // Prepare chart data with prices and trade markers
+  const chartData = dailyPerformance.map((day) => {
+    // Find trades on this day
+    const dayTrades = trades.filter(t => t.date === day.date);
+    const btcTrade = dayTrades.find(t => t.symbol === 'BTC');
+    const ethTrade = dayTrades.find(t => t.symbol === 'ETH');
+    
+    return {
+      date: day.date,
+      btcPrice: day.btcPrice,
+      ethPrice: day.ethPrice,
+      // Trade markers (use actual trade prices for marker position)
+      btcBuy: btcTrade?.side === 'BUY' ? btcTrade.price : null,
+      btcSell: btcTrade?.side === 'SELL' ? btcTrade.price : null,
+      ethBuy: ethTrade?.side === 'BUY' ? ethTrade.price : null,
+      ethSell: ethTrade?.side === 'SELL' ? ethTrade.price : null,
+      // Trade details for tooltip
+      btcTradeDetails: btcTrade ? `${btcTrade.side} ${btcTrade.quantity.toFixed(4)} BTC @ $${btcTrade.price.toLocaleString()}` : null,
+      ethTradeDetails: ethTrade ? `${ethTrade.side} ${ethTrade.quantity.toFixed(4)} ETH @ $${ethTrade.price.toLocaleString()}` : null,
+    };
+  });
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <Box
+          sx={{
+            bgcolor: 'rgba(0, 0, 0, 0.9)',
+            border: '1px solid #444',
+            borderRadius: 1,
+            p: 1.5,
+          }}
+        >
+          <Typography variant="caption" color="white" fontWeight="bold">
+            {data.date}
+          </Typography>
+          {data.btcPrice && (
+            <Typography variant="caption" display="block" sx={{ color: '#3B82F6' }}>
+              BTC: ${data.btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Typography>
+          )}
+          {data.ethPrice && (
+            <Typography variant="caption" display="block" sx={{ color: '#A855F7' }}>
+              ETH: ${data.ethPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Typography>
+          )}
+          {data.btcTradeDetails && (
+            <Typography variant="caption" display="block" sx={{ color: data.btcBuy ? '#10B981' : '#EF4444', mt: 0.5 }}>
+              {data.btcTradeDetails}
+            </Typography>
+          )}
+          {data.ethTradeDetails && (
+            <Typography variant="caption" display="block" sx={{ color: data.ethBuy ? '#10B981' : '#EF4444', mt: 0.5 }}>
+              {data.ethTradeDetails}
+            </Typography>
+          )}
+        </Box>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D', mb: 3 }}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom fontWeight="bold">
+          Asset Prices & Trades
+        </Typography>
+        <ResponsiveContainer width="100%" height={400}>
+          <ComposedChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+            <XAxis 
+              dataKey="date" 
+              stroke="#999"
+              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => {
+                const date = new Date(value);
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+              }}
+            />
+            {/* Left Y-axis for BTC */}
+            <YAxis 
+              yAxisId="left"
+              stroke="#3B82F6"
+              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              label={{ value: 'BTC Price', angle: -90, position: 'insideLeft', style: { fill: '#3B82F6' } }}
+            />
+            {/* Right Y-axis for ETH */}
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              stroke="#A855F7"
+              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
+              label={{ value: 'ETH Price', angle: 90, position: 'insideRight', style: { fill: '#A855F7' } }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend />
+            
+            {/* BTC Price Line */}
+            <Line 
+              yAxisId="left"
+              type="monotone" 
+              dataKey="btcPrice" 
+              stroke="#3B82F6" 
+              strokeWidth={2}
+              dot={false}
+              name="BTC Price"
+              connectNulls
+            />
+            
+            {/* ETH Price Line */}
+            <Line 
+              yAxisId="right"
+              type="monotone" 
+              dataKey="ethPrice" 
+              stroke="#A855F7" 
+              strokeWidth={2}
+              dot={false}
+              name="ETH Price"
+              connectNulls
+            />
+            
+            {/* BTC Buy Markers */}
+            <Scatter 
+              yAxisId="left"
+              dataKey="btcBuy" 
+              fill="#10B981" 
+              shape="triangle"
+              name="BTC Buy"
+            />
+            
+            {/* BTC Sell Markers */}
+            <Scatter 
+              yAxisId="left"
+              dataKey="btcSell" 
+              fill="#EF4444" 
+              shape={<InvertedTriangle />}
+              name="BTC Sell"
+            />
+            
+            {/* ETH Buy Markers */}
+            <Scatter 
+              yAxisId="right"
+              dataKey="ethBuy" 
+              fill="#10B981" 
+              shape="triangle"
+              name="ETH Buy"
+            />
+            
+            {/* ETH Sell Markers */}
+            <Scatter 
+              yAxisId="right"
+              dataKey="ethSell" 
+              fill="#EF4444" 
+              shape={<InvertedTriangle />}
+              name="ETH Sell"
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PriceChart;
+

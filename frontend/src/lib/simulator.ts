@@ -223,6 +223,8 @@ export async function runSimulation(
     btcHodlValue: initialCapital,
     drawdown: 0,
     btcHodlDrawdown: 0,
+    btcPrice: btcPrices[startIdx],
+    ethPrice: ethPrices[startIdx],
   });
   
   // Debug: log simulation parameters (optional)
@@ -398,6 +400,8 @@ export async function runSimulation(
       btcHodlValue,
       drawdown,
       btcHodlDrawdown,
+      btcPrice,
+      ethPrice,
     });
   }
   

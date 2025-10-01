@@ -17,7 +17,18 @@ const connectors = [
 
 // Only add WalletConnect if we have a valid project ID
 if (projectId && projectId !== 'placeholder_get_from_walletconnect') {
-  connectors.push(walletConnect({ projectId }));
+  connectors.push(
+    walletConnect({
+      projectId,
+      metadata: {
+        name: 'Power Wallet',
+        description: 'Trading Strategy Simulator',
+        url: 'https://power-wallet.app',
+        icons: ['https://power-wallet.app/logo.png']
+      },
+      showQrModal: true
+    }) as any // Type assertion to bypass version mismatch
+  );
 }
 
 export const config = createConfig({

@@ -47,6 +47,8 @@ export interface DailyPerformance {
   btcHodlValue: number;
   drawdown: number;
   btcHodlDrawdown: number;
+  btcPrice: number;
+  ethPrice: number;
 }
 
 export interface SimulationResult {

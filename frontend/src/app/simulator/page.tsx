@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Container, Box, Typography, Alert, AlertTitle } from '@mui/material';
 import SimulatorControls, { type SimulationParams } from '@/components/simulator/SimulatorControls';
 import StatsSummary from '@/components/simulator/StatsSummary';
+import PriceChart from '@/components/simulator/PriceChart';
 import SimulatorCharts from '@/components/simulator/SimulatorCharts';
 import TradesTable from '@/components/simulator/TradesTable';
 import { runSimulation } from '@/lib/simulator';
@@ -59,6 +60,9 @@ export default function SimulatorPage() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {/* Summary Stats */}
             <StatsSummary result={result} />
+
+            {/* Price Chart with Trade Markers */}
+            <PriceChart result={result} />
 
             {/* Charts */}
             <SimulatorCharts result={result} />
