@@ -425,12 +425,12 @@ export async function runSimulation(
     const curr = dailyPerformance[i].totalValue;
     dailyReturns.push((curr / prev) - 1.0);
   }
-  // Sharpe (assume risk-free ~ 0 daily), annualize by sqrt(252)
+  // Sharpe (assume risk-free ~ 0 daily), annualize by sqrt(365)
   const meanDaily = dailyReturns.reduce((a, b) => a + b, 0) / (dailyReturns.length || 1);
   const stdDaily = Math.sqrt(
     dailyReturns.reduce((acc, r) => acc + Math.pow(r - meanDaily, 2), 0) / (dailyReturns.length > 1 ? (dailyReturns.length - 1) : 1)
   );
-  const sharpeRatio = stdDaily > 0 ? (meanDaily / stdDaily) * Math.sqrt(252) : 0;
+  const sharpeRatio = stdDaily > 0 ? (meanDaily / stdDaily) * Math.sqrt(365) : 0;
   
   // Sortino (downside deviation only)
   const downside = dailyReturns.filter(r => r < 0);
@@ -438,7 +438,7 @@ export async function runSimulation(
   const downDev = Math.sqrt(
     downside.reduce((acc, r) => acc + Math.pow(r - meanDown, 2), 0) / (downside.length > 1 ? (downside.length - 1) : 1)
   );
-  const sortinoRatio = downDev > 0 ? (meanDaily / downDev) * Math.sqrt(252) : 0;
+  const sortinoRatio = downDev > 0 ? (meanDaily / downDev) * Math.sqrt(365) : 0;
 
   // Benchmark daily returns (BTC HODL)
   const btcDailyReturns: number[] = [];
@@ -451,13 +451,13 @@ export async function runSimulation(
   const btcStdDaily = Math.sqrt(
     btcDailyReturns.reduce((acc, r) => acc + Math.pow(r - btcMeanDaily, 2), 0) / (btcDailyReturns.length > 1 ? (btcDailyReturns.length - 1) : 1)
   );
-  const btcHodlSharpeRatio = btcStdDaily > 0 ? (btcMeanDaily / btcStdDaily) * Math.sqrt(252) : 0;
+  const btcHodlSharpeRatio = btcStdDaily > 0 ? (btcMeanDaily / btcStdDaily) * Math.sqrt(365) : 0;
   const btcDownside = btcDailyReturns.filter(r => r < 0);
   const btcMeanDown = btcDownside.reduce((a, b) => a + b, 0) / (btcDownside.length || 1);
   const btcDownDev = Math.sqrt(
     btcDownside.reduce((acc, r) => acc + Math.pow(r - btcMeanDown, 2), 0) / (btcDownside.length > 1 ? (btcDownside.length - 1) : 1)
   );
-  const btcHodlSortinoRatio = btcDownDev > 0 ? (btcMeanDaily / btcDownDev) * Math.sqrt(252) : 0;
+  const btcHodlSortinoRatio = btcDownDev > 0 ? (btcMeanDaily / btcDownDev) * Math.sqrt(365) : 0;
   
   return {
     dailyPerformance,

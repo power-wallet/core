@@ -109,7 +109,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     type="monotone"
                     dataKey="strategy"
                     name="Strategy"
-                    stroke="#F59E0B"
+                    stroke="#3B82F6"
                     strokeWidth={2}
                     dot={false}
                   />
@@ -171,8 +171,8 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     type="monotone"
                     dataKey="ETH"
                     stackId="1"
-                    stroke="#3B82F6"
-                    fill="#3B82F6"
+                    stroke="#9CA3AF"
+                    fill="#9CA3AF"
                     fillOpacity={0.6}
                   />
                 </AreaChart>
@@ -208,7 +208,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
                     type="monotone"
                     dataKey="strategy"
                     name="Strategy DD"
-                    stroke="#EF4444"
+                    stroke="#3B82F6"
                     strokeWidth={2}
                     dot={false}
                   />
