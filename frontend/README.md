@@ -51,6 +51,7 @@ cp env.example .env.local
 4. Run the development server:
 ```bash
 npm run dev
+npm run dev:poll   # autoreload when source code changes
 ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser

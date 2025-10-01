@@ -68,7 +68,7 @@ export default function SimulatorPage() {
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   <li>
                     <Typography variant="body2" color="text.secondary">
-                      Regime filter: Bullish if BTC close &gt; SMA(<b>200</b>) of BTC (configurable). In bull we use bullish RSI thresholds; in bear we use bearish thresholds.
+                      Regime filter: Bullish if BTC close &gt; SMA(<b>200</b>) of BTC. In bull we use bullish RSI thresholds; in bear we use bearish thresholds.
                     </Typography>
                   </li>
                   <li>
