@@ -29,16 +29,88 @@ const DEFAULT_PARAMETERS: StrategyParameters = {
 };
 
 /**
- * Load price data from JSON files
+ * Load pre-calculated data from Python (with indicators already computed)
  */
-export async function loadPriceData(): Promise<{ btc: PriceData[], eth: PriceData[] }> {
-  const [btcResponse, ethResponse] = await Promise.all([
-    fetch('/data/btc_daily.json'),
-    fetch('/data/eth_daily.json'),
-  ]);
+export async function loadPythonData(): Promise<any[]> {
+  const response = await fetch('/data/backtest_data_with_indicators.json');
+  if (!response.ok) {
+    throw new Error(`Failed to load Python data: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Fetch price data from Binance API (matching Python logic)
+ */
+async function fetchBinanceKlines(symbol: string, interval: string, startMs: number, endMs: number): Promise<PriceData[]> {
+  const limit = 1000;
+  const allData: PriceData[] = [];
+  let currentStartMs = startMs;
   
-  const btc: PriceData[] = await btcResponse.json();
-  const eth: PriceData[] = await ethResponse.json();
+  while (currentStartMs < endMs) {
+    const params = new URLSearchParams({
+      symbol,
+      interval,
+      limit: limit.toString(),
+      startTime: currentStartMs.toString(),
+      endTime: endMs.toString(),
+    });
+    
+    const response = await fetch(`https://api.binance.com/api/v3/klines?${params}`);
+    if (!response.ok) {
+      throw new Error(`Binance API error: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) break;
+    
+    // Binance kline format: [open_time, open, high, low, close, volume, close_time, ...]
+    for (const candle of data) {
+      const closeTime = new Date(candle[6]); // close_time in ms
+      const closePrice = parseFloat(candle[4]); // close price
+      const dateStr = closeTime.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      allData.push({
+        date: dateStr,
+        close: closePrice,
+      });
+    }
+    
+    // Move cursor to after last candle
+    const lastCloseTime = data[data.length - 1][6];
+    currentStartMs = lastCloseTime + 1;
+    
+    // Rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  // Remove duplicates and sort by date
+  const uniqueData = Array.from(
+    new Map(allData.map(item => [item.date, item])).values()
+  ).sort((a, b) => a.date.localeCompare(b.date));
+  
+  return uniqueData;
+}
+
+/**
+ * Load price data from Binance API (matching Python logic)
+ */
+export async function loadPriceData(
+  startDate: string,
+  endDate: string,
+  lookbackDays: number = 210
+): Promise<{ btc: PriceData[], eth: PriceData[] }> {
+  const start = new Date(startDate);
+  const lookbackStart = new Date(start);
+  lookbackStart.setDate(lookbackStart.getDate() - lookbackDays);
+  
+  const startMs = lookbackStart.getTime();
+  const endMs = new Date(endDate).getTime();
+  
+  const [btc, eth] = await Promise.all([
+    fetchBinanceKlines('BTCUSDT', '1d', startMs, endMs),
+    fetchBinanceKlines('ETHUSDT', '1d', startMs, endMs),
+  ]);
   
   return { btc, eth };
 }
@@ -92,25 +164,33 @@ export async function runSimulation(
   endDate: string,
   parameters: StrategyParameters = DEFAULT_PARAMETERS
 ): Promise<SimulationResult> {
-  // Load and filter data
-  const { btc: btcData, eth: ethData } = await loadPriceData();
-  const { btc, eth } = filterByDateRange(btcData, ethData, startDate, endDate);
+  // Load data from Binance (with lookback for indicators)
+  const { btc: btcData, eth: ethData } = await loadPriceData(startDate, endDate, 210);
   
-  // Align data on common dates
-  const btcMap = new Map(btc.map(d => [d.date, d.close]));
-  const ethMap = new Map(eth.map(d => [d.date, d.close]));
-  const commonDates = btc.filter(d => ethMap.has(d.date)).map(d => d.date).sort();
+  // Align ALL data (including lookback) on common dates
+  const btcMap = new Map(btcData.map(d => [d.date, d.close]));
+  const ethMap = new Map(ethData.map(d => [d.date, d.close]));
+  const commonDates = btcData.filter(d => ethMap.has(d.date)).map(d => d.date).sort();
   
-  const dates = commonDates;
-  const btcPrices = dates.map(d => btcMap.get(d)!);
-  const ethPrices = dates.map(d => ethMap.get(d)!);
+  const allDates = commonDates;
+  const allBtcPrices = allDates.map(d => btcMap.get(d)!);
+  const allEthPrices = allDates.map(d => ethMap.get(d)!);
   
-  // Calculate indicators
-  const btcRsi = calculateRSI(btcPrices, parameters.rsi_bars);
-  const ethRsi = calculateRSI(ethPrices, parameters.rsi_bars);
-  const btcSma = calculateSMA(btcPrices, parameters.regime_filter_ma_length);
-  const ethBtcRatio = calculateRatio(ethPrices, btcPrices);
-  const ethBtcRsi = calculateRSI(ethBtcRatio, parameters.eth_btc_rsi_bars);
+  // Calculate indicators on ALL data (including lookback period)
+  const allBtcRsi = calculateRSI(allBtcPrices, parameters.rsi_bars);
+  const allEthRsi = calculateRSI(allEthPrices, parameters.rsi_bars);
+  const allBtcSma = calculateSMA(allBtcPrices, parameters.regime_filter_ma_length);
+  const allEthBtcRatio = calculateRatio(allEthPrices, allBtcPrices);
+  const allEthBtcRsi = calculateRSI(allEthBtcRatio, parameters.eth_btc_rsi_bars);
+  
+  // Now extract just the backtest period
+  const dates = allDates;
+  const btcPrices = allBtcPrices;
+  const ethPrices = allEthPrices;
+  const btcRsi = allBtcRsi;
+  const ethRsi = allEthRsi;
+  const btcSma = allBtcSma;
+  const ethBtcRsi = allEthBtcRsi;
   
   // Find start index (after lookback period)
   const startIdx = dates.findIndex(d => d >= startDate);
@@ -131,8 +211,30 @@ export async function runSimulation(
   let maxPortfolioValue = initialCapital;
   let maxBtcHodlValue = initialCapital;
   
-  // Simulate day by day
-  for (let i = startIdx; i < dates.length; i++) {
+  // Add initial day performance (before any trading)
+  dailyPerformance.push({
+    date: dates[startIdx],
+    cash: initialCapital,
+    btcQty: 0,
+    ethQty: 0,
+    btcValue: 0,
+    ethValue: 0,
+    totalValue: initialCapital,
+    btcHodlValue: initialCapital,
+    drawdown: 0,
+    btcHodlDrawdown: 0,
+  });
+  
+  // Debug: log simulation parameters (optional)
+  // if (typeof window !== 'undefined') {
+  //   console.log('=== SIMULATION START ===');
+  //   console.log('Start date:', dates[startIdx]);
+  //   console.log('End date:', dates[dates.length - 1]);
+  //   console.log('Total days:', dates.length - startIdx - 1);
+  // }
+  
+  // Simulate day by day (start at startIdx + 1 to match Python logic)
+  for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
     const btcPrice = btcPrices[i];
     const ethPrice = ethPrices[i];
@@ -153,8 +255,8 @@ export async function runSimulation(
     // Check for entry/exit signals
     const btcRsiNow = btcRsi[i];
     const ethRsiNow = ethRsi[i];
-    const btcRsiPrev = i > 0 ? btcRsi[i - 1] : NaN;
-    const ethRsiPrev = i > 0 ? ethRsi[i - 1] : NaN;
+    const btcRsiPrev = i > startIdx ? btcRsi[i - 1] : NaN;
+    const ethRsiPrev = i > startIdx ? ethRsi[i - 1] : NaN;
     
     const btcOpen = btcPos.quantity > 0;
     const ethOpen = ethPos.quantity > 0;
@@ -233,16 +335,17 @@ export async function runSimulation(
         pos.value = pos.quantity * price;
         pos.lastPrice = price;
         
-        trades.push({
+        const trade = {
           date,
           symbol: pos.symbol,
-          side: 'BUY',
+          side: 'BUY' as const,
           price,
           quantity: qty,
           value: actualDelta,
           fee,
           portfolioValue: cash + btcPos.value + ethPos.value,
-        });
+        };
+        trades.push(trade);
       } else {
         // Sell
         const sellValue = -delta;
@@ -256,16 +359,17 @@ export async function runSimulation(
         pos.value = pos.quantity * price;
         pos.lastPrice = price;
         
-        trades.push({
+        const trade = {
           date,
           symbol: pos.symbol,
-          side: 'SELL',
+          side: 'SELL' as const,
           price,
           quantity: qty,
           value: actualValue,
           fee,
           portfolioValue: cash + btcPos.value + ethPos.value,
-        });
+        };
+        trades.push(trade);
       }
     };
     
