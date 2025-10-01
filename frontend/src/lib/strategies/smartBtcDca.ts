@@ -105,8 +105,18 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
       const btcSpendableQty = Math.max(0, btcQty - (totalEquity * 0.10) / btcPrice);
 
       if (btcPrice < lower && usdc > 0) {
-        // BUY 5% of available USDC
+        // BUY 5% of available USDC when below lower band
         const buyAmount = Math.min(usdc * 0.05, usdcSpendable);
+        if (buyAmount > 0) {
+          const fee = buyAmount * 0.003;
+          const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;
+          btcQty += qty; usdc -= (buyAmount + fee);
+          trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: buyAmount, fee, portfolioValue: usdc + btcQty * btcPrice });
+          traded = true; lastTradeIndex = i;
+        }
+      } else if (btcPrice >= lower && btcPrice <= model && usdc > 0) {
+        // BUY 1% of available USDC when between lower band and model price
+        const buyAmount = Math.min(usdc * 0.01, usdcSpendable);
         if (buyAmount > 0) {
           const fee = buyAmount * 0.003;
           const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;

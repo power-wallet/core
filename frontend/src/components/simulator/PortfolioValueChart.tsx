@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Card, CardContent, Typography } from '@mui/material';
+import { Card, CardContent, Typography, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import type { SimulationResult } from '@/lib/types';
 
@@ -43,15 +43,40 @@ const PortfolioValueChart: React.FC<Props> = ({ result }) => {
     );
   };
 
+  const [scale, setScale] = useState<'linear' | 'log'>('linear');
+  const handleScaleChange = (_: any, next: 'linear' | 'log' | null) => { if (next) setScale(next); };
+
   return (
     <Card sx={{ bgcolor:'#1A1A1A', border:'1px solid #2D2D2D' }}>
       <CardContent>
-        <Typography variant="h6" gutterBottom fontWeight="bold">Portfolio Value Over Time</Typography>
+        <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb: 1 }}>
+          <Typography variant="h6" fontWeight="bold">Portfolio Value Over Time</Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={scale}
+            onChange={handleScaleChange}
+            sx={{
+              '& .MuiToggleButton-root': { color:'#D1D5DB', borderColor:'#2D2D2D' },
+              '& .Mui-selected': { color:'#111827', backgroundColor:'#F59E0B' },
+            }}
+          >
+            <ToggleButton value="linear">Linear</ToggleButton>
+            <ToggleButton value="log">Log</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={portfolioData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2D2D2D" />
             <XAxis dataKey="date" stroke="#D1D5DB" tick={{ fill:'#D1D5DB', fontSize:12 }} tickFormatter={(v)=>new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric'})} />
-            <YAxis stroke="#D1D5DB" tick={{ fill:'#D1D5DB', fontSize:12 }} tickFormatter={(v)=>`$${(v as number).toLocaleString('en-US',{ maximumFractionDigits:0 })}`} domain={domain as any} />
+            <YAxis
+              stroke="#D1D5DB"
+              tick={{ fill:'#D1D5DB', fontSize:12 }}
+              tickFormatter={(v)=>`$${(v as number).toLocaleString('en-US',{ maximumFractionDigits:0 })}`}
+              scale={scale}
+              allowDataOverflow
+              domain={scale === 'log' ? (['auto','auto'] as any) : (domain as any)}
+            />
             <Tooltip content={<TooltipContent />} />
             <Legend wrapperStyle={{ color:'#D1D5DB', cursor:'pointer' }} onClick={(e:any)=>{ const k=getLegendKey(e); if(k==='strategy'||k==='Strategy') setShowStrategy(v=>!v); if(k==='hodl'||k==='BTC HODL') setShowHodl(v=>!v); }} />
             <Line type="monotone" dataKey="strategy" name="Strategy" stroke="#3B82F6" strokeWidth={2} dot={false} hide={!showStrategy} />
