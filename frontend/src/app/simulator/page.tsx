@@ -48,15 +48,6 @@ export default function SimulatorPage() {
           </Typography>
         </Box>
 
-        <SimulatorControls onRunSimulation={handleRunSimulation} isLoading={isLoading} />
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 4 }}>
-            <AlertTitle>Simulation Error</AlertTitle>
-            {error}
-          </Alert>
-        )}
-
         {/* Strategy Overview (collapsible) */}
         <Box sx={{ mt: 4, mb: 2 }}>
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
@@ -65,7 +56,7 @@ export default function SimulatorPage() {
                 Strategy Overview
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                This simulator implements a daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.
+                A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.
               </Typography>
               <Box sx={{ mb: 1 }}>
                 <Button size="small" onClick={() => setShowOverview(v => !v)} sx={{ textTransform: 'none', px: 0 }}>
@@ -73,9 +64,6 @@ export default function SimulatorPage() {
                 </Button>
               </Box>
               <Collapse in={showOverview} timeout="auto" unmountOnExit>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Indicators are computed on Binance daily closes with a 210‑day lookback. RSI uses Wilder's smoothing (pandas_ta‑matching). Risk‑adjusted ratios are annualized with √365.
-                </Typography>
                 <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mb: 1 }}>Core rules</Typography>
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   <li>
@@ -91,7 +79,7 @@ export default function SimulatorPage() {
                   </li>
                   <li>
                     <Typography variant="body2" color="text.secondary">
-                      Position sizing: allocate <b>98%</b> of equity to risk assets; 2% remains in cash. If both assets are eligible, split by momentum from the ETH/BTC RSI (length <b>5</b>): ethMomentum = (ebRSI/100 + 0.5)<sup>3.5</sup>, btcMomentum = ((1 − ebRSI/100) + 0.5)<sup>3.5</sup>, then normalize. Ineligible assets get weight 0.
+                      Position sizing: allocate <b>98%</b> of equity to risk assets; 2% remains in cash. If both assets are eligible, split by momentum from the ETH/BTC RSI (length <b>5</b>): ethMomentum = (ETH-BTC-RSI/100 + 0.5)<sup>3.5</sup>, btcMomentum = ((1 − ETH-BTC-RSI/100) + 0.5)<sup>3.5</sup>, then normalize. Ineligible assets get weight 0.
                     </Typography>
                   </li>
                   <li>
@@ -105,16 +93,39 @@ export default function SimulatorPage() {
                     </Typography>
                   </li>
                 </ul>
-                <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mt: 2, mb: 1 }}>Position sizing examples</Typography>
+                <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mt: 2, mb: 1 }}>Eligibility examples</Typography>
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   <li>
                     <Typography variant="body2" color="text.secondary">
-                      Both eligible, total equity $10,000, ebRSI=70 → investable = $9,800. ethMomentum ≈ 1.2<sup>3.5</sup>=1.89, btcMomentum ≈ 0.8<sup>3.5</sup>=0.46 → weights ≈ ETH 80.4%, BTC 19.6% → targets ≈ ETH $7,880, BTC $1,920 (subject to 27.5% threshold and fees).
+                      Both eligible: both BTC and ETH RSI‑8 cross above their respective entry thresholds (per regime) → both can be allocated; final split decided by ETH‑BTC‑RSI momentum.
                     </Typography>
                   </li>
                   <li>
                     <Typography variant="body2" color="text.secondary">
-                      Only BTC eligible, ebRSI=40 → investable = $9,800. ETH weight = 0, BTC weight = 100% → target BTC $9,800.
+                      ETH eligible, BTC not: ETH RSI‑8 crosses above its entry while BTC RSI‑8 does not (or BTC just crossed an exit) → ETH can be allocated; BTC weight is forced to 0.
+                    </Typography>
+                  </li>
+                  <li>
+                    <Typography variant="body2" color="text.secondary">
+                      BTC eligible, ETH not: BTC RSI‑8 crosses above its entry while ETH RSI‑8 does not (or ETH just crossed an exit) → BTC can be allocated; ETH weight is forced to 0.
+                    </Typography>
+                  </li>
+                  <li>
+                    <Typography variant="body2" color="text.secondary">
+                      Neither eligible: both RSIs are below their entry levels (or recently crossed exits) → both weights 0; remain in cash until a new entry cross.
+                    </Typography>
+                  </li>
+                </ul>
+                <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mt: 2, mb: 1 }}>Position sizing examples</Typography>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  <li>
+                    <Typography variant="body2" color="text.secondary">
+                      Both eligible, total equity $10,000, ETH-BTC-RSI=70 → investable = $9,800. ethMomentum ≈ 1.2<sup>3.5</sup>=1.89, btcMomentum ≈ 0.8<sup>3.5</sup>=0.46 → weights ≈ ETH 80.4%, BTC 19.6% → targets ≈ ETH $7,880, BTC $1,920 (subject to 27.5% threshold and fees).
+                    </Typography>
+                  </li>
+                  <li>
+                    <Typography variant="body2" color="text.secondary">
+                      Only BTC eligible, ETH-BTC-RSI=40 → investable = $9,800. ETH weight = 0, BTC weight = 100% → target BTC $9,800.
                     </Typography>
                   </li>
                 </ul>
@@ -122,6 +133,15 @@ export default function SimulatorPage() {
             </CardContent>
           </Card>
         </Box>
+
+        <SimulatorControls onRunSimulation={handleRunSimulation} isLoading={isLoading} />
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 4 }}>
+            <AlertTitle>Simulation Error</AlertTitle>
+            {error}
+          </Alert>
+        )}
 
         {result && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
