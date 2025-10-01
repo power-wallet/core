@@ -5,6 +5,7 @@ import { Container, Box, Typography, Alert, AlertTitle, Card, CardContent, Colla
 import SimulatorControls, { type SimulationParams } from '@/components/simulator/SimulatorControls';
 import StatsSummary from '@/components/simulator/StatsSummary';
 import PriceChart from '@/components/simulator/PriceChart';
+import RSIAndSignalsChart from '@/components/simulator/RSIAndSignalsChart';
 import SimulatorCharts from '@/components/simulator/SimulatorCharts';
 import TradesTable from '@/components/simulator/TradesTable';
 import { runSimulation } from '@/lib/simulator';
@@ -40,7 +41,7 @@ export default function SimulatorPage() {
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" component="h1" gutterBottom fontWeight="bold">
+          <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
             Strategy Simulator
           </Typography>
           <Typography variant="body1" color="text.secondary">
@@ -150,6 +151,9 @@ export default function SimulatorPage() {
 
             {/* Price Chart with Trade Markers */}
             <PriceChart result={result} />
+
+            {/* RSI & Signals Chart */}
+            <RSIAndSignalsChart result={result} />
 
             {/* Charts */}
             <SimulatorCharts result={result} />

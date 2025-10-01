@@ -10,7 +10,8 @@ import type {
   StrategyParameters,
   Position,
   Trade,
-  DailyPerformance 
+  DailyPerformance,
+  DailyRsiSignals 
 } from './types';
 
 // Default strategy parameters (from Python)
@@ -206,6 +207,7 @@ export async function runSimulation(
   const btcHodlQty = (initialCapital * (1.0 - parameters.trading_fee)) / btcStartPrice;
   
   const trades: Trade[] = [];
+  const rsiSignals: DailyRsiSignals[] = [];
   const dailyPerformance: DailyPerformance[] = [];
   
   let maxPortfolioValue = initialCapital;
@@ -295,6 +297,9 @@ export async function runSimulation(
         wEth = 0;
       }
     }
+
+    const btcEligible = wBtc > 0;
+    const ethEligible = wEth > 0;
     
     // Normalize weights
     const wSum = wBtc + wEth;
@@ -376,6 +381,8 @@ export async function runSimulation(
     };
     
     // Execute rebalancing
+    const preBtcQty = btcPos.quantity;
+    const preEthQty = ethPos.quantity;
     rebalance(btcPos, targetBtcValue, btcPrice);
     rebalance(ethPos, targetEthValue, ethPrice);
     
@@ -402,6 +409,35 @@ export async function runSimulation(
       btcHodlDrawdown,
       btcPrice,
       ethPrice,
+    });
+
+    // Record signals for this day (after trades)
+    const btcBought = btcPos.quantity > preBtcQty;
+    const btcSold = btcPos.quantity < preBtcQty;
+    const ethBought = ethPos.quantity > preEthQty;
+    const ethSold = ethPos.quantity < preEthQty;
+    const lastBtcTrade = trades.slice().reverse().find(t => t.date === date && t.symbol === 'BTC');
+    const lastEthTrade = trades.slice().reverse().find(t => t.date === date && t.symbol === 'ETH');
+    const entryLine = isBullish ? rsiEntry : rsiEntry; // same var, explicit
+    const exitLine = isBullish ? rsiExit : rsiExit; // same var, explicit
+    const bothEligible = btcEligible && ethEligible;
+    const bothAllocated = (btcPos.quantity > 0 && ethPos.quantity > 0);
+    rsiSignals.push({
+      date,
+      btcRsi: isNaN(btcRsiNow) ? 0 : btcRsiNow,
+      ethRsi: isNaN(ethRsiNow) ? 0 : ethRsiNow,
+      entryLine,
+      exitLine,
+      btcBuy: btcBought,
+      btcSell: btcSold,
+      ethBuy: ethBought,
+      ethSell: ethSold,
+      bothEligible,
+      bothAllocated,
+      btcBuyDetail: lastBtcTrade && lastBtcTrade.side === 'BUY' ? `BUY ${lastBtcTrade.quantity.toFixed(4)} BTC @ $${lastBtcTrade.price.toLocaleString()}` : undefined,
+      btcSellDetail: lastBtcTrade && lastBtcTrade.side === 'SELL' ? `SELL ${lastBtcTrade.quantity.toFixed(4)} BTC @ $${lastBtcTrade.price.toLocaleString()}` : undefined,
+      ethBuyDetail: lastEthTrade && lastEthTrade.side === 'BUY' ? `BUY ${lastEthTrade.quantity.toFixed(4)} ETH @ $${lastEthTrade.price.toLocaleString()}` : undefined,
+      ethSellDetail: lastEthTrade && lastEthTrade.side === 'SELL' ? `SELL ${lastEthTrade.quantity.toFixed(4)} ETH @ $${lastEthTrade.price.toLocaleString()}` : undefined,
     });
   }
   
@@ -462,6 +498,7 @@ export async function runSimulation(
   return {
     dailyPerformance,
     trades,
+    rsiSignals,
     summary: {
       initialCapital,
       finalValue: finalPerf.totalValue,

@@ -54,6 +54,7 @@ export interface DailyPerformance {
 export interface SimulationResult {
   dailyPerformance: DailyPerformance[];
   trades: Trade[];
+  rsiSignals?: DailyRsiSignals[];
   summary: {
     initialCapital: number;
     finalValue: number;
@@ -71,6 +72,24 @@ export interface SimulationResult {
     btcHodlSortinoRatio: number;
     outperformance: number;
   };
+}
+
+export interface DailyRsiSignals {
+  date: string;
+  btcRsi: number;
+  ethRsi: number;
+  entryLine: number;
+  exitLine: number;
+  btcBuy: boolean;
+  btcSell: boolean;
+  ethBuy: boolean;
+  ethSell: boolean;
+  bothEligible: boolean;
+  bothAllocated: boolean;
+  btcBuyDetail?: string;
+  btcSellDetail?: string;
+  ethBuyDetail?: string;
+  ethSellDetail?: string;
 }
 
 export interface StrategyParameters {

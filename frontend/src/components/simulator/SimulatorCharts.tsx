@@ -194,7 +194,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
         </Grid>
 
         {/* Portfolio Allocation Chart */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom fontWeight="bold">
@@ -259,7 +259,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
         </Grid>
 
         {/* Drawdown Chart */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom fontWeight="bold">
