@@ -20,15 +20,39 @@ interface PriceChartProps {
   result: SimulationResult;
 }
 
-// Custom inverted triangle shape for sell markers
-const InvertedTriangle = (props: any) => {
+// Custom triangle up shape for buy markers (▲ U+25B2)
+const TriangleUp = (props: any) => {
   const { cx, cy, fill } = props;
-  const size = 8;
   return (
-    <polygon
-      points={`${cx},${cy + size} ${cx - size},${cy - size} ${cx + size},${cy - size}`}
+    <text
+      x={cx}
+      y={cy}
+      textAnchor="middle"
+      dominantBaseline="middle"
       fill={fill}
-    />
+      fontSize="16"
+      fontWeight="bold"
+    >
+      ▲
+    </text>
+  );
+};
+
+// Custom triangle down shape for sell markers (▼ U+25BC)
+const TriangleDown = (props: any) => {
+  const { cx, cy, fill } = props;
+  return (
+    <text
+      x={cx}
+      y={cy}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fill={fill}
+      fontSize="16"
+      fontWeight="bold"
+    >
+      ▼
+    </text>
   );
 };
 
@@ -73,12 +97,12 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
             {data.date}
           </Typography>
           {data.btcPrice && (
-            <Typography variant="caption" display="block" sx={{ color: '#3B82F6' }}>
+            <Typography variant="caption" display="block" sx={{ color: '#F97316' }}>
               BTC: ${data.btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
           )}
           {data.ethPrice && (
-            <Typography variant="caption" display="block" sx={{ color: '#A855F7' }}>
+            <Typography variant="caption" display="block" sx={{ color: '#9CA3AF' }}>
               ETH: ${data.ethPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
           )}
@@ -119,19 +143,19 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
             {/* Left Y-axis for BTC */}
             <YAxis 
               yAxisId="left"
-              stroke="#3B82F6"
+              stroke="#F97316"
               tick={{ fontSize: 12 }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-              label={{ value: 'BTC Price', angle: -90, position: 'insideLeft', style: { fill: '#3B82F6' } }}
+              label={{ value: 'BTC Price', angle: -90, position: 'insideLeft', style: { fill: '#F97316' } }}
             />
             {/* Right Y-axis for ETH */}
             <YAxis 
               yAxisId="right"
               orientation="right"
-              stroke="#A855F7"
+              stroke="#9CA3AF"
               tick={{ fontSize: 12 }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
-              label={{ value: 'ETH Price', angle: 90, position: 'insideRight', style: { fill: '#A855F7' } }}
+              label={{ value: 'ETH Price', angle: 90, position: 'insideRight', style: { fill: '#9CA3AF' } }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
@@ -141,7 +165,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="left"
               type="monotone" 
               dataKey="btcPrice" 
-              stroke="#3B82F6" 
+              stroke="#F97316" 
               strokeWidth={2}
               dot={false}
               name="BTC Price"
@@ -153,7 +177,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="right"
               type="monotone" 
               dataKey="ethPrice" 
-              stroke="#A855F7" 
+              stroke="#9CA3AF" 
               strokeWidth={2}
               dot={false}
               name="ETH Price"
@@ -165,7 +189,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="left"
               dataKey="btcBuy" 
               fill="#10B981" 
-              shape="triangle"
+              shape={<TriangleUp />}
               name="BTC Buy"
             />
             
@@ -174,7 +198,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="left"
               dataKey="btcSell" 
               fill="#EF4444" 
-              shape={<InvertedTriangle />}
+              shape={<TriangleDown />}
               name="BTC Sell"
             />
             
@@ -183,7 +207,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="right"
               dataKey="ethBuy" 
               fill="#10B981" 
-              shape="triangle"
+              shape={<TriangleUp />}
               name="ETH Buy"
             />
             
@@ -192,7 +216,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               yAxisId="right"
               dataKey="ethSell" 
               fill="#EF4444" 
-              shape={<InvertedTriangle />}
+              shape={<TriangleDown />}
               name="ETH Sell"
             />
           </ComposedChart>
