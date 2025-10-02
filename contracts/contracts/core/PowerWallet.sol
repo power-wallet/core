@@ -19,7 +19,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
 
     // Uniswap V3 router and fee per risk asset (risk <-> stable)
     address public swapRouter; // e.g., SwapRouter02
-    mapping(address => uint24) public poolFees; // risk => fee (100/500/3000/10000)
+    mapping(address => uint24) public poolFees; // risk asset of the UniswapV3 pool => fee (100/500/3000/10000)
 
     // Strategy implementation
     address public strategy;
@@ -231,17 +231,53 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
 
         uint256 balInAfter = IERC20(action.tokenIn).balanceOf(address(this));
         uint256 balOutAfter = IERC20(action.tokenOut).balanceOf(address(this));
+        // Compute actual deltas
+        uint256 actualIn = balInBefore > balInAfter ? (balInBefore - balInAfter) : 0;
+        uint256 actualOut = balOutAfter > balOutBefore ? (balOutAfter - balOutBefore) : 0;
+        // Sanity: exactInputSingle should spend exactly amountIn
+        require(actualIn == action.amountIn, "unexpected input spent");
+        // And return amountOut equal to measured delta
+        require(actualOut == amountOut, "unexpected output received");
         swaps.push(SwapRecord({
             timestamp: block.timestamp,
             tokenIn: action.tokenIn,
             tokenOut: action.tokenOut,
-            amountIn: action.amountIn,
-            amountOut: amountOut,
+            amountIn: actualIn,
+            amountOut: actualOut,
             balanceInAfter: balInAfter,
             balanceOutAfter: balOutAfter
         }));
 
-        emit SwapExecuted(action.tokenIn, action.tokenOut, action.amountIn, amountOut, block.timestamp, balInAfter, balOutAfter);
+        emit SwapExecuted(action.tokenIn, action.tokenOut, actualIn, actualOut, block.timestamp, balInAfter, balOutAfter);
+    }
+
+    // View helpers to return full history arrays
+    function getDeposits() external view returns (DepositRecord[] memory all) {
+        all = new DepositRecord[](deposits.length);
+        for (uint256 i = 0; i < deposits.length; i++) {
+            all[i] = deposits[i];
+        }
+    }
+
+    function getWithdrawals() external view returns (WithdrawRecord[] memory all) {
+        all = new WithdrawRecord[](withdrawals.length);
+        for (uint256 i = 0; i < withdrawals.length; i++) {
+            all[i] = withdrawals[i];
+        }
+    }
+
+    function getSwaps() external view returns (SwapRecord[] memory all) {
+        all = new SwapRecord[](swaps.length);
+        for (uint256 i = 0; i < swaps.length; i++) {
+            all[i] = swaps[i];
+        }
+    }
+
+    function getRiskAssets() external view returns (address[] memory assets) {
+        assets = new address[](riskAssets.length);
+        for (uint256 i = 0; i < riskAssets.length; i++) {
+            assets[i] = riskAssets[i];
+        }
     }
 }
 
