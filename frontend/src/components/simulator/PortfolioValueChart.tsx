@@ -50,7 +50,7 @@ const PortfolioValueChart: React.FC<Props> = ({ result }) => {
     <Card sx={{ bgcolor:'#1A1A1A', border:'1px solid #2D2D2D' }}>
       <CardContent>
         <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb: 1 }}>
-          <Typography variant="h6" fontWeight="bold">Portfolio Value Over Time</Typography>
+          <Typography variant="h6" fontWeight="bold">Portfolio Value</Typography>
           <ToggleButtonGroup
             size="small"
             exclusive

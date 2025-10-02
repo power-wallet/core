@@ -89,9 +89,9 @@ export default function Home() {
                 Smart On-Chain Investing in Bitcoin & Digital Assets
               </Typography>
               <Typography variant="body1" paragraph sx={{ opacity: 0.9, mb: 4 }}>
-                Deploy your capital into intelligent, automated trading strategies. 
-                Power Wallet combines the security of blockchain with the sophistication 
-                of algorithmic trading - all in one platform.
+                Power Wallet automates the management of your portfolio of bitcoin and digital assets. <br />
+                Deploy your capital into intelligent investment strategies. <br />
+                Enjoy the security of blockchain and the benefits of automated risk management.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Link href="/simulator" passHref style={{ textDecoration: 'none' }}>

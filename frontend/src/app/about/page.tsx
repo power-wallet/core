@@ -31,13 +31,13 @@ export default function About() {
             </Typography>
             <Typography variant="body1" paragraph>
               Power Wallet is building the next generation of on-chain investment tools. 
-              We believe that everyone should have access to sophisticated trading strategies 
-              that were previously only available to institutional investors.
+              We believe that everyone should have access to long term bitcoin and crypto investment strategies 
+              that combine high returns with built-in risk management.
             </Typography>
             <Typography variant="body1" paragraph>
-              By combining blockchain technology with algorithmic trading, we&apos;re creating 
-              a platform where users can deploy capital into automated strategies with complete 
-              transparency and security.
+              By combining blockchain technology, portfolio management, algorithmic trading 
+              and risk management, we&apos;re creating a platform where users can invest long 
+              term with security, transparency and peace of mind.
             </Typography>
           </CardContent>
         </Card>
@@ -73,8 +73,8 @@ export default function About() {
                   3. Choose a Strategy
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Select from our library of automated trading strategies, each designed 
-                  to optimize returns based on technical indicators and market conditions.
+                  Select from our library of automated investment strategies, each designed 
+                  to optimize returns and manage risk.
                 </Typography>
               </Box>
               
@@ -107,20 +107,81 @@ export default function About() {
               </Box>
               <Box>
                 <Typography variant="body2">
+                  <strong>Uniswap V3:</strong> Permissionless, decentralized exchange with deep liquidity
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2">
                   <strong>Chainlink Oracles:</strong> Reliable, decentralized price feeds for accurate market data
                 </Typography>
               </Box>
               <Box>
                 <Typography variant="body2">
-                  <strong>Smart Contracts:</strong> Audited, upgradeable contracts for strategy execution
+                  <strong>Chainlink Automation:</strong> Automated execution of strategies with real-time market data
                 </Typography>
               </Box>
               <Box>
                 <Typography variant="body2">
-                  <strong>Coinbase Smart Wallet:</strong> Easy onboarding with passkey authentication
+                  <strong>Coinbase Smart Wallet:</strong> Easy onboarding with passkey authentication and easy on-ramp
                 </Typography>
               </Box>
             </Stack>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h5" gutterBottom fontWeight="bold">
+              Our Smart Contracts
+            </Typography>
+            <Typography variant="body1" paragraph>
+              Power Wallet smart contracts power our on-chain data and automation. <br />
+              We currently have the
+              <strong> TechnicalIndicators</strong> contract deployed on <strong>Base Sepolia</strong> at
+              {' '}<a
+                href="https://sepolia.basescan.org/address/0x7A0F3B371A2563627EfE1967E7645812909Eb6c5"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#60A5FA', textDecoration: 'none' }}
+              >
+                0x7A0F3B371A2563627EfE1967E7645812909Eb6c5
+              </a>.
+            </Typography>
+            <Typography variant="body1" paragraph>
+              We use <strong>Chainlink Automation</strong> to keep our price feeds and technical indicators (e.g.,
+              SMA and RSI) updated on-chain. You can view our upkeep here:
+              {' '}<a
+                href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#60A5FA', textDecoration: 'none' }}
+              >
+                Chainlink Automation Upkeep (Base Sepolia)
+              </a>.
+            </Typography>
+            <Typography variant="body1" paragraph>
+              We rely on <strong>Chainlink Price Feeds</strong> on Base Sepolia for on-chain pricing:
+              <br />
+              • BTC/USD price feed:
+              {' '}<a
+                href="https://sepolia.basescan.org/address/0xcbB7C0006F23900c38EB856149F799620fcb8A4a"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#60A5FA', textDecoration: 'none' }}
+              >
+                0xcbB7C0006F23900c38EB856149F799620fcb8A4a
+              </a>
+              <br />
+              • ETH/USD price feed:
+              {' '}<a
+                href="https://sepolia.basescan.org/address/0x4200000000000000000000000000000000000006"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#60A5FA', textDecoration: 'none' }}
+              >
+                0x4200000000000000000000000000000000000006
+              </a>
+            </Typography>
           </CardContent>
         </Card>
 

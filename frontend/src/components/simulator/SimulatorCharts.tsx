@@ -138,7 +138,7 @@ const SimulatorCharts: React.FC<SimulatorChartsProps> = ({ result }) => {
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom fontWeight="bold">
-                Portfolio Value Over Time
+                Portfolio Value
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={portfolioData}>

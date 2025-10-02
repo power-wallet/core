@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -35,7 +35,16 @@ const TradesTable: React.FC<TradesTableProps> = ({ result }) => {
     setPage(0);
   };
 
-  const paginatedTrades = trades.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const sortedTrades = useMemo(() => {
+    // Descending by date (newest first). Dates are ISO strings in YYYY-MM-DD.
+    // Copy before sort to avoid mutating props.
+    return [...trades].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  }, [trades]);
+
+  const paginatedTrades = sortedTrades.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const formatUSD0 = (value: number): string =>
+    value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   return (
     <Box>
@@ -106,19 +115,19 @@ const TradesTable: React.FC<TradesTableProps> = ({ result }) => {
                       />
                     </TableCell>
                     <TableCell align="right" sx={{ color: '#D1D5DB', borderBottom: '1px solid #2D2D2D' }}>
-                      ${trade.price.toFixed(2)}
+                      ${formatUSD0(trade.price)}
                     </TableCell>
                     <TableCell align="right" sx={{ color: '#D1D5DB', borderBottom: '1px solid #2D2D2D' }}>
                       {trade.quantity.toFixed(6)}
                     </TableCell>
                     <TableCell align="right" sx={{ color: '#D1D5DB', borderBottom: '1px solid #2D2D2D' }}>
-                      ${trade.value.toFixed(2)}
+                      ${formatUSD0(trade.value)}
                     </TableCell>
                     <TableCell align="right" sx={{ color: '#D1D5DB', borderBottom: '1px solid #2D2D2D' }}>
                       ${trade.fee.toFixed(2)}
                     </TableCell>
                     <TableCell align="right" sx={{ color: '#D1D5DB', borderBottom: '1px solid #2D2D2D' }}>
-                      ${trade.portfolioValue.toFixed(2)}
+                      ${formatUSD0(trade.portfolioValue)}
                     </TableCell>
                   </TableRow>
                 ))}

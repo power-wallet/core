@@ -4,13 +4,7 @@ import React, { useState } from 'react';
 import { Container, Box, Typography, Alert, AlertTitle, Card, CardContent, Collapse, Button } from '@mui/material';
 import SimulatorControls, { type SimulationParams } from '@/components/simulator/SimulatorControls';
 import StatsSummary from '@/components/simulator/StatsSummary';
-import PriceChart from '@/components/simulator/PriceChart';
-import RSIAndSignalsChart from '@/components/simulator/RSIAndSignalsChart';
-import PortfolioValueChart from '@/components/simulator/PortfolioValueChart';
-import PortfolioAllocationChart from '@/components/simulator/PortfolioAllocationChart';
-import DrawdownChart from '@/components/simulator/DrawdownChart';
-import TradesTable from '@/components/simulator/TradesTable';
-import PowerLawChart from '@/components/simulator/PowerLawChart';
+import StrategyCharts from '@/components/simulator/StrategyCharts';
 import { runStrategy } from '@/lib/strategies/registry';
 import type { SimulationResult } from '@/lib/types';
 
@@ -207,25 +201,7 @@ export default function SimulatorPage() {
             </Typography>
 
             {/* Charts */}
-            <PortfolioValueChart result={result} />
-            <PortfolioAllocationChart result={result} />
-            <DrawdownChart result={result} />
-
-            {/* Price Chart with Trade Markers (hide for DCA strategy) */}
-            {result.strategyId !== 'smart-btc-dca' && (
-              <PriceChart result={result} />
-            )}
-
-            {/* Strategy-specific chart */}
-            {result.strategyId === 'btc-eth-momentum' && (
-              <RSIAndSignalsChart result={result} />
-            )}
-            {result.strategyId === 'smart-btc-dca' && (
-              <PowerLawChart result={result} />
-            )}
-
-            {/* Trades Table */}
-            <TradesTable result={result} />
+            <StrategyCharts result={result} />
           </Box>
         )}
 
