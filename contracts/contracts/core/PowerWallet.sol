@@ -1,0 +1,248 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
+import "../interfaces/IStrategy.sol";
+import "../interfaces/IUniswapV3Like.sol";
+
+contract PowerWallet is Ownable, AutomationCompatibleInterface {
+    // Assets
+    address public stableAsset; // e.g., USDC
+    address[] public riskAssets; // e.g., cbBTC, WETH
+
+    // Chainlink price feeds per asset
+    mapping(address => address) public priceFeeds; // token => feed
+
+    // Uniswap V3 router and fee per risk asset (risk <-> stable)
+    address public swapRouter; // e.g., SwapRouter02
+    mapping(address => uint24) public poolFees; // risk => fee (100/500/3000/10000)
+
+    // Strategy implementation
+    address public strategy;
+
+    // Events
+    event Deposit(address indexed user, uint256 amount);
+    event Withdraw(address indexed user, uint256 amount);
+    event SwapExecuted(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, uint256 ts, uint256 balInAfter, uint256 balOutAfter);
+
+    struct SwapRecord {
+        uint256 timestamp;
+        address tokenIn;
+        address tokenOut;
+        uint256 amountIn;
+        uint256 amountOut;
+        uint256 balanceInAfter;
+        uint256 balanceOutAfter;
+    }
+
+    SwapRecord[] public swaps;
+
+    struct DepositRecord {
+        uint256 timestamp;
+        address user;
+        uint256 amount;
+    }
+
+    struct WithdrawRecord {
+        uint256 timestamp;
+        address user;
+        uint256 amount;
+    }
+
+    DepositRecord[] public deposits;
+    WithdrawRecord[] public withdrawals;
+
+    constructor(address initialOwner, address strategyImpl) Ownable(initialOwner) {
+        strategy = strategyImpl;
+    }
+
+    function initialize(
+        address _stableAsset,
+        address[] calldata _riskAssets,
+        address[] calldata _priceFeeds,
+        uint24[] calldata _poolFees,
+        address _swapRouter,
+        bytes calldata strategyInitData
+    ) external onlyOwner {
+        require(stableAsset == address(0), "inited");
+        stableAsset = _stableAsset;
+        riskAssets = _riskAssets;
+        require(_riskAssets.length == _priceFeeds.length, "len");
+        require(_riskAssets.length == _poolFees.length, "len");
+        for (uint256 i = 0; i < _riskAssets.length; i++) {
+            priceFeeds[_riskAssets[i]] = _priceFeeds[i];
+            poolFees[_riskAssets[i]] = _poolFees[i];
+        }
+        require(_swapRouter != address(0), "router");
+        swapRouter = _swapRouter;
+        // optional: call strategy init if it supports it
+        if (strategyInitData.length > 0) {
+            (bool ok,) = strategy.call(strategyInitData);
+            require(ok, "strategy init failed");
+        }
+    }
+
+    // Deposits/withdraws are in stable asset
+    function deposit(uint256 amount) external {
+        require(IERC20(stableAsset).transferFrom(msg.sender, address(this), amount), "transferFrom");
+        emit Deposit(msg.sender, amount);
+        deposits.push(DepositRecord({ timestamp: block.timestamp, user: msg.sender, amount: amount }));
+    }
+
+    function withdraw(uint256 amount) external onlyOwner {
+        require(IERC20(stableAsset).transfer(msg.sender, amount), "transfer");
+        emit Withdraw(msg.sender, amount);
+        withdrawals.push(WithdrawRecord({ timestamp: block.timestamp, user: msg.sender, amount: amount }));
+    }
+
+    function getBalances() public view returns (uint256 stableBal, uint256[] memory riskBals) {
+        stableBal = IERC20(stableAsset).balanceOf(address(this));
+        riskBals = new uint256[](riskAssets.length);
+        for (uint256 i = 0; i < riskAssets.length; i++) {
+            riskBals[i] = IERC20(riskAssets[i]).balanceOf(address(this));
+        }
+    }
+
+    function _latestPrice(address token) internal view returns (uint256 price, uint8 decimals) {
+        address feed = priceFeeds[token];
+        require(feed != address(0), "no feed");
+        (, int256 p,,,) = AggregatorV3Interface(feed).latestRoundData();
+        require(p > 0, "bad price");
+        price = uint256(p);
+        decimals = AggregatorV3Interface(feed).decimals();
+    }
+
+    function getPortfolioValueUSD() public view returns (uint256 usd6) {
+        (uint256 stableBal, uint256[] memory riskBals) = getBalances();
+        // Scale stable to 6 decimals (USDC-like)
+        uint8 stableDec = IERC20Metadata(stableAsset).decimals();
+        if (stableDec >= 6) {
+            usd6 += stableBal / (10 ** (stableDec - 6));
+        } else {
+            usd6 += stableBal * (10 ** (6 - stableDec));
+        }
+        for (uint256 i = 0; i < riskAssets.length; i++) {
+            address token = riskAssets[i];
+            (uint256 price, uint8 priceDec) = _latestPrice(token); // priceDec typically 8
+            uint8 tokenDec = IERC20Metadata(token).decimals();
+            // Convert token amount * price to 6 decimals: bal * price * 10^6 / 10^(tokenDec + priceDec)
+            uint256 numerator = riskBals[i] * price;
+            uint256 denomPow = tokenDec + priceDec;
+            uint256 value6;
+            if (denomPow >= 6) {
+                value6 = numerator / (10 ** (denomPow - 6));
+            } else {
+                value6 = numerator * (10 ** (6 - denomPow));
+            }
+            usd6 += value6;
+        }
+    }
+
+    // Returns the USD value (6 decimals) of a specific risk asset held by this wallet
+    function getAeetValueUSD(address token) public view returns (uint256 usd6) {
+        // Require token configured with a price feed (used as proxy that it is a supported risk asset)
+        require(priceFeeds[token] != address(0), "asset not configured");
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        if (bal == 0) return 0;
+        (uint256 price, uint8 priceDec) = _latestPrice(token);
+        uint8 tokenDec = IERC20Metadata(token).decimals();
+        uint256 numerator = bal * price;
+        uint256 denomPow = tokenDec + priceDec;
+        if (denomPow >= 6) {
+            usd6 = numerator / (10 ** (denomPow - 6));
+        } else {
+            usd6 = numerator * (10 ** (6 - denomPow));
+        }
+    }
+
+    // Automation
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        (uint256 stableBal, uint256[] memory riskBals) = getBalances();
+        (bool needed, IStrategy.SwapAction[] memory actions) = IStrategy(strategy).shouldRebalance(
+            stableAsset,
+            riskAssets,
+            stableBal,
+            riskBals
+        );
+        upkeepNeeded = needed;
+        performData = abi.encode(actions);
+    }
+
+    function performUpkeep(bytes calldata performData) external override {
+        // Defensive re-check: compute current need and actions, ignore provided performData
+        performData; // silence unused
+        (uint256 stableBal, uint256[] memory riskBals) = getBalances();
+        (bool needed, IStrategy.SwapAction[] memory actions) = IStrategy(strategy).shouldRebalance(
+            stableAsset,
+            riskAssets,
+            stableBal,
+            riskBals
+        );
+        require(needed && actions.length > 0, "no upkeep needed");
+
+        for (uint256 i = 0; i < actions.length; i++) {
+            // Validate action tokens belong to configured set
+            bool tokenInIsStable = actions[i].tokenIn == stableAsset;
+            bool tokenOutIsStable = actions[i].tokenOut == stableAsset;
+            require(tokenInIsStable != tokenOutIsStable, "pair must include stable");
+            bool tokenInIsRisk = _isRiskAsset(actions[i].tokenIn);
+            bool tokenOutIsRisk = _isRiskAsset(actions[i].tokenOut);
+            require(tokenInIsRisk || tokenOutIsRisk, "unknown asset");
+            _executeSwap(actions[i]);
+        }
+        // optional hook
+        (bool ok,) = strategy.call(abi.encodeWithSelector(IStrategyExecutionHook.onRebalanceExecuted.selector));
+        ok; // ignore failure
+    }
+
+    function _isRiskAsset(address token) internal view returns (bool) {
+        for (uint256 i = 0; i < riskAssets.length; i++) {
+            if (riskAssets[i] == token) return true;
+        }
+        return false;
+    }
+
+    function _executeSwap(IStrategy.SwapAction memory action) internal {
+        require(action.amountIn > 0, "amountIn");
+        require(swapRouter != address(0), "no router");
+        // Approve router to pull tokens for swap
+        IERC20(action.tokenIn).approve(swapRouter, action.amountIn);
+        uint24 fee = poolFees[action.tokenIn == stableAsset ? action.tokenOut : action.tokenIn];
+        require(fee > 0, "fee not set");
+        uint256 balInBefore = IERC20(action.tokenIn).balanceOf(address(this));
+        uint256 balOutBefore = IERC20(action.tokenOut).balanceOf(address(this));
+
+        uint256 amountOut = ISwapRouterLike(swapRouter).exactInputSingle(
+            ISwapRouterLike.ExactInputSingleParams({
+                tokenIn: action.tokenIn,
+                tokenOut: action.tokenOut,
+                fee: fee,
+                recipient: address(this),
+                deadline: block.timestamp + 600,
+                amountIn: action.amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            })
+        );
+
+        uint256 balInAfter = IERC20(action.tokenIn).balanceOf(address(this));
+        uint256 balOutAfter = IERC20(action.tokenOut).balanceOf(address(this));
+        swaps.push(SwapRecord({
+            timestamp: block.timestamp,
+            tokenIn: action.tokenIn,
+            tokenOut: action.tokenOut,
+            amountIn: action.amountIn,
+            amountOut: amountOut,
+            balanceInAfter: balInAfter,
+            balanceOutAfter: balOutAfter
+        }));
+
+        emit SwapExecuted(action.tokenIn, action.tokenOut, action.amountIn, amountOut, block.timestamp, balInAfter, balOutAfter);
+    }
+}
+
+

@@ -37,13 +37,13 @@ export const addresses: Record<string, ChainAddresses> = {
   // Base Sepolia (Testnet)
   "base-sepolia": {
     // Uniswap V3
-    uniswapV3Factory: "0x9323c1d6D800ed51Bd7C6B216cfBec678B7d0BC2",
-    uniswapV3Router: "0x4F84662a1317BE05B8F66F31AeA0c3e5398CC5f1",
+    uniswapV3Factory: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
+    uniswapV3Router: "",
     
     // Tokens
     usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",  // USDC
     weth: "0x4200000000000000000000000000000000000006",  // WETH
-    wbtc: "0x29f2D40B0605204364af54EC677bD022dA425d03",  // Mock WBTC
+    wbtc: "",
     cbBTC: "0xcbB7C0006F23900c38EB856149F799620fcb8A4a",  // cbBTC
     
     // Chainlink Price Feeds
