@@ -214,7 +214,7 @@ export default function WalletDetailsPage() {
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Portfolio</Typography>
+              <Typography variant="subtitle1" fontWeight="bold">My Assets</Typography>
               <Typography variant="h5" sx={{ mt: 1 }}>{formatUsd6(valueUsd as bigint)}</Typography>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 {(() => {
@@ -232,12 +232,12 @@ export default function WalletDetailsPage() {
                       amt = riskBals[idx];
                     }
                     const p = prices[m.symbol];
-                    const usd = p ? (Number(amt || 0) * p.price) / 10 ** (m.decimals + p.decimals - 6) : undefined;
+                    const usd = p ? (Number(amt || 0) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
                     tiles.push(
                       <Grid key={sym} item xs={12} sm={6} md={4}>
                         <Stack>
-                          <Typography variant="body1" fontWeight="bold">{formatTokenAmount(amt, m.decimals)} {m.symbol}</Typography>
-                          <Typography variant="body2" color="text.secondary">{usd !== undefined ? `$${usd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '-'}</Typography>
+                          <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>{formatTokenAmount(amt, m.decimals)} {m.symbol}</Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>{usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</Typography>
                         </Stack>
                       </Grid>
                     );
