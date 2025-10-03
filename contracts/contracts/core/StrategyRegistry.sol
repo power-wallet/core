@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract StrategyRegistry is Ownable {
+contract StrategyRegistry is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // strategyId => implementation contract
     mapping(bytes32 => address) public strategies;
     bytes32[] public strategyIds;
@@ -11,7 +13,10 @@ contract StrategyRegistry is Ownable {
     event StrategyRegistered(bytes32 indexed id, address implementation);
     event StrategyRemoved(bytes32 indexed id);
 
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    function initialize(address initialOwner) external initializer {
+        __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+    }
 
     function registerStrategy(bytes32 id, address implementation) external onlyOwner {
         require(id != bytes32(0), "invalid id");
@@ -36,6 +41,8 @@ contract StrategyRegistry is Ownable {
     function listStrategies() external view returns (bytes32[] memory) {
         return strategyIds;
     }
+    
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
 
 

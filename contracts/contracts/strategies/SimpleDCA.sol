@@ -10,6 +10,21 @@ import "../interfaces/IStrategy.sol";
  * Initialization data (abi.encode) expected as: (address riskAsset, address stableAsset, uint256 dcaAmountStable, uint256 frequencySeconds)
  */
 contract SimpleDCA is IStrategy {
+    // Minimal ownable (initializer-style for clones)
+    address private _owner;
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    modifier onlyOwner() {
+        require(msg.sender == _owner, "Ownable: caller is not the owner");
+        _;
+    }
+    function owner() public view returns (address) {
+        return _owner;
+    }
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
+    }
     address public riskAsset;
     address public stableAsset;
     uint256 public dcaAmountStable; // in stable decimals
@@ -20,16 +35,22 @@ contract SimpleDCA is IStrategy {
     event Initialized(address risk, address stable, uint256 amount, uint256 frequency);
     event Executed(uint256 when, uint256 amountStable);
 
+    // interface 'function initialize(address,address,uint256,uint256,string)'
     function initialize(address _risk, address _stable, uint256 _amountStable, uint256 _frequency, string calldata desc) external {
-        require(riskAsset == address(0), "inited");
+        require(_owner == address(0), "inited");
+        _owner = msg.sender;
+        emit OwnershipTransferred(address(0), _owner);
+        
         require(_risk != address(0) && _stable != address(0), "addr");
         require(_amountStable > 0 && _frequency > 0, "params");
+        
         riskAsset = _risk;
         stableAsset = _stable;
         dcaAmountStable = _amountStable;
         frequency = _frequency;
         lastTimestamp = 0;
         _description = desc;
+        
         emit Initialized(_risk, _stable, _amountStable, _frequency);
     }
 
@@ -58,6 +79,17 @@ contract SimpleDCA is IStrategy {
 
     function description() external view override returns (string memory) {
         return _description;
+    }
+
+    // Owner setters
+    function setDcaAmountStable(uint256 newAmount) external onlyOwner {
+        require(newAmount > 0, "amount");
+        dcaAmountStable = newAmount;
+    }
+
+    function setFrequency(uint256 newFrequency) external onlyOwner {
+        require(newFrequency > 0, "freq");
+        frequency = newFrequency;
     }
 }
 

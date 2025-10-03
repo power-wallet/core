@@ -23,11 +23,15 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
 
     // Strategy implementation
     address public strategy;
+    bool public automationPaused;
 
     // Events
     event Deposit(address indexed user, uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
     event SwapExecuted(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, uint256 ts, uint256 balInAfter, uint256 balOutAfter);
+    event AutomationPaused(address indexed by);
+    event AutomationUnpaused(address indexed by);
+    event StrategyUpdated(address indexed by, address indexed newStrategy);
 
     struct SwapRecord {
         uint256 timestamp;
@@ -65,8 +69,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
         address[] calldata _riskAssets,
         address[] calldata _priceFeeds,
         uint24[] calldata _poolFees,
-        address _swapRouter,
-        bytes calldata strategyInitData
+        address _swapRouter
     ) external onlyOwner {
         require(stableAsset == address(0), "inited");
         stableAsset = _stableAsset;
@@ -79,11 +82,26 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
         }
         require(_swapRouter != address(0), "router");
         swapRouter = _swapRouter;
-        // optional: call strategy init if it supports it
-        if (strategyInitData.length > 0) {
-            (bool ok,) = strategy.call(strategyInitData);
+    }
+
+    function pauseAutomation() external onlyOwner {
+        automationPaused = true;
+        emit AutomationPaused(msg.sender);
+    }
+
+    function unpauseAutomation() external onlyOwner {
+        automationPaused = false;
+        emit AutomationUnpaused(msg.sender);
+    }
+
+    function setStrategy(address newStrategy, bytes calldata initData) external onlyOwner {
+        require(newStrategy != address(0), "zero strategy");
+        strategy = newStrategy;
+        if (initData.length > 0) {
+            (bool ok,) = strategy.call(initData);
             require(ok, "strategy init failed");
         }
+        emit StrategyUpdated(msg.sender, newStrategy);
     }
 
     // Deposits/withdraws are in stable asset
@@ -161,6 +179,9 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
 
     // Automation
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        if (automationPaused) {
+            return (false, bytes(""));
+        }
         (uint256 stableBal, uint256[] memory riskBals) = getBalances();
         (bool needed, IStrategy.SwapAction[] memory actions) = IStrategy(strategy).shouldRebalance(
             stableAsset,
@@ -173,6 +194,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
     }
 
     function performUpkeep(bytes calldata performData) external override {
+        require(!automationPaused, "automation paused");
         // Defensive re-check: compute current need and actions, ignore provided performData
         performData; // silence unused
         (uint256 stableBal, uint256[] memory riskBals) = getBalances();
