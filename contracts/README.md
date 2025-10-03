@@ -1,6 +1,18 @@
 # Base Sepolia Contract Addresses
 
-TechnicalIndicators deployed to: 0x7A0F3B371A2563627EfE1967E7645812909Eb6c5
+
+- TechnicalIndicators: 0x7A0F3B371A2563627EfE1967E7645812909Eb6c5
+- Strategy Registry: 0x53B4C7F51904b888f61859971B11ff51a8e43F80
+- Wallet Factory: 0x6e6A4C1094a064030c30607549BF8d87311cB219
+- Simple DCA Strategy: 0x316cc4fb12b1785aA38Cba5040AC2094B1d99709
+- USDC: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
+- cbBTC: 0xcbB7C0006F23900c38EB856149F799620fcb8A4a
+- WETH: 0x4200000000000000000000000000000000000006
+- UniswapV3 Factory: 0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24
+- UniswapV3 Router: 0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4
+- Chainlink Price Feed BTC/USD: 0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298
+- Chainlink Price Feed ETH/USD: 0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1
+ 
 
 
 # TechnicalIndicators Deployment 
@@ -71,12 +83,13 @@ Registered strategy id: 0x786a403612fcd5da11e68ce2dace5caffe41cea41e2d64ff999854
 WalletFactory (proxy): 0x6e6A4C1094a064030c30607549BF8d87311cB219
 ```
 
-## Verity contracts
+## Verify contracts
 
 ```
 # verify SimpleDCA
 npx hardhat verify --network base-sepolia 0x316cc4fb12b1785aA38Cba5040AC2094B1d99709
 
+# get contract implementation addresses
 npx hardhat console --network base-sepolia
 > await upgrades.erc1967.getImplementationAddress("0x53B4C7F51904b888f61859971B11ff51a8e43F80")
 '0xF6844ec320eed359A766418a244249F5aaC2b695'
@@ -84,14 +97,14 @@ npx hardhat console --network base-sepolia
 '0xA27B80dCD4490E11aCd53148c69bB62c9fcEEB9a'
 > 
 
-# verify StrategyRegistry and WalletFactory
+# verify StrategyRegistry implementation
 npx hardhat verify --network base-sepolia 0xF6844ec320eed359A766418a244249F5aaC2b695
-npx hardhat verify --network base-sepolia 0xA27B80dCD4490E11aCd53148c69bB62c9fcEEB9a
 
+# verify WalletFactory implementation
 npx hardhat verify --network base-sepolia 0xA27B80dCD4490E11aCd53148c69bB62c9fcEEB9a
 ```
 
-## Craete Wallet
+## Create Wallet
 
 ```
 npx hardhat run contracts/scripts/deploy/create-wallet-simple-dca.ts --network base-sepolia

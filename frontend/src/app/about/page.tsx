@@ -129,61 +129,7 @@ export default function About() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" gutterBottom fontWeight="bold">
-              Our Smart Contracts
-            </Typography>
-            <Typography variant="body1" paragraph>
-              Power Wallet smart contracts power our on-chain data and automation. <br />
-              We currently have the
-              <strong> TechnicalIndicators</strong> contract deployed on <strong>Base Sepolia</strong> at
-              {' '}<a
-                href="https://sepolia.basescan.org/address/0x7A0F3B371A2563627EfE1967E7645812909Eb6c5"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#60A5FA', textDecoration: 'none' }}
-              >
-                0x7A0F3B371A2563627EfE1967E7645812909Eb6c5
-              </a>.
-            </Typography>
-            <Typography variant="body1" paragraph>
-              We use <strong>Chainlink Automation</strong> to keep our price feeds and technical indicators (e.g.,
-              SMA and RSI) updated on-chain. You can view our upkeep here:
-              {' '}<a
-                href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#60A5FA', textDecoration: 'none' }}
-              >
-                Chainlink Automation Upkeep (Base Sepolia)
-              </a>.
-            </Typography>
-            <Typography variant="body1" paragraph>
-              We rely on <strong>Chainlink Price Feeds</strong> on Base Sepolia for on-chain pricing:
-              <br />
-              • BTC/USD price feed:
-              {' '}<a
-                href="https://sepolia.basescan.org/address/0xcbB7C0006F23900c38EB856149F799620fcb8A4a"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#60A5FA', textDecoration: 'none' }}
-              >
-                0xcbB7C0006F23900c38EB856149F799620fcb8A4a
-              </a>
-              <br />
-              • ETH/USD price feed:
-              {' '}<a
-                href="https://sepolia.basescan.org/address/0x4200000000000000000000000000000000000006"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#60A5FA', textDecoration: 'none' }}
-              >
-                0x4200000000000000000000000000000000000006
-              </a>
-            </Typography>
-          </CardContent>
-        </Card>
+        
 
         <Divider />
 

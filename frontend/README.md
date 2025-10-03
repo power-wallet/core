@@ -82,6 +82,7 @@ frontend/
 
 ## Available Scripts
 
+- `npm run dev:poll` - Start development server with auto-reload
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm start` - Start production server

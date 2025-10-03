@@ -16,6 +16,10 @@ export interface ChainAddresses {
   btcUsdPriceFeed: string;
   ethUsdPriceFeed: string;
 
+  walletFactory?: string;  // optional, deployed addresses
+  strategyRegistry?: string; // optional, deployed addresses
+  technicalIndicators?: string; // optional, deployed addresses
+
   // strategy map
   strategies: {
     [key: string]: string | undefined;
@@ -23,6 +27,31 @@ export interface ChainAddresses {
 }
 
 export const addresses: Record<string, ChainAddresses> = {
+
+    // Base Sepolia (Testnet)
+  "base-sepolia": {
+    // Uniswap V3
+    uniswapV3Factory: "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24",
+    uniswapV3Router: "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4",
+    
+    // Tokens
+    usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",  // USDC
+    weth: "0x4200000000000000000000000000000000000006",  // WETH
+    cbBTC: "0xcbB7C0006F23900c38EB856149F799620fcb8A4a",  // cbBTC
+    
+    // Chainlink Price Feeds
+    btcUsdPriceFeed: "0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298",
+    ethUsdPriceFeed: "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1",
+
+    walletFactory: "0x6e6A4C1094a064030c30607549BF8d87311cB219",
+    strategyRegistry: "0x53B4C7F51904b888f61859971B11ff51a8e43F80",
+    technicalIndicators: "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
+    
+    strategies: {
+      'simple-dca-v1': '0x316cc4fb12b1785aA38Cba5040AC2094B1d99709' // deployed SimpleDCA on Base Sepolia
+    }
+  },
+
   // Base Mainnet
   "base": {
     // Uniswap V3
@@ -41,26 +70,6 @@ export const addresses: Record<string, ChainAddresses> = {
     ethUsdPriceFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
 
     strategies: {}
-  },
-  
-  // Base Sepolia (Testnet)
-  "base-sepolia": {
-    // Uniswap V3
-    uniswapV3Factory: "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24",
-    uniswapV3Router: "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4",
-    
-    // Tokens
-    usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",  // USDC
-    weth: "0x4200000000000000000000000000000000000006",  // WETH
-    cbBTC: "0xcbB7C0006F23900c38EB856149F799620fcb8A4a",  // cbBTC
-    
-    // Chainlink Price Feeds
-    btcUsdPriceFeed: "0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298",
-    ethUsdPriceFeed: "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1",
-
-    strategies: {
-      'simple-dca-v1': '0x316cc4fb12b1785aA38Cba5040AC2094B1d99709' // deployed SimpleDCA on Base Sepolia
-    }
   },
   
   // Ethereum Sepolia (Testnet)

@@ -122,16 +122,17 @@ export default function SmartContractsPage() {
           { type: 'function', stateMutability: 'view', name: 'token1', inputs: [], outputs: [{ type: 'address' }] },
         ] as const,
         functionName: 'slot0',
+        args: [],
       }) as any;
       const sqrtPriceX96 = BigInt(slot0[0]);
       // Fetch token0/token1 addresses
-      const token0Addr = await client.readContract({ address: poolAddr as `0x${string}`, abi: [{type:'function',name:'token0',stateMutability:'view',inputs:[],outputs:[{type:'address'}]}] as any, functionName: 'token0' }) as `0x${string}`;
-      const token1Addr = await client.readContract({ address: poolAddr as `0x${string}`, abi: [{type:'function',name:'token1',stateMutability:'view',inputs:[],outputs:[{type:'address'}]}] as any, functionName: 'token1' }) as `0x${string}`;
+      const token0Addr = await client.readContract({ address: poolAddr as `0x${string}`, abi: [{type:'function',name:'token0',stateMutability:'view',inputs:[],outputs:[{type:'address'}]}] as any, functionName: 'token0', args: [] }) as `0x${string}`;
+      const token1Addr = await client.readContract({ address: poolAddr as `0x${string}`, abi: [{type:'function',name:'token1',stateMutability:'view',inputs:[],outputs:[{type:'address'}]}] as any, functionName: 'token1', args: [] }) as `0x${string}`;
       const [dec0, dec1, sym0, sym1] = await Promise.all([
-        client.readContract({ address: token0Addr, abi: ERC20_ABI as any, functionName: 'decimals' }) as Promise<number>,
-        client.readContract({ address: token1Addr, abi: ERC20_ABI as any, functionName: 'decimals' }) as Promise<number>,
-        client.readContract({ address: token0Addr, abi: ERC20_ABI as any, functionName: 'symbol' }) as Promise<string>,
-        client.readContract({ address: token1Addr, abi: ERC20_ABI as any, functionName: 'symbol' }) as Promise<string>,
+        client.readContract({ address: token0Addr, abi: ERC20_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
+        client.readContract({ address: token1Addr, abi: ERC20_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
+        client.readContract({ address: token0Addr, abi: ERC20_ABI as any, functionName: 'symbol', args: [] }) as Promise<string>,
+        client.readContract({ address: token1Addr, abi: ERC20_ABI as any, functionName: 'symbol', args: [] }) as Promise<string>,
       ]);
       const [bal0Raw, bal1Raw] = await Promise.all([
         client.readContract({ address: token0Addr, abi: ERC20_ABI as any, functionName: 'balanceOf', args: [poolAddr as `0x${string}`] }) as Promise<bigint>,
@@ -145,7 +146,7 @@ export default function SmartContractsPage() {
       const riskDec = token0IsStable ? dec1 : dec0;
       const riskSym = token0IsStable ? sym1 : sym0;
       // Price: USDC per 1 risk (no slippage) from sqrtPriceX96
-      const Q96 = 2n ** 96n;
+      const Q96 = (BigInt(1) << BigInt(96));
       const ratioX192 = (sqrtPriceX96 * sqrtPriceX96); // Q192 scale
       let priceUSDCperRisk: number;
       if (token0IsStable) {
@@ -258,7 +259,7 @@ export default function SmartContractsPage() {
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>Uniswap V3 Pools (fee 0.01%)</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Uniswap V3 Pools to perform swaps between the risk assets (e.g., cbBTC and WETH) and stablecoin (e.g., USDC). We also show current pool balances and the no-slippage exchange rate.
+                Uniswap V3 Pools to perform swaps between the risk assets (e.g., cbBTC and WETH) and stablecoin (e.g., USDC).
               </Typography>
               <Stack spacing={1}>
                 <Typography variant="body2">
@@ -287,6 +288,20 @@ export default function SmartContractsPage() {
             </CardContent>
           </Card>
         </Stack>
+
+        <Box sx={{ mt: 4 }}>
+          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink Automation</Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                We use Chainlink Automation to keep price feeds and technical indicators (e.g., SMA, RSI) up to date on-chain.
+              </Typography>
+              <Typography variant="body2">
+                Upkeep: <MuiLink href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>View on Chainlink Automation</MuiLink>
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
       </Container>
     </Box>
   );

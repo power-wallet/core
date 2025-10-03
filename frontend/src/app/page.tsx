@@ -32,7 +32,7 @@ export default function Home() {
     {
       icon: <AutoGraphIcon sx={{ fontSize: 48 }} />,
       title: 'Automated Strategies',
-      description: 'Deploy proven trading strategies that manage your investments 24/7 and optimize returns.',
+      description: 'Deploy proven trading strategies that manage your investments 24/7 using technical indicators.',
     },
     {
       icon: <SecurityIcon sx={{ fontSize: 48 }} />,
@@ -42,7 +42,7 @@ export default function Home() {
     {
       icon: <TrendingUpIcon sx={{ fontSize: 48 }} />,
       title: 'Smart Investing',
-      description: 'Benefit of automatic risk management so you can enjoy a peace of mind.',
+      description: 'Deposit USDC and let algorithmic strategies optimize your Bitcoin and digital asset investments.',
     },
   ];
 
@@ -88,12 +88,18 @@ export default function Home() {
               >
                 Smart Investing in Bitcoin & Digital Assets
               </Typography>
-              <Typography variant="body1" paragraph sx={{ opacity: 0.9, mb: 4 }}>
-                Power Wallet automates the management of your on-chain portfolio of bitcoin and other digital assets. <br />
-                Deploy your capital into intelligent investment strategies that automatically rebalance your assets, and  optimize your returns. <br />
-                Enjoy the security of blockchain and the benefits of automated risk management.
-              </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0 }}>
+                <li>
+                  <Typography variant="body1">Power up your bitcoin & crypto portfolio with proven investment strategies automated on-chain.</Typography>
+                </li>
+                <li>
+                  <Typography variant="body1">Enjoy the benefits of automated risk management.</Typography>
+                </li>
+                <li>
+                  <Typography variant="body1">Maintain full custody with secure, transparent, verifiable execution. </Typography>
+                </li>
+              </Box>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 5 }}>
                 <Link href="/simulator" passHref style={{ textDecoration: 'none' }}>
                   <Button
                     variant="contained"
