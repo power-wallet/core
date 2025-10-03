@@ -256,7 +256,9 @@ export default function Home() {
                 },
               }}
             >
-              Get Started
+              <Link href="/portfolio" style={{ textDecoration: 'none', color: 'inherit' }}>
+                Get Started
+              </Link>
             </Button>
           </Stack>
         </Container>

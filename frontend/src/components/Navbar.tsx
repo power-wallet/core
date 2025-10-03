@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import WalletConnectModal from './WalletConnectModal';
 
@@ -26,6 +27,20 @@ const Navbar = () => {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { isConnected, address } = useAccount();
+
+  const shortAddress = React.useMemo(() => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}…${address.slice(-4)}`;
+  }, [address]);
+
+  const avatarColor = React.useMemo(() => {
+    if (!address) return '#888';
+    // simple deterministic color from address
+    const hash = Array.from(address.slice(2)).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    const hue = hash % 360;
+    return `hsl(${hue}, 70%, 50%)`;
+  }, [address]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -133,7 +148,19 @@ const Navbar = () => {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<AccountBalanceWalletIcon />}
+                startIcon={
+                  isConnected ? (
+                    <Box sx={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      background: avatarColor,
+                      boxShadow: '0 0 0 2px rgba(0,0,0,0.2)'
+                    }} />
+                  ) : (
+                    <AccountBalanceWalletIcon />
+                  )
+                }
                 onClick={() => setWalletModalOpen(true)}
                 sx={{
                   background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
@@ -143,7 +170,7 @@ const Navbar = () => {
                   },
                 }}
               >
-                Connect Wallet
+                {isConnected ? shortAddress : 'Connect Wallet'}
               </Button>
             )}
           </Toolbar>
