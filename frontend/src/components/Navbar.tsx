@@ -19,6 +19,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useAccount } from 'wagmi';
+import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 import Link from 'next/link';
 import WalletConnectModal from './WalletConnectModal';
 
@@ -34,13 +35,7 @@ const Navbar = () => {
     return `${address.slice(0, 6)}…${address.slice(-4)}`;
   }, [address]);
 
-  const avatarColor = React.useMemo(() => {
-    if (!address) return '#888';
-    // simple deterministic color from address
-    const hash = Array.from(address.slice(2)).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    const hue = hash % 360;
-    return `hsl(${hue}, 70%, 50%)`;
-  }, [address]);
+  // Jazzicon provides MetaMask-style avatars
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -74,11 +69,17 @@ const Navbar = () => {
             fullWidth
             variant="contained"
             color="primary"
-            startIcon={<AccountBalanceWalletIcon />}
+            startIcon={isConnected && address ? (
+              <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                <Jazzicon diameter={16} seed={jsNumberForAddress(address)} />
+              </Box>
+            ) : (
+              <AccountBalanceWalletIcon />
+            )}
             onClick={() => setWalletModalOpen(true)}
             sx={{ mx: 2, my: 1 }}
           >
-            Connect Wallet
+            {isConnected ? shortAddress : 'Connect Wallet'}
           </Button>
         </ListItem>
       </List>
@@ -148,19 +149,13 @@ const Navbar = () => {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={
-                  isConnected ? (
-                    <Box sx={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      background: avatarColor,
-                      boxShadow: '0 0 0 2px rgba(0,0,0,0.2)'
-                    }} />
-                  ) : (
-                    <AccountBalanceWalletIcon />
-                  )
-                }
+                startIcon={isConnected && address ? (
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <Jazzicon diameter={20} seed={jsNumberForAddress(address)} />
+                  </Box>
+                ) : (
+                  <AccountBalanceWalletIcon />
+                )}
                 onClick={() => setWalletModalOpen(true)}
                 sx={{
                   background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',

@@ -2,13 +2,12 @@
 
 import React, { useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
-import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import baseSepoliaAssets from '@/lib/assets/base-sepolia.json';
-import { readContract } from 'viem/actions';
 import { createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { baseSepolia, base } from 'viem/chains';
 
 const powerWalletAbi = [
   { type: 'function', name: 'getBalances', stateMutability: 'view', inputs: [], outputs: [
@@ -19,6 +18,8 @@ const powerWalletAbi = [
   { type: 'function', name: 'getPortfolioValueUSD', stateMutability: 'view', inputs: [], outputs: [ { name: 'usd6', type: 'uint256' } ] },
   { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
   { type: 'function', name: 'stableAsset', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
+  { type: 'function', name: 'deposit', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
+  { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
 ];
 
 const simpleDcaAbi = [
@@ -28,9 +29,9 @@ const simpleDcaAbi = [
 ];
 
 function formatUsd6(v?: bigint) {
-  if (!v) return '0.00';
+  if (!v) return '$0.00';
   const num = Number(v) / 1_000_000;
-  return `$${num.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function WalletDetailsPage() {
@@ -69,6 +70,11 @@ export default function WalletDetailsPage() {
     address: walletAddress,
     abi: powerWalletAbi as any,
     functionName: 'strategy',
+  });
+  const { data: stableTokenAddr } = useReadContract({
+    address: walletAddress,
+    abi: powerWalletAbi as any,
+    functionName: 'stableAsset',
   });
 
   const { data: dcaAmount } = useReadContract({
@@ -111,8 +117,8 @@ export default function WalletDetailsPage() {
     return value.toLocaleString(undefined, { maximumFractionDigits: fractionDigits });
   };
 
-  // Price reading client (Base Sepolia)
-  const client = useMemo(() => createPublicClient({ chain: baseSepolia, transport: http() }), []);
+  // Public client on current chain
+  const client = useMemo(() => createPublicClient({ chain: chainId === 8453 ? base : baseSepolia, transport: http() }), [chainId]);
 
   const aggregatorAbi = [
     { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
@@ -126,6 +132,33 @@ export default function WalletDetailsPage() {
   ] as const;
 
   const [prices, setPrices] = React.useState<Record<string, { price: number; decimals: number }>>({});
+  const { writeContractAsync } = useWriteContract();
+  const [txHash, setTxHash] = React.useState<`0x${string}` | undefined>(undefined);
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
+  const [toast, setToast] = React.useState<{ open: boolean; message: string; severity: 'info' | 'success' | 'error' }>({ open: false, message: '', severity: 'info' });
+
+  // Deposit/Withdraw modals
+  const [depositOpen, setDepositOpen] = React.useState(false);
+  const [withdrawOpen, setWithdrawOpen] = React.useState(false);
+  const [depositAmount, setDepositAmount] = React.useState<string>('');
+  const [withdrawAmount, setWithdrawAmount] = React.useState<string>('');
+  const [isDepositing, setIsDepositing] = React.useState(false);
+  const [isWithdrawing, setIsWithdrawing] = React.useState(false);
+  const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
+
+  
+
+  React.useEffect(() => {
+    if (txHash) {
+      setToast({ open: true, message: 'Transaction submitted. Waiting for confirmation…', severity: 'info' });
+    }
+  }, [txHash]);
+
+  React.useEffect(() => {
+    if (isConfirmed && txHash) {
+      setToast({ open: true, message: `Transaction confirmed: ${txHash}`, severity: 'success' });
+    }
+  }, [isConfirmed, txHash]);
 
   React.useEffect(() => {
     const metas = [addressToMeta(chainAssets.cbBTC.address), addressToMeta(chainAssets.WETH.address), addressToMeta(chainAssets.USDC.address)].filter(Boolean) as { address: string; symbol: string; decimals: number; feed: `0x${string}` }[];
@@ -134,8 +167,8 @@ export default function WalletDetailsPage() {
       for (const m of metas) {
         try {
           const [dec, round] = await Promise.all([
-            client.readContract({ address: m.feed, abi: aggregatorAbi as any, functionName: 'decimals' }) as Promise<number>,
-            client.readContract({ address: m.feed, abi: aggregatorAbi as any, functionName: 'latestRoundData' }) as Promise<any>,
+            client.readContract({ address: m.feed, abi: aggregatorAbi as any, functionName: 'decimals', args: [] }) as Promise<number>,
+            client.readContract({ address: m.feed, abi: aggregatorAbi as any, functionName: 'latestRoundData', args: [] }) as Promise<any>,
           ]);
           const p = Number(round[1]);
           next[m.symbol] = { price: p, decimals: dec };
@@ -145,11 +178,27 @@ export default function WalletDetailsPage() {
     })();
   }, [client]);
 
+  // Refresh allowance when deposit modal opens
+  React.useEffect(() => {
+    (async () => {
+      if (!depositOpen || !stableTokenAddr || !walletAddress || !connected) return;
+      try {
+        const erc20ReadAbi = [
+          { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [ { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+        ] as const;
+        const a = await client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'allowance', args: [connected as `0x${string}`, walletAddress] }) as bigint;
+        setAllowance(a);
+      } catch (e) {
+        setAllowance(undefined);
+      }
+    })();
+  }, [depositOpen, stableTokenAddr, walletAddress, connected, client]);
+
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Wallet <span style={{ fontFamily: 'monospace', fontSize: '0.8em', width: '10em' }}></span>
-        {walletAddress && (
+      <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
+      {walletAddress && (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
           <a
             href={`${getExplorerBase(chainId)}/address/${walletAddress}`}
             target="_blank"
@@ -158,19 +207,19 @@ export default function WalletDetailsPage() {
           >
             {shortAddress}
           </a>
+        </Typography>
       )}
-      </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
-            <CardContent>
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight="bold">Portfolio</Typography>
               <Typography variant="h5" sx={{ mt: 1 }}>{formatUsd6(valueUsd as bigint)}</Typography>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 {(() => {
                   const order: string[] = ['cbBTC', 'WETH', 'USDC'];
-                  const tiles: JSX.Element[] = [];
+                  const tiles: React.ReactNode[] = [];
                   for (const sym of order) {
                     const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
                     if (!m) continue;
@@ -199,9 +248,9 @@ export default function WalletDetailsPage() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
-            <CardContent>
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight="bold">Strategy</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{String(desc || '')}</Typography>
               <Stack direction="row" spacing={3} sx={{ mt: 2 }}>
@@ -215,13 +264,163 @@ export default function WalletDetailsPage() {
                 </Box>
               </Stack>
               <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                <Button variant="outlined" size="small">Deposit</Button>
-                <Button variant="outlined" size="small">Withdraw</Button>
+                <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
+                <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
               </Stack>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+
+      {/* Deposit Modal */}
+      <Dialog open={depositOpen} onClose={() => setDepositOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Deposit USDC</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Amount (USDC)"
+            type="number"
+            fullWidth
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+            inputProps={{ min: 0, step: '0.01' }}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Allowance: {formatTokenAmount(allowance, 6)} USDC
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDepositOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (!stableTokenAddr || !walletAddress) return;
+              const amount = Math.max(0, Number(depositAmount || '0'));
+              if (amount <= 0) return;
+              const amt = BigInt(Math.round(amount * 1_000_000));
+              setIsDepositing(true);
+              try {
+                // Read allowance & balance; approve if needed
+                const erc20ReadAbi = [
+                  { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [ { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+                  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+                ] as const;
+                const [allowance, balance] = await Promise.all([
+                  client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'allowance', args: [connected as `0x${string}`, walletAddress] }) as Promise<bigint>,
+                  client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'balanceOf', args: [connected as `0x${string}`] }) as Promise<bigint>,
+                ]);
+                if (balance < amt) {
+                  setToast({ open: true, message: 'Insufficient USDC balance', severity: 'error' });
+                  return;
+                }
+                if (allowance < amt) {
+                  const erc20WriteAbi = [
+                    { type: 'function', name: 'approve', stateMutability: 'nonpayable', inputs: [ { name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' } ], outputs: [ { name: '', type: 'bool' } ] },
+                  ] as const;
+                  const approveHash = await writeContractAsync({
+                    address: stableTokenAddr as `0x${string}`,
+                    abi: erc20WriteAbi as any,
+                    functionName: 'approve',
+                    args: [walletAddress, amt],
+                  });
+                  setTxHash(approveHash as `0x${string}`);
+                  // Wait for approval to be mined before depositing
+                  await client.waitForTransactionReceipt({ hash: approveHash as `0x${string}` });
+                }
+                // Send deposit
+                const depositHash = await writeContractAsync({
+                  address: walletAddress,
+                  abi: powerWalletAbi as any,
+                  functionName: 'deposit',
+                  args: [amt],
+                });
+                setTxHash(depositHash as `0x${string}`);
+                setDepositOpen(false);
+                setDepositAmount('');
+              } catch (e: any) {
+                const msg = e?.shortMessage || e?.message || 'Deposit failed';
+                setToast({ open: true, message: msg, severity: 'error' });
+              } finally {
+                setIsDepositing(false);
+              }
+            }}
+            disabled={isDepositing}
+          >
+            {isDepositing ? (<><CircularProgress size={16} sx={{ mr: 1 }} /> Depositing…</>) : 'Deposit'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Withdraw Modal */}
+      <Dialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Withdraw USDC</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Amount (USDC)"
+            type="number"
+            fullWidth
+            value={withdrawAmount}
+            onChange={(e) => setWithdrawAmount(e.target.value)}
+            inputProps={{ min: 0, step: '0.01' }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWithdrawOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (!walletAddress) return;
+              const amount = Math.max(0, Number(withdrawAmount || '0'));
+              if (amount <= 0) return;
+              const amt = BigInt(Math.round(amount * 1_000_000));
+              setIsWithdrawing(true);
+              try {
+                const hash = await writeContractAsync({
+                  address: walletAddress,
+                  abi: powerWalletAbi as any,
+                  functionName: 'withdraw',
+                  args: [amt],
+                });
+                setTxHash(hash as `0x${string}`);
+                setWithdrawOpen(false);
+                setWithdrawAmount('');
+              } catch (e) {
+                setToast({ open: true, message: 'Withdraw failed', severity: 'error' });
+              } finally {
+                setIsWithdrawing(false);
+              }
+            }}
+            disabled={isWithdrawing}
+          >
+            {isWithdrawing ? (<><CircularProgress size={16} sx={{ mr: 1 }} /> Withdrawing…</>) : 'Withdraw'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={6000}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setToast((t) => ({ ...t, open: false }))} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.severity === 'success' && txHash ? (
+            <>
+              Transaction confirmed.{' '}
+              {getExplorerBase(chainId) ? (
+                <a href={`${getExplorerBase(chainId)}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                  View on explorer
+                </a>
+              ) : null}
+            </>
+          ) : (
+            toast.message
+          )}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
