@@ -212,8 +212,13 @@ export default function WalletDetails() {
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight="bold">My Assets</Typography>
-              <Typography variant="h5" sx={{ mt: 1 }}>{formatUsd6(valueUsd as bigint)}</Typography>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid container spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
+                <Grid item xs={12} sm={6} md={4}>
+                  <Stack>
+                    <Typography variant="caption">Total Value</Typography>
+                    <Typography variant="h5">{formatUsd6(valueUsd as bigint)}</Typography>
+                  </Stack>
+                </Grid>
                 {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
                   const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
                   if (!m) return null;
@@ -261,7 +266,7 @@ export default function WalletDetails() {
                   <Typography variant="caption">Frequency</Typography>
                   <Typography variant="body1">{freq ? `${Number(freq) / 86400} d` : '-'}</Typography>
                 </Box>
-                {strategyAddr && (
+                {strategyAddr ? (
                   <Box>
                     <Typography variant="caption" color="text.secondary">Strategy Contract</Typography>
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
@@ -275,7 +280,7 @@ export default function WalletDetails() {
                       </a>
                     </Typography>
                   </Box>
-                )}
+                ) : null}
               </Stack>
             </CardContent>
           </Card>
