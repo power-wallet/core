@@ -214,34 +214,36 @@ export default function WalletDetails() {
               <Typography variant="subtitle1" fontWeight="bold">My Assets</Typography>
               <Typography variant="h5" sx={{ mt: 1 }}>{formatUsd6(valueUsd as bigint)}</Typography>
               <Grid container spacing={2} sx={{ mt: 1 }}>
-                {(() => {
-                  const order: string[] = ['cbBTC', 'WETH', 'USDC'];
-                  const tiles: React.ReactNode[] = [];
-                  for (const sym of order) {
-                    const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
-                    if (!m) continue;
-                    let amt: bigint | undefined;
-                    if (sym === 'USDC') {
-                      amt = stableBal;
-                    } else {
-                      const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
-                      if (idx === -1) continue;
-                      amt = riskBals[idx];
-                    }
-                    const p = prices[m.symbol];
-                    const usd = p ? (Number(amt || 0) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
-                    tiles.push(
-                      <Grid key={sym} item xs={12} sm={6} md={4}>
-                        <Stack>
-                          <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>{formatTokenAmount(amt, m.decimals)} {m.symbol}</Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>{usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</Typography>
-                        </Stack>
-                      </Grid>
-                    );
-                  }
-                  return tiles;
-                })()}
+                {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
+                  const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
+                  if (!m) return null;
+                  let amt: bigint | undefined = sym === 'USDC'
+                    ? stableBal
+                    : (() => {
+                        const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
+                        return idx === -1 ? undefined : riskBals[idx];
+                      })();
+                  if (amt === undefined) return null;
+                  const p = prices[m.symbol];
+                  const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
+                  return (
+                    <Grid key={sym} item xs={12} sm={6} md={4}>
+                      <Stack>
+                        <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+                          {formatTokenAmount(amt, m.decimals)} {m.symbol}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
+                          {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                        </Typography>
+                      </Stack>
+                    </Grid>
+                  );
+                })}
               </Grid>
+              <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+                <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
+                <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
@@ -250,7 +252,7 @@ export default function WalletDetails() {
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight="bold">Strategy</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{String(desc || '')}</Typography>
-              <Stack direction="row" spacing={3} sx={{ mt: 2 }}>
+              <Stack direction="row" spacing={3} sx={{ mt: 2, flexWrap: 'wrap' }}>
                 <Box>
                   <Typography variant="caption">DCA Amount</Typography>
                   <Typography variant="body1">{formatUsd6(dcaAmount as bigint)}</Typography>
@@ -259,10 +261,21 @@ export default function WalletDetails() {
                   <Typography variant="caption">Frequency</Typography>
                   <Typography variant="body1">{freq ? `${Number(freq) / 86400} d` : '-'}</Typography>
                 </Box>
-              </Stack>
-              <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
-                <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
+                {strategyAddr && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Strategy Contract</Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      <a
+                        href={`${getExplorerBase(chainId)}/address/${strategyAddr}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'inherit', textDecoration: 'underline' }}
+                      >
+                        {`${String(strategyAddr).slice(0, 6)}…${String(strategyAddr).slice(-4)}`}
+                      </a>
+                    </Typography>
+                  </Box>
+                )}
               </Stack>
             </CardContent>
           </Card>
@@ -415,6 +428,22 @@ export default function WalletDetails() {
           )}
         </Alert>
       </Snackbar>
+
+      {/* Chainlink Automation CTA */}
+      <Box sx={{ mt: 6, textAlign: 'center' }}>
+        <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+          Register and manage a Chainlink Automation Upkeep for this wallet.
+        </Typography>
+        <Button
+          variant="outlined"
+          href="https://automation.chain.link/base-sepolia"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open Chainlink Automation
+        </Button>
+      </Box>
     </Container>
   );
 }
