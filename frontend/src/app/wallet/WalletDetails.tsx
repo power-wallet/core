@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
@@ -20,13 +20,13 @@ const powerWalletAbi = [
   { type: 'function', name: 'stableAsset', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
   { type: 'function', name: 'deposit', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
   { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
-];
+] as const;
 
 const simpleDcaAbi = [
   { type: 'function', name: 'description', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
   { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
   { type: 'function', name: 'dcaAmountStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-];
+] as const;
 
 function formatUsd6(v?: bigint) {
   if (!v) return '$0.00';
@@ -34,11 +34,9 @@ function formatUsd6(v?: bigint) {
   return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function WalletDetailsPage() {
-  // Support both dynamic route and query param entry
-  const params = useParams<{ address?: string }>();
+export default function WalletDetails() {
   const sp = useSearchParams();
-  const walletAddress = (params?.address as `0x${string}` | undefined) || (sp.get('address') as `0x${string}` | null) || ('0x' as `0x${string}`);
+  const walletAddress = sp.get('address') as `0x${string}` | null;
   const chainId = useChainId();
   const { address: connected } = useAccount();
   const getExplorerBase = (id?: number) => {
@@ -47,34 +45,39 @@ export default function WalletDetailsPage() {
     return '';
   };
   const shortAddress = React.useMemo(() => {
-    if (!walletAddress || walletAddress.length < 10) return walletAddress;
+    if (!walletAddress || walletAddress.length < 10) return walletAddress || '';
     return `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`;
   }, [walletAddress]);
 
   const { data: assets } = useReadContract({
-    address: walletAddress,
+    address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getRiskAssets',
+    query: { enabled: Boolean(walletAddress) },
   });
   const { data: balances } = useReadContract({
-    address: walletAddress,
+    address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getBalances',
+    query: { enabled: Boolean(walletAddress) },
   });
   const { data: valueUsd } = useReadContract({
-    address: walletAddress,
+    address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getPortfolioValueUSD',
+    query: { enabled: Boolean(walletAddress) },
   });
   const { data: strategyAddr } = useReadContract({
-    address: walletAddress,
+    address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'strategy',
+    query: { enabled: Boolean(walletAddress) },
   });
   const { data: stableTokenAddr } = useReadContract({
-    address: walletAddress,
+    address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'stableAsset',
+    query: { enabled: Boolean(walletAddress) },
   });
 
   const { data: dcaAmount } = useReadContract({
@@ -100,14 +103,13 @@ export default function WalletDetailsPage() {
   const stableBal = (balances as any)?.[0] as bigint | undefined;
   const riskBals = ((balances as any)?.[1] as bigint[] | undefined) || [];
 
-  // Helpers to map address -> symbol/decimals/feed
   const chainAssets = baseSepoliaAssets as Record<string, { address: string; symbol: string; decimals: number; feed: `0x${string}` }>;
-  const addressToMeta = (addr: string | undefined) => {
+  const addressToMeta = React.useCallback((addr: string | undefined) => {
     if (!addr) return undefined;
     const lower = addr.toLowerCase();
     const entries = Object.values(chainAssets);
     return entries.find(a => a.address.toLowerCase() === lower);
-  };
+  }, [chainAssets]);
 
   const formatTokenAmount = (amount?: bigint, decimals?: number) => {
     if (amount === undefined || decimals === undefined) return '0';
@@ -117,10 +119,9 @@ export default function WalletDetailsPage() {
     return value.toLocaleString(undefined, { maximumFractionDigits: fractionDigits });
   };
 
-  // Public client on current chain
   const client = useMemo(() => createPublicClient({ chain: chainId === 8453 ? base : baseSepolia, transport: http() }), [chainId]);
 
-  const aggregatorAbi = [
+  const aggregatorAbi = useMemo(() => ([
     { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
     { type: 'function', name: 'latestRoundData', stateMutability: 'view', inputs: [], outputs: [
       { name: 'roundId', type: 'uint80' },
@@ -129,7 +130,7 @@ export default function WalletDetailsPage() {
       { name: 'updatedAt', type: 'uint256' },
       { name: 'answeredInRound', type: 'uint80' },
     ] },
-  ] as const;
+  ] as const), []);
 
   const [prices, setPrices] = React.useState<Record<string, { price: number; decimals: number }>>({});
   const { writeContractAsync } = useWriteContract();
@@ -137,7 +138,6 @@ export default function WalletDetailsPage() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
   const [toast, setToast] = React.useState<{ open: boolean; message: string; severity: 'info' | 'success' | 'error' }>({ open: false, message: '', severity: 'info' });
 
-  // Deposit/Withdraw modals
   const [depositOpen, setDepositOpen] = React.useState(false);
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
   const [depositAmount, setDepositAmount] = React.useState<string>('');
@@ -145,8 +145,6 @@ export default function WalletDetailsPage() {
   const [isDepositing, setIsDepositing] = React.useState(false);
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
-
-  
 
   React.useEffect(() => {
     if (txHash) {
@@ -176,9 +174,8 @@ export default function WalletDetailsPage() {
       }
       setPrices(next);
     })();
-  }, [client]);
+  }, [client, addressToMeta, aggregatorAbi, chainAssets.cbBTC.address, chainAssets.WETH.address, chainAssets.USDC.address]);
 
-  // Refresh allowance when deposit modal opens
   React.useEffect(() => {
     (async () => {
       if (!depositOpen || !stableTokenAddr || !walletAddress || !connected) return;
@@ -194,21 +191,21 @@ export default function WalletDetailsPage() {
     })();
   }, [depositOpen, stableTokenAddr, walletAddress, connected, client]);
 
+  if (!walletAddress) return null;
+
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
-      {walletAddress && (
-        <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
-          <a
-            href={`${getExplorerBase(chainId)}/address/${walletAddress}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'inherit', textDecoration: 'underline' }}
-          >
-            {shortAddress}
-          </a>
-        </Typography>
-      )}
+      <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
+        <a
+          href={`${getExplorerBase(chainId)}/address/${walletAddress}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'inherit', textDecoration: 'underline' }}
+        >
+          {shortAddress}
+        </a>
+      </Typography>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
@@ -301,7 +298,6 @@ export default function WalletDetailsPage() {
               const amt = BigInt(Math.round(amount * 1_000_000));
               setIsDepositing(true);
               try {
-                // Read allowance & balance; approve if needed
                 const erc20ReadAbi = [
                   { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [ { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
                   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
@@ -325,10 +321,8 @@ export default function WalletDetailsPage() {
                     args: [walletAddress, amt],
                   });
                   setTxHash(approveHash as `0x${string}`);
-                  // Wait for approval to be mined before depositing
                   await client.waitForTransactionReceipt({ hash: approveHash as `0x${string}` });
                 }
-                // Send deposit
                 const depositHash = await writeContractAsync({
                   address: walletAddress,
                   abi: powerWalletAbi as any,
