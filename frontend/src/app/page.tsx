@@ -32,7 +32,7 @@ export default function Home() {
     {
       icon: <AutoGraphIcon sx={{ fontSize: 48 }} />,
       title: 'Automated Strategies',
-      description: 'Deploy proven trading strategies that manage your investments 24/7 using technical indicators.',
+      description: 'Deploy proven trading strategies that manage your investments 24/7 and optimize returns.',
     },
     {
       icon: <SecurityIcon sx={{ fontSize: 48 }} />,
@@ -42,7 +42,7 @@ export default function Home() {
     {
       icon: <TrendingUpIcon sx={{ fontSize: 48 }} />,
       title: 'Smart Investing',
-      description: 'Deposit USDC and let algorithmic strategies optimize your Bitcoin and digital asset investments.',
+      description: 'Benefit of automatic risk management so you can enjoy a peace of mind.',
     },
   ];
 
@@ -86,11 +86,11 @@ export default function Home() {
                 gutterBottom
                 sx={{ opacity: 0.95, mb: 4 }}
               >
-                Smart On-Chain Investing in Bitcoin & Digital Assets
+                Smart Investing in Bitcoin & Digital Assets
               </Typography>
               <Typography variant="body1" paragraph sx={{ opacity: 0.9, mb: 4 }}>
-                Power Wallet automates the management of your portfolio of bitcoin and digital assets. <br />
-                Deploy your capital into intelligent investment strategies. <br />
+                Power Wallet automates the management of your on-chain portfolio of bitcoin and other digital assets. <br />
+                Deploy your capital into intelligent investment strategies that automatically rebalance your assets, and  optimize your returns. <br />
                 Enjoy the security of blockchain and the benefits of automated risk management.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

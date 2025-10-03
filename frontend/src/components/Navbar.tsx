@@ -34,6 +34,7 @@ const Navbar = () => {
   const menuItems = [
     { text: 'Home', href: '/' },
     { text: 'Simulator', href: '/simulator' },
+    { text: 'Smart Contracts', href: '/contracts' },
     { text: 'About', href: '/about' },
   ];
 

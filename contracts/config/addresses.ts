@@ -1,3 +1,5 @@
+import { strategies } from "../typechain-types/contracts";
+
 export interface ChainAddresses {
   // Core protocol addresses
   uniswapV3Factory: string;
@@ -13,6 +15,11 @@ export interface ChainAddresses {
   // Chainlink Price Feeds
   btcUsdPriceFeed: string;
   ethUsdPriceFeed: string;
+
+  // strategy map
+  strategies: {
+    [key: string]: string | undefined;
+  };
 }
 
 export const addresses: Record<string, ChainAddresses> = {
@@ -31,7 +38,9 @@ export const addresses: Record<string, ChainAddresses> = {
     
     // Chainlink Price Feeds
     btcUsdPriceFeed: "0xCf5F5b97F0670A1a9aFc98e6738435D40B444589",
-    ethUsdPriceFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
+    ethUsdPriceFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
+
+    strategies: {}
   },
   
   // Base Sepolia (Testnet)
@@ -47,7 +56,11 @@ export const addresses: Record<string, ChainAddresses> = {
     
     // Chainlink Price Feeds
     btcUsdPriceFeed: "0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298",
-    ethUsdPriceFeed: "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1"
+    ethUsdPriceFeed: "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1",
+
+    strategies: {
+      'simple-dca-v1': '0x316cc4fb12b1785aA38Cba5040AC2094B1d99709' // deployed SimpleDCA on Base Sepolia
+    }
   },
   
   // Ethereum Sepolia (Testnet)
@@ -63,6 +76,8 @@ export const addresses: Record<string, ChainAddresses> = {
     
     // Chainlink Price Feeds
     btcUsdPriceFeed: "0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43",
-    ethUsdPriceFeed: "0x694AA1769357215DE4FAC081bf1f309aDC325306"
+    ethUsdPriceFeed: "0x694AA1769357215DE4FAC081bf1f309aDC325306",
+
+    strategies: { }
   }
 }
