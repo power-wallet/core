@@ -21,4 +21,4 @@ case $NETWORK in
 esac
 
 # Run deployment script
-npx hardhat run scripts/deploy/01_deploy_indicators.ts --network $NETWORK
+npx hardhat run scripts/deploy/deploy_indicators.ts --network $NETWORK

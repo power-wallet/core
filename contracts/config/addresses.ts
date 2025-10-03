@@ -5,10 +5,10 @@ export interface ChainAddresses {
   
   // Tokens
   usdc: string;
-  weth: string;
-  wbtc: string;
-  cbETH?: string;  // Not available on all chains
   cbBTC?: string;  // Not available on all chains
+  wbtc?: string;
+  weth: string;
+  cbETH?: string;  // Not available on all chains
   
   // Chainlink Price Feeds
   btcUsdPriceFeed: string;
@@ -37,13 +37,12 @@ export const addresses: Record<string, ChainAddresses> = {
   // Base Sepolia (Testnet)
   "base-sepolia": {
     // Uniswap V3
-    uniswapV3Factory: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
-    uniswapV3Router: "",
+    uniswapV3Factory: "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24",
+    uniswapV3Router: "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4",
     
     // Tokens
     usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",  // USDC
     weth: "0x4200000000000000000000000000000000000006",  // WETH
-    wbtc: "",
     cbBTC: "0xcbB7C0006F23900c38EB856149F799620fcb8A4a",  // cbBTC
     
     // Chainlink Price Feeds
