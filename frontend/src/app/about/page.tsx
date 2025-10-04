@@ -45,6 +45,26 @@ export default function About() {
         <Card>
           <CardContent sx={{ p: 4 }}>
             <Typography variant="h5" gutterBottom fontWeight="bold">
+              From Hackathon to Product
+            </Typography>
+            <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-block', mb: 2, color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
+              <Box component="img" src="/img/eth-global-hackaton.png" alt="ETH Global Bangkok Hackathon" sx={{ width: '100%', maxWidth: 720, borderRadius: 1, boxShadow: 3 }} />
+            </Box>
+            <Typography variant="body1" paragraph>
+              Power Wallet began as a bold idea at the <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>ETH Global Bangkok Hackathon</Box> in November 2024. <br />
+            </Typography>
+            <Typography variant="body1" paragraph>
+              Over an intense weekend we prototyped a fully on-chain, automated investing experience: seamsless onboarding with Coinbase Smart Wallet, live market data via Chainlink oracles, Uniswap V3 execution on Base, and automated upkeep to keep strategies running 24/7.
+            </Typography>
+            <Typography variant="body1" paragraph>
+              The response from builders and judges was clear — there’s a real need for self-sovereign, transparent, long‑term bitcoin investing. That momentum carried forward: what started as a scrappy prototype became the foundation of the product you see today.
+            </Typography>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h5" gutterBottom fontWeight="bold">
               How It Works
             </Typography>
             <Stack spacing={2} sx={{ mt: 2 }}>
@@ -129,13 +149,14 @@ export default function About() {
           </CardContent>
         </Card>
 
-        
 
         <Divider />
 
         <Box sx={{ textAlign: 'center', py: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            Power Wallet is currently in development. Stay tuned for our launch!
+            Power Wallet is currently in development and not yet live. <br />
+            You can get a preview of the functionality by connecting to the Base Sepolia testnet. <br />
+            Stay tuned for our launch!
           </Typography>
         </Box>
       </Stack>
