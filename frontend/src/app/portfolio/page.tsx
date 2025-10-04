@@ -7,6 +7,7 @@ import { encodeFunctionData } from 'viem';
 import WalletConnectModal from '@/components/WalletConnectModal';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import strategies from '@/lib/strategies/strategies.json';
+import poolsCfg from '@/lib/assets/uniswapPoolsConfig.json';
 
 // Minimal ABI for WalletFactory functions we call
 const walletFactoryAbi = [
@@ -72,13 +73,26 @@ export default function PortfolioPage() {
 
   const factoryAddress = contractAddresses[chainKey]?.walletFactory;
 
-  const { data: userWallets, isLoading } = useReadContract({
+  const { data: userWallets, isLoading, refetch: refetchWallets } = useReadContract({
     abi: walletFactoryAbi as any,
     address: factoryAddress as `0x${string}` | undefined,
     functionName: 'getUserWallets',
     args: address ? [address] : undefined,
     query: { enabled: Boolean(isConnected && address && factoryAddress) },
   });
+
+  // After success, refetch wallets without full page reload
+  useEffect(() => {
+    if (!isConfirmed || !txHash) return;
+    (async () => {
+      try {
+        await refetchWallets();
+        setTimeout(() => {
+          refetchWallets().catch(() => {});
+        }, 1500);
+      } catch {}
+    })();
+  }, [isConfirmed, txHash, refetchWallets]);
 
   if (!isConnected) {
     return (
@@ -121,7 +135,9 @@ export default function PortfolioPage() {
     const usdc = addressesForChain.usdc;
     const cbBTC = addressesForChain.cbBTC || addressesForChain.wbtc || addressesForChain.weth; // risk asset preference
     const priceFeeds = [addressesForChain.btcUsdPriceFeed];
-    const poolFees = [3000]; // 0.3% default
+    // Read pool fee from unified config
+    const fee = (poolsCfg as any)[chainKey]?.["USDC-cbBTC"]?.fee ?? 100;
+    const poolFees = [fee];
 
     const strategyIdBytes32 = strategyPreset.idBytes32 as `0x${string}`;
 

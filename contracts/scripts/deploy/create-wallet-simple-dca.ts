@@ -1,6 +1,7 @@
 // scripts/deploy/create-wallet-simple-dca.ts
 import { ethers } from 'hardhat';
 import { addresses } from '../../config/addresses';
+import { WalletFactory__factory } from '../../typechain-types';
 
 // WalletFactory (proxy): 0x6e6A4C1094a064030c30607549BF8d87311cB219
 // StrategyRegistry (proxy): 0x53B4C7F51904b888f61859971B11ff51a8e43F80
@@ -18,8 +19,8 @@ async function main() {
 
   const strategyId = ethers.id('simple-dca-v1');
 
-  const Factory = await ethers.getContractFactory('WalletFactory');
-  const factory = Factory.attach(factoryAddr);
+  // Use TypeChain-typed factory for proper typings
+  const factory = WalletFactory__factory.connect(factoryAddr, user);
 
   // Strategy init: initialize(address risk, address stable, uint256 amountStable, uint256 frequency, string desc)
   const oneUSDC = ethers.parseUnits('1', 6);
@@ -33,7 +34,7 @@ async function main() {
   // configure fee for cbBTC (e.g., 100 for 0.01%)
   poolFees.push(100);
 
-  const tx = await factory.connect(user).createWallet(
+  const tx = await factory.createWallet(
     strategyId,
     dcaInit,
     cfg.usdc,

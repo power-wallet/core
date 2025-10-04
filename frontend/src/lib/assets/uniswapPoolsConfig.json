@@ -1,0 +1,16 @@
+{
+  "base-sepolia": {
+    "USDC-cbBTC": {
+      "stable": "usdc",
+      "risk": "cbBTC",
+      "fee": 100
+    }
+  },
+  "base": {
+    "USDC-cbBTC": {
+      "stable": "usdc",
+      "risk": "cbBTC",
+      "fee": 100
+    }
+  }
+}
