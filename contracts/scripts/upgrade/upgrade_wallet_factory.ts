@@ -19,6 +19,10 @@ async function main() {
 
   const WalletFactory = await ethers.getContractFactory("WalletFactory");
 
+  // Read current implementation before upgrade
+  const implBefore = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+  console.log("Current implementation:", implBefore);
+
   // Optional: slight fee bump helper
   const fee = await ethers.provider.getFeeData();
   const pri = (fee.maxPriorityFeePerGas ?? ethers.parseUnits("1", "gwei")) + ethers.parseUnits("1", "gwei");
@@ -31,7 +35,15 @@ async function main() {
   });
   await upgraded.waitForDeployment();
 
-  const newImplAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+  // Poll EIP-1967 slot until it reflects the new implementation
+  let newImplAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+  if (newImplAddress.toLowerCase() === implBefore.toLowerCase()) {
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      newImplAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+      if (newImplAddress.toLowerCase() !== implBefore.toLowerCase()) break;
+    }
+  }
   console.log("New implementation address:", newImplAddress);
 }
 
