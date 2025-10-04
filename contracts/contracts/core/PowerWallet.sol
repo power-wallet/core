@@ -31,6 +31,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
     bool public automationPaused;
     bool public isClosed;
     uint64 public createdAt;
+    uint16 public slippageBps; // e.g., 100 = 1%
 
     // Events
     event Deposit(address indexed user, uint256 amount);
@@ -82,6 +83,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
 
     constructor(address initialOwner) Ownable(initialOwner) {
         createdAt = uint64(block.timestamp);
+        slippageBps = 100; // default 1%
     }
 
    
@@ -132,6 +134,11 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
         emit StrategyUpdated(msg.sender, newStrategy);
     }
 
+    function setSlippageBps(uint16 newSlippageBps) external onlyOwner {
+        require(newSlippageBps <= 5000, "slippage too high");
+        slippageBps = newSlippageBps;
+    }
+
     // Deposits/withdraws are in stable asset
     function deposit(uint256 amount) external nonReentrant {
         require(IERC20(stableAsset).transferFrom(msg.sender, address(this), amount), "transferFrom");
@@ -167,6 +174,41 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
         require(p > 0, "bad price");
         price = uint256(p);
         decimals = AggregatorV3Interface(feed).decimals();
+    }
+
+    // Compute minimum acceptable output based on Chainlink prices and slippageBps
+    function _computeAmountOutMin(address tokenIn, address tokenOut, uint256 amountIn) internal view returns (uint256) {
+        // Case 1: stable -> risk (assume stable is USD-like)
+        if (tokenIn == stableAsset) {
+            (uint256 riskPrice, uint8 priceDec) = _latestPrice(tokenOut);
+            uint8 riskDec = IERC20Metadata(tokenOut).decimals();
+            uint8 stableDec = IERC20Metadata(stableAsset).decimals();
+            // estimatedOut = amountIn * 10^(riskDec + priceDec) / (riskPrice * 10^stableDec)
+            uint256 scale = 10 ** (uint256(riskDec) + uint256(priceDec));
+            uint256 tmp = (amountIn * scale) / riskPrice;
+            uint256 estimatedOut = tmp / (10 ** uint256(stableDec));
+            return (estimatedOut * (10000 - slippageBps)) / 10000;
+        }
+        // Case 2: risk -> stable
+        if (tokenOut == stableAsset) {
+            (uint256 riskPrice, uint8 priceDec) = _latestPrice(tokenIn);
+            uint8 riskDec = IERC20Metadata(tokenIn).decimals();
+            uint8 stableDec = IERC20Metadata(stableAsset).decimals();
+            // estimatedOut (stableDec) = amountIn * riskPrice * 10^stableDec / 10^(riskDec + priceDec)
+            uint256 num = amountIn * riskPrice;
+            uint256 sum = uint256(riskDec) + uint256(priceDec);
+            uint256 estimatedOut;
+            if (sum >= uint256(stableDec)) {
+                uint256 divPow = sum - uint256(stableDec);
+                estimatedOut = num / (10 ** divPow);
+            } else {
+                uint256 mulPow = uint256(stableDec) - sum;
+                estimatedOut = num * (10 ** mulPow);
+            }
+            return (estimatedOut * (10000 - slippageBps)) / 10000;
+        }
+        // Unknown pair orientation: fallback to zero minOut (best-effort)
+        return 0;
     }
 
     function getPortfolioValueUSD() public view returns (uint256 usd6) {
@@ -304,9 +346,15 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
         require(swapRouter != address(0), "no router");
         
         // Approve router to pull tokens for swap
-        IERC20(action.tokenIn).approve(swapRouter, action.amountIn);
+        // IERC20(action.tokenIn).approve(swapRouter, action.amountIn);
+        
+        // Ensure router allowance for tokenIn using safe pattern
+        _ensureAllowance(action.tokenIn, swapRouter, action.amountIn);
         uint24 fee = poolFees[action.tokenIn == stableAsset ? action.tokenOut : action.tokenIn];
+        require(fee > 0, "fee not set");
      
+        uint256 minOut = _computeAmountOutMin(action.tokenIn, action.tokenOut, action.amountIn);
+
         uint256 balInBefore = IERC20(action.tokenIn).balanceOf(address(this));
         uint256 balOutBefore = IERC20(action.tokenOut).balanceOf(address(this));
 
@@ -317,7 +365,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
                 fee: fee,
                 recipient: address(this),
                 amountIn: action.amountIn,
-                amountOutMinimum: 0, // TODO: add min amount out
+                amountOutMinimum: minOut,
                 sqrtPriceLimitX96: 0
             })
         );
@@ -342,6 +390,17 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
         }));
 
         emit SwapExecuted(action.tokenIn, action.tokenOut, actualIn, actualOut, block.timestamp, balInAfter, balOutAfter);
+    }
+
+    function _ensureAllowance(address token, address spender, uint256 amount) internal {
+        uint256 current = IERC20(token).allowance(address(this), spender);
+        if (current >= amount) return;
+        if (current > 0) {
+            // Some tokens (USDC-like) require zeroing before changing allowance
+            require(IERC20(token).approve(spender, 0), "approve0");
+        }
+        // Approve max to avoid repeated approvals
+        require(IERC20(token).approve(spender, type(uint256).max), "approve");
     }
 
     // View helpers to return full history arrays

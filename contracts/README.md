@@ -15,7 +15,7 @@
  
 
 
-# TechnicalIndicators Deployment 
+# Deploy TechnicalIndicators 
 
 ```
 cd /Users/carlo/dev/tradingstrategy/contracts
@@ -56,7 +56,7 @@ Verification failed: HardhatVerifyError: You are using a deprecated V1 endpoint,
 ```
 
 
-## Implementation Verificaton
+## Verify TechnicalIndicators
 
 ```
 npx hardhat verify --network base-sepolia 0xfB1b64e658Cd1A7DdcEF9Cf263dFd800fc708987
@@ -83,7 +83,7 @@ Registered strategy id: 0x786a403612fcd5da11e68ce2dace5caffe41cea41e2d64ff999854
 WalletFactory (proxy): 0x6e6A4C1094a064030c30607549BF8d87311cB219
 ```
 
-## Verify contracts
+## Verify SimpleDCA, StrategyRegistry, WalletFactory
 
 ```
 # verify SimpleDCA
@@ -104,7 +104,7 @@ npx hardhat verify --network base-sepolia 0xF6844ec320eed359A766418a244249F5aaC2
 npx hardhat verify --network base-sepolia 0xA27B80dCD4490E11aCd53148c69bB62c9fcEEB9a
 ```
 
-## Create Wallet
+## Create new Wallet (via WalletFactory)
 
 ```
 npx hardhat run contracts/scripts/deploy/create-wallet-simple-dca.ts --network base-sepolia
@@ -112,11 +112,55 @@ npx hardhat run contracts/scripts/deploy/create-wallet-simple-dca.ts --network b
 Wallet created: 0x3111a201009dF11b1b8D95d03696f83b444a403e
 ```
 
-# Verify Wallet
+# Verify new Wallet
 
 ```
 npx hardhat verify --network base-sepolia \
   0x3111a201009dF11b1b8D95d03696f83b444a403e \
   0x6e6A4C1094a064030c30607549BF8d87311cB219 \
   0x316cc4fb12b1785aA38Cba5040AC2094B1d99709
+```
+
+
+# Upgrade WalletFactory (and PowerWallet)
+
+```
+$ npx hardhat run scripts/upgrade/upgrade_wallet_factory
+
+Upgrading WalletFactory on base-sepolia...
+Proxy address: 0x6e6A4C1094a064030c30607549BF8d87311cB219
+Current implementation: 0x7a11EE6e3ab350dcBFE0bd2894188fC05F414fd7
+Deploying new implementation & performing upgrade...
+New implementation address: 0x545D7B18d4980658cfDC7d1d06C901B9E734792a
+```
+
+# Verify WalletFactory Implementation
+
+```
+$ npx hardhat verify --network base-sepolia 0x545D7B18d4980658cfDC7d1d06C901B9E734792a
+
+Successfully submitted source code for contract
+contracts/core/WalletFactory.sol:WalletFactory at 0x545D7B18d4980658cfDC7d1d06C901B9E734792a
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract WalletFactory on the block explorer.
+https://sepolia.basescan.org/address/0x545D7B18d4980658cfDC7d1d06C901B9E734792a#code
+```
+
+# Deploy and Verify PowerWallet implementation
+
+PowerWallet is deployed/cloned by WalletFactory but we need to deploy & verify it once to make sure that new PowerWallet instances created by the factory will get verified by the block explorer.
+
+```
+$ npx --yes hardhat run scripts/deploy/deploy_power_wallet_impl.ts --network base-sepolia
+
+Deploying PowerWallet implementation to base-sepolia with deployer: 0x9D4BA055ab6a40090E1C1bf8250F4319099B084b
+PowerWallet implementation deployed at: 0xCE85eA8FF98b38ED417716133b54Cec73995a374
+Verifying on explorer...
+Successfully submitted source code for contract
+contracts/core/PowerWallet.sol:PowerWallet at 0xCE85eA8FF98b38ED417716133b54Cec73995a374
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract PowerWallet on the block explorer.
+https://sepolia.basescan.org/address/0xCE85eA8FF98b38ED417716133b54Cec73995a374#code
 ```
