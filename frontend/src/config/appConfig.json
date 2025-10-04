@@ -1,6 +1,7 @@
 {
   "base-sepolia": {
     "explorer": "https://sepolia.basescan.org",
+    "rpcUrl": "https://sepolia.base.org",
     "assets": {
       "cbBTC": {
         "address": "0xcbB7C0006F23900c38EB856149F799620fcb8A4a",
@@ -43,24 +44,25 @@
   },
   "base": {
     "explorer": "https://basescan.org",
+    "rpcUrl": "https://mainnet.base.org",
     "assets": {
       "cbBTC": {
-        "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "address": "",
         "symbol": "cbBTC",
         "decimals": 8,
-        "feed": "0xCf5F5b97F0670A1a9aFc98e6738435D40B444589"
+        "feed": ""
       },
       "WETH": {
-        "address": "0x4200000000000000000000000000000000000006",
+        "address": "",
         "symbol": "WETH",
         "decimals": 18,
-        "feed": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
+        "feed": ""
       },
       "USDC": {
-        "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "address": "",
         "symbol": "USDC",
         "decimals": 6,
-        "feed": "0xCf5F5b97F0670A1a9aFc98e6738435D40B444589"
+        "feed": ""
       }
     },
     "pools": {
@@ -73,7 +75,7 @@
     "strategies": {
       "simple-dca-v1": {
         "id": "simple-dca-v1",
-        "idBytes32": "0x786A403612FCD5DA11E68CE2DACE5CAFFE41CEA41E2D64FF9998546517083DD3",
+        "idBytes32": "",
         "name": "Simple DCA",
         "description": "Dollar-cost average from into cbBTC on a set cadence.",
         "stable": "usdc",
