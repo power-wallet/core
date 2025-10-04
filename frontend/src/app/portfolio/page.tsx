@@ -6,8 +6,8 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { encodeFunctionData } from 'viem';
 import WalletConnectModal from '@/components/WalletConnectModal';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
-import strategies from '@/lib/strategies/strategies.json';
-import poolsCfg from '@/lib/assets/uniswapPoolsConfig.json';
+import appConfig from '@/config/appConfig.json';
+import { getChainKey } from '@/config/networks';
 
 // Minimal ABI for WalletFactory functions we call
 const walletFactoryAbi = [
@@ -47,11 +47,6 @@ export default function PortfolioPage() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'info' | 'success' | 'error' }>(() => ({ open: false, message: '', severity: 'info' }));
 
-  function getExplorerBase(id?: number) {
-    if (id === 8453) return 'https://basescan.org';
-    if (id === 84532) return 'https://sepolia.basescan.org';
-    return '';
-  }
 
   useEffect(() => {
     if (txHash) {
@@ -65,11 +60,9 @@ export default function PortfolioPage() {
     }
   }, [isConfirmed, txHash]);
 
-  const chainKey = useMemo(() => {
-    if (chainId === 84532) return 'base-sepolia';
-    if (chainId === 8453) return 'base';
-    return 'base-sepolia';
-  }, [chainId]);
+  const chainKey = useMemo(() => getChainKey(chainId), [chainId]);
+
+  const explorerBase = (appConfig as any)[chainKey]?.explorer || '';
 
   const factoryAddress = contractAddresses[chainKey]?.walletFactory;
 
@@ -129,14 +122,14 @@ export default function PortfolioPage() {
 
   if (wallets.length === 0) {
 
-    const strategyPreset = (strategies as any)['simple-dca-v1'];
+    const strategyPreset = (appConfig as any)[chainKey]?.strategies?.['simple-dca-v1'];
 
     const addressesForChain = contractAddresses[chainKey];
     const usdc = addressesForChain.usdc;
     const cbBTC = addressesForChain.cbBTC || addressesForChain.wbtc || addressesForChain.weth; // risk asset preference
     const priceFeeds = [addressesForChain.btcUsdPriceFeed];
     // Read pool fee from unified config
-    const fee = (poolsCfg as any)[chainKey]?.["USDC-cbBTC"]?.fee ?? 100;
+    const fee = (appConfig as any)[chainKey]?.pools?.["USDC-cbBTC"]?.fee ?? 100;
     const poolFees = [fee];
 
     const strategyIdBytes32 = strategyPreset.idBytes32 as `0x${string}`;
@@ -242,8 +235,8 @@ export default function PortfolioPage() {
               {toast.severity === 'success' && txHash ? (
                 <>
                   Transaction confirmed.{' '}
-                  {getExplorerBase(chainId) ? (
-                    <a href={`${getExplorerBase(chainId)}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                  {explorerBase ? (
+                    <a href={`${explorerBase}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
                       View on explorer
                     </a>
                   ) : null}

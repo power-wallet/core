@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import baseSepoliaAssets from '@/lib/assets/base-sepolia.json';
+import appConfig from '@/config/appConfig.json';
+import { getChainKey } from '@/config/networks';
 import { createPublicClient, http } from 'viem';
 import { baseSepolia, base } from 'viem/chains';
 import { findUpkeepIdForTarget } from '@/lib/chainlink/automation';
@@ -40,11 +41,8 @@ export default function WalletDetails() {
   const walletAddress = sp.get('address') as `0x${string}` | null;
   const chainId = useChainId();
   const { address: connected } = useAccount();
-  const getExplorerBase = (id?: number) => {
-    if (id === 8453) return 'https://basescan.org';
-    if (id === 84532) return 'https://sepolia.basescan.org';
-    return '';
-  };
+  const chainKey = getChainKey(chainId);
+  const explorerBase = (appConfig as any)[chainKey]?.explorer || '';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const shortAddress = React.useMemo(() => {
@@ -106,7 +104,7 @@ export default function WalletDetails() {
   const stableBal = (balances as any)?.[0] as bigint | undefined;
   const riskBals = ((balances as any)?.[1] as bigint[] | undefined) || [];
 
-  const chainAssets = baseSepoliaAssets as Record<string, { address: string; symbol: string; decimals: number; feed: `0x${string}` }>;
+  const chainAssets = (appConfig as any)[chainKey]?.assets as Record<string, { address: string; symbol: string; decimals: number; feed: `0x${string}` }>;
   const addressToMeta = React.useCallback((addr: string | undefined) => {
     if (!addr) return undefined;
     const lower = addr.toLowerCase();
@@ -216,7 +214,7 @@ export default function WalletDetails() {
       <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
       <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
         <a
-          href={`${getExplorerBase(chainId)}/address/${walletAddress}`}
+          href={`${explorerBase}/address/${walletAddress}`}
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: 'inherit', textDecoration: 'underline' }}
@@ -323,7 +321,7 @@ export default function WalletDetails() {
                     <Typography variant="caption" color="text.secondary">Strategy Contract</Typography>
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                       <a
-                        href={`${getExplorerBase(chainId)}/address/${strategyAddr}`}
+                        href={`${explorerBase}/address/${strategyAddr}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: 'inherit', textDecoration: 'underline' }}
@@ -474,8 +472,8 @@ export default function WalletDetails() {
           {toast.severity === 'success' && txHash ? (
             <>
               Transaction confirmed.{' '}
-              {getExplorerBase(chainId) ? (
-                <a href={`${getExplorerBase(chainId)}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+              {explorerBase ? (
+                <a href={`${explorerBase}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
                   View on explorer
                 </a>
               ) : null}

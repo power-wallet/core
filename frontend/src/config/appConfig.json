@@ -1,0 +1,86 @@
+{
+  "base-sepolia": {
+    "explorer": "https://sepolia.basescan.org",
+    "assets": {
+      "cbBTC": {
+        "address": "0xcbB7C0006F23900c38EB856149F799620fcb8A4a",
+        "symbol": "cbBTC",
+        "decimals": 8,
+        "feed": "0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298"
+      },
+      "WETH": {
+        "address": "0x4200000000000000000000000000000000000006",
+        "symbol": "WETH",
+        "decimals": 18,
+        "feed": "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1"
+      },
+      "USDC": {
+        "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "symbol": "USDC",
+        "decimals": 6,
+        "feed": "0xd30e2101a97dcbAeBCBC04F14C3f624E67A35165"
+      }
+    },
+    "pools": {
+      "USDC-cbBTC": {
+        "stable": "usdc",
+        "risk": "cbBTC",
+        "fee": 100
+      }
+    },
+    "strategies": {
+      "simple-dca-v1": {
+        "id": "simple-dca-v1",
+        "idBytes32": "0x786A403612FCD5DA11E68CE2DACE5CAFFE41CEA41E2D64FF9998546517083DD3",
+        "name": "Simple DCA",
+        "description": "Dollar-cost average from into cbBTC on a set cadence.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
+      }
+    }
+  },
+  "base": {
+    "explorer": "https://basescan.org",
+    "assets": {
+      "cbBTC": {
+        "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "symbol": "cbBTC",
+        "decimals": 8,
+        "feed": "0xCf5F5b97F0670A1a9aFc98e6738435D40B444589"
+      },
+      "WETH": {
+        "address": "0x4200000000000000000000000000000000000006",
+        "symbol": "WETH",
+        "decimals": 18,
+        "feed": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
+      },
+      "USDC": {
+        "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "symbol": "USDC",
+        "decimals": 6,
+        "feed": "0xCf5F5b97F0670A1a9aFc98e6738435D40B444589"
+      }
+    },
+    "pools": {
+      "USDC-cbBTC": {
+        "stable": "usdc",
+        "risk": "cbBTC",
+        "fee": 100
+      }
+    },
+    "strategies": {
+      "simple-dca-v1": {
+        "id": "simple-dca-v1",
+        "idBytes32": "0x786A403612FCD5DA11E68CE2DACE5CAFFE41CEA41E2D64FF9998546517083DD3",
+        "name": "Simple DCA",
+        "description": "Dollar-cost average from into cbBTC on a set cadence.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
+      }
+    }
+  }
+}
