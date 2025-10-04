@@ -21,4 +21,4 @@ case $NETWORK in
 esac
 
 # Run upgrade script
-npx hardhat run scripts/upgrade/01_upgrade_indicators.ts --network $NETWORK
+npx hardhat run scripts/upgrade/upgrade_indicators.ts --network $NETWORK

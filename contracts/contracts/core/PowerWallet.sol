@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
@@ -9,7 +10,7 @@ import "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatible
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IUniswapV3Like.sol";
 
-contract PowerWallet is Ownable, AutomationCompatibleInterface {
+contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard {
     // Assets
     address public stableAsset; // e.g., USDC
     address[] public riskAssets; // e.g., cbBTC, WETH
@@ -20,10 +21,16 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
     // Uniswap V3 router and fee per risk asset (risk <-> stable)
     address public swapRouter; // e.g., SwapRouter02
     mapping(address => uint24) public poolFees; // risk asset of the UniswapV3 pool => fee (100/500/3000/10000)
+    // Uniswap V3 factory used to validate pools
+    address public uniswapV3Factory;
 
     // Strategy implementation
     address public strategy;
+
+    // packed variables (uint256)
     bool public automationPaused;
+    bool public isClosed;
+    uint64 public createdAt;
 
     // Events
     event Deposit(address indexed user, uint256 amount);
@@ -32,6 +39,16 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
     event AutomationPaused(address indexed by);
     event AutomationUnpaused(address indexed by);
     event StrategyUpdated(address indexed by, address indexed newStrategy);
+    event FeesUpdated(address indexed riskAsset, uint24 oldFee, uint24 newFee);
+    event WalletClosed(address indexed by);
+    event Initialized(
+        address indexed owner,
+        address stable,
+        address[] riskAssets,
+        address[] priceFeeds,
+        uint24[] poolFees,
+        address strategy
+    );
 
     struct SwapRecord {
         uint256 timestamp;
@@ -49,27 +66,34 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
         uint256 timestamp;
         address user;
         uint256 amount;
+        uint256 balanceAfter;
     }
 
     struct WithdrawRecord {
         uint256 timestamp;
         address user;
+        address asset;
         uint256 amount;
+        uint256 balanceAfter;
     }
 
     DepositRecord[] public deposits;
     WithdrawRecord[] public withdrawals;
 
-    constructor(address initialOwner, address strategyImpl) Ownable(initialOwner) {
-        strategy = strategyImpl;
+    constructor(address initialOwner) Ownable(initialOwner) {
+        createdAt = uint64(block.timestamp);
     }
 
+   
     function initialize(
         address _stableAsset,
         address[] calldata _riskAssets,
         address[] calldata _priceFeeds,
         uint24[] calldata _poolFees,
-        address _swapRouter
+        address _swapRouter,
+        address _uniswapV3Factory,
+        address _strategy,
+        bytes calldata _strategyInitData
     ) external onlyOwner {
         require(stableAsset == address(0), "inited");
         stableAsset = _stableAsset;
@@ -82,6 +106,16 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
         }
         require(_swapRouter != address(0), "router");
         swapRouter = _swapRouter;
+        require(_uniswapV3Factory != address(0), "factory");
+        uniswapV3Factory = _uniswapV3Factory;
+        require(_strategy != address(0), "strategy");
+        // Initialize strategy and set it
+        strategy = _strategy;
+        if (_strategyInitData.length > 0) {
+            (bool ok,) = strategy.call(_strategyInitData);
+            require(ok, "strategy init failed");
+        }
+        emit Initialized(owner(), _stableAsset, _riskAssets, _priceFeeds, _poolFees, _strategy);
     }
 
     function pauseAutomation() external onlyOwner {
@@ -105,16 +139,23 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
     }
 
     // Deposits/withdraws are in stable asset
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external nonReentrant {
         require(IERC20(stableAsset).transferFrom(msg.sender, address(this), amount), "transferFrom");
         emit Deposit(msg.sender, amount);
-        deposits.push(DepositRecord({ timestamp: block.timestamp, user: msg.sender, amount: amount }));
+        uint256 balAfter = IERC20(stableAsset).balanceOf(address(this));
+        deposits.push(DepositRecord({ timestamp: block.timestamp, user: msg.sender, amount: amount, balanceAfter: balAfter }));
     }
 
-    function withdraw(uint256 amount) external onlyOwner {
-        require(IERC20(stableAsset).transfer(msg.sender, amount), "transfer");
+    function withdraw(uint256 amount) external onlyOwner nonReentrant {
+        withdrawAsset(stableAsset, amount);
+    }
+
+    function withdrawAsset(address asset, uint256 amount) public onlyOwner nonReentrant {
+        require(asset == stableAsset || _isRiskAsset(asset), "unsupported asset");
+        require(IERC20(asset).transfer(msg.sender, amount), "transfer");
         emit Withdraw(msg.sender, amount);
-        withdrawals.push(WithdrawRecord({ timestamp: block.timestamp, user: msg.sender, amount: amount }));
+        uint256 balAfter = IERC20(asset).balanceOf(address(this));
+        withdrawals.push(WithdrawRecord({ timestamp: block.timestamp, user: msg.sender, asset: asset, amount: amount, balanceAfter: balAfter }));
     }
 
     function getBalances() public view returns (uint256 stableBal, uint256[] memory riskBals) {
@@ -193,7 +234,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
         performData = abi.encode(actions);
     }
 
-    function performUpkeep(bytes calldata performData) external override {
+    function performUpkeep(bytes calldata performData) external override nonReentrant {
         require(!automationPaused, "automation paused");
         // Defensive re-check: compute current need and actions, ignore provided performData
         performData; // silence unused
@@ -210,7 +251,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
             // Validate action tokens belong to configured set
             bool tokenInIsStable = actions[i].tokenIn == stableAsset;
             bool tokenOutIsStable = actions[i].tokenOut == stableAsset;
-            require(tokenInIsStable != tokenOutIsStable, "pair must include stable");
+            require(tokenInIsStable || tokenOutIsStable, "pair must include stable");
             bool tokenInIsRisk = _isRiskAsset(actions[i].tokenIn);
             bool tokenOutIsRisk = _isRiskAsset(actions[i].tokenOut);
             require(tokenInIsRisk || tokenOutIsRisk, "unknown asset");
@@ -219,6 +260,42 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
         // optional hook
         (bool ok,) = strategy.call(abi.encodeWithSelector(IStrategyExecutionHook.onRebalanceExecuted.selector));
         ok; // ignore failure
+    }
+
+    // Close wallet: sweep funds to owner and disable operations permanently
+    function closeWallet() external onlyOwner nonReentrant {
+        automationPaused = true;
+        // Sweep risk assets
+        for (uint256 i = 0; i < riskAssets.length; i++) {
+            IERC20 token = IERC20(riskAssets[i]);
+            uint256 bal = token.balanceOf(address(this));
+            if (bal > 0) {
+                token.transfer(msg.sender, bal);
+            }
+        }
+        // Sweep stable
+        uint256 stableBal = IERC20(stableAsset).balanceOf(address(this));
+        if (stableBal > 0) {
+            IERC20(stableAsset).transfer(msg.sender, stableBal);
+        }
+        isClosed = true;
+        emit WalletClosed(msg.sender);
+    }
+
+    // Update pool fee for a configured risk asset after validating pool exists
+    function setFees(address[] calldata risks, uint24[] calldata fees) external onlyOwner {
+        require(risks.length == fees.length && risks.length > 0, "len");
+        IUniswapV3FactoryLike factory = IUniswapV3FactoryLike(uniswapV3Factory);
+        for (uint256 i = 0; i < risks.length; i++) {
+            address risk = risks[i];
+            uint24 fee = fees[i];
+            require(_isRiskAsset(risk), "unknown risk");
+            address pool = factory.getPool(stableAsset, risk, fee);
+            require(pool != address(0), "pool missing");
+            uint24 old = poolFees[risk];
+            poolFees[risk] = fee;
+            emit FeesUpdated(risk, old, fee);
+        }
     }
 
     function _isRiskAsset(address token) internal view returns (bool) {
@@ -231,10 +308,11 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
     function _executeSwap(IStrategy.SwapAction memory action) internal {
         require(action.amountIn > 0, "amountIn");
         require(swapRouter != address(0), "no router");
+        
         // Approve router to pull tokens for swap
         IERC20(action.tokenIn).approve(swapRouter, action.amountIn);
         uint24 fee = poolFees[action.tokenIn == stableAsset ? action.tokenOut : action.tokenIn];
-        require(fee > 0, "fee not set");
+     
         uint256 balInBefore = IERC20(action.tokenIn).balanceOf(address(this));
         uint256 balOutBefore = IERC20(action.tokenOut).balanceOf(address(this));
 
@@ -246,7 +324,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface {
                 recipient: address(this),
                 deadline: block.timestamp + 600,
                 amountIn: action.amountIn,
-                amountOutMinimum: 0,
+                amountOutMinimum: 0, // TODO: add min amount out
                 sqrtPriceLimitX96: 0
             })
         );

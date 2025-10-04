@@ -451,7 +451,7 @@
             "label": "registry",
             "offset": 0,
             "slot": "0",
-            "type": "t_contract(StrategyRegistry)3754",
+            "type": "t_contract(StrategyRegistry)4406",
             "contract": "WalletFactory",
             "src": "contracts/core/WalletFactory.sol:12"
           },
@@ -519,7 +519,134 @@
             "label": "address[]",
             "numberOfBytes": "32"
           },
-          "t_contract(StrategyRegistry)3754": {
+          "t_contract(StrategyRegistry)4406": {
+            "label": "contract StrategyRegistry",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_array(t_address)dyn_storage)": {
+            "label": "mapping(address => address[])",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "0696c416102779dddbac44bfc9d2b634dd51521a3ec255fd83d39a0dcfc50542": {
+      "address": "0x1dC1B37fabbBf19674E47317205517498335916C",
+      "txHash": "0x28f52df48b101688110346d7bd4f6b3f715530838f5b3ce1e2c419c0b44bcf09",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "registry",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(StrategyRegistry)4179",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:12"
+          },
+          {
+            "label": "userWallets",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_array(t_address)dyn_storage)",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:15"
+          },
+          {
+            "label": "swapRouter",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:18"
+          },
+          {
+            "label": "uniswapV3Factory",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_address",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:19"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)136_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)76_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(StrategyRegistry)4179": {
             "label": "contract StrategyRegistry",
             "numberOfBytes": "20"
           },

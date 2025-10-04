@@ -6,6 +6,10 @@ interface IUniswapV3PoolLike {
     function token1() external view returns (address);
 }
 
+interface IUniswapV3FactoryLike {
+    function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
+}
+
 interface ISwapRouterLike {
     struct ExactInputSingleParams {
         address tokenIn;
