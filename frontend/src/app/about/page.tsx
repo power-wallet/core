@@ -47,12 +47,12 @@ export default function About() {
             <Typography variant="h5" gutterBottom fontWeight="bold">
               From Hackathon to Product
             </Typography>
-            <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-block', mb: 2, color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
-              <Box component="img" src="/img/eth-global-hackaton.png" alt="ETH Global Bangkok Hackathon" sx={{ width: '100%', maxWidth: 720, borderRadius: 1, boxShadow: 3 }} />
-            </Box>
             <Typography variant="body1" paragraph>
               Power Wallet began as a bold idea at the <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>ETH Global Bangkok Hackathon</Box> in November 2024. <br />
             </Typography>
+            <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-block', mb: 2, color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
+              <Box component="img" src="/img/eth-global-hackaton.png" alt="ETH Global Bangkok Hackathon" sx={{ width: '100%', maxWidth: 720, borderRadius: 1, boxShadow: 3 }} />
+            </Box>
             <Typography variant="body1" paragraph>
               Over an intense weekend we prototyped a fully on-chain, automated investing experience: seamsless onboarding with Coinbase Smart Wallet, live market data via Chainlink oracles, Uniswap V3 execution on Base, and automated upkeep to keep strategies running 24/7.
             </Typography>
