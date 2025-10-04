@@ -316,7 +316,6 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
                 tokenOut: action.tokenOut,
                 fee: fee,
                 recipient: address(this),
-                deadline: block.timestamp + 600,
                 amountIn: action.amountIn,
                 amountOutMinimum: 0, // TODO: add min amount out
                 sqrtPriceLimitX96: 0
