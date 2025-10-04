@@ -75,7 +75,7 @@
     "strategies": {
       "simple-dca-v1": {
         "id": "simple-dca-v1",
-        "idBytes32": "",
+        "idBytes32": "0x786A403612FCD5DA11E68CE2DACE5CAFFE41CEA41E2D64FF9998546517083DD3",
         "name": "Simple DCA",
         "description": "Dollar-cost average from into cbBTC on a set cadence.",
         "stable": "usdc",
