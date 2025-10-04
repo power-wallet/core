@@ -8,6 +8,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import baseSepoliaAssets from '@/lib/assets/base-sepolia.json';
 import { createPublicClient, http } from 'viem';
 import { baseSepolia, base } from 'viem/chains';
+import { findUpkeepIdForTarget } from '@/lib/chainlink/automation';
 
 const powerWalletAbi = [
   { type: 'function', name: 'getBalances', stateMutability: 'view', inputs: [], outputs: [
@@ -145,6 +146,7 @@ export default function WalletDetails() {
   const [isDepositing, setIsDepositing] = React.useState(false);
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
+  const [upkeepId, setUpkeepId] = React.useState<bigint | null | undefined>(undefined);
 
   React.useEffect(() => {
     if (txHash) {
@@ -190,6 +192,20 @@ export default function WalletDetails() {
       }
     })();
   }, [depositOpen, stableTokenAddr, walletAddress, connected, client]);
+
+  // Discover Chainlink Automation Upkeep ID on Base Sepolia only
+  React.useEffect(() => {
+    (async () => {
+      if (!walletAddress) return setUpkeepId(undefined);
+      if (chainId !== 84532) return setUpkeepId(null); // only supported for Base Sepolia by default
+      try {
+        const id = await findUpkeepIdForTarget(walletAddress as `0x${string}`, { chainId });
+        setUpkeepId(id);
+      } catch {
+        setUpkeepId(null);
+      }
+    })();
+  }, [walletAddress, chainId]);
 
   if (!walletAddress) return null;
 
@@ -435,19 +451,41 @@ export default function WalletDetails() {
       </Snackbar>
 
       {/* Chainlink Automation CTA */}
-      <Box sx={{ mt: 6, textAlign: 'center' }}>
+      <Box sx={{ mt: 6, textAlign: 'left' }}>
         <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-          Register and manage a Chainlink Automation Upkeep for this wallet.
-        </Typography>
-        <Button
-          variant="outlined"
-          href="https://automation.chain.link/base-sepolia"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open Chainlink Automation
-        </Button>
+        {upkeepId === undefined ? (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Checking Chainlink Automation status…
+          </Typography>
+        ) : upkeepId ? (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+              Upkeep registered for this wallet: ID {upkeepId.toString()}.
+            </Typography>
+            <Button
+              variant="outlined"
+              href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View Upkeep
+            </Button>
+          </>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+              Register a Chainlink Automation Upkeep for this wallet.
+            </Typography>
+            <Button
+              variant="outlined"
+              href="https://automation.chain.link/base-sepolia"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open Chainlink Automation
+            </Button>
+          </>
+        )}
       </Box>
     </Container>
   );
