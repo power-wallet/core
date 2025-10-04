@@ -96,11 +96,11 @@ export default function Home() {
                   <Typography variant="body1">Enjoy the benefits of automated risk management.</Typography>
                 </li>
                 <li>
-                  <Typography variant="body1">Maintain full custody with secure, transparent, verifiable execution. </Typography>
+                  <Typography variant="body1">Maintain full custody with blockchain-based secure, transparent, verifiable execution. </Typography>
                 </li>
               </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 5 }}>
-                <Link href="/simulator" passHref style={{ textDecoration: 'none' }}>
+                <Link href="/portfolio" passHref style={{ textDecoration: 'none' }}>
                   <Button
                     variant="contained"
                     size="large"
@@ -113,10 +113,10 @@ export default function Home() {
                       },
                     }}
                   >
-                    Try the Simulator
+                    Start Investing
                   </Button>
                 </Link>
-                <Link href="/about" passHref style={{ textDecoration: 'none' }}>
+                <Link href="/simulator" passHref style={{ textDecoration: 'none' }}>
                   <Button
                     variant="outlined"
                     size="large"
@@ -129,7 +129,7 @@ export default function Home() {
                       },
                     }}
                   >
-                    Learn More
+                    Try The Simulator
                   </Button>
                 </Link>
               </Stack>

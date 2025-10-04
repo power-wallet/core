@@ -242,33 +242,116 @@ export default function PortfolioPage() {
     );
   }
 
+  const shortAddr =  address ? `${address?.slice(0, 6)}..${address?.slice(-4)}` : '';
+
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>Your Portfolio</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Connected: {address}
+        Wallets owned by {shortAddr} 
       </Typography>
 
       <Grid container spacing={3}>
         {wallets.map((w) => (
           <Grid item xs={12} md={6} key={w}>
-            <Card variant="outlined" sx={{ height: '100%' }}>
-              <CardContent>
-                <Stack spacing={1}>
-                  <Typography variant="subtitle2" color="text.secondary">PowerWallet</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{w}</Typography>
-                  <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-                    <Button size="small" variant="outlined" href={`/wallet?address=${w}`}>Open</Button>
-                    <Button size="small" variant="text">Deposit</Button>
-                    <Button size="small" variant="text">Withdraw</Button>
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
+            <WalletSummaryCard walletAddress={w as `0x${string}`} />
           </Grid>
         ))}
       </Grid>
     </Container>
+  );
+}
+
+function WalletSummaryCard({ walletAddress }: { walletAddress: `0x${string}` }) {
+  const powerWalletAbi = [
+    { type: 'function', name: 'getPortfolioValueUSD', stateMutability: 'view', inputs: [], outputs: [ { name: 'usd6', type: 'uint256' } ] },
+    { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
+  ] as const;
+  const simpleDcaAbi = [
+    { type: 'function', name: 'description', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
+    { type: 'function', name: 'dcaAmountStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
+    { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
+  ] as const;
+
+  const { data: valueUsd } = useReadContract({
+    address: walletAddress,
+    abi: powerWalletAbi as any,
+    functionName: 'getPortfolioValueUSD',
+  });
+  const { data: strategyAddr } = useReadContract({
+    address: walletAddress,
+    abi: powerWalletAbi as any,
+    functionName: 'strategy',
+  });
+  const { data: strategyDesc } = useReadContract({
+    address: strategyAddr as `0x${string}` | undefined,
+    abi: simpleDcaAbi as any,
+    functionName: 'description',
+    query: { enabled: Boolean(strategyAddr) },
+  });
+  const { data: dcaAmount } = useReadContract({
+    address: strategyAddr as `0x${string}` | undefined,
+    abi: simpleDcaAbi as any,
+    functionName: 'dcaAmountStable',
+    query: { enabled: Boolean(strategyAddr) },
+  });
+  const { data: freq } = useReadContract({
+    address: strategyAddr as `0x${string}` | undefined,
+    abi: simpleDcaAbi as any,
+    functionName: 'frequency',
+    query: { enabled: Boolean(strategyAddr) },
+  });
+
+  const formatUsd6 = (v?: bigint) => {
+    if (!v) return '$0.00';
+    const num = Number(v) / 1_000_000;
+    return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const strategyName = 'Simple DCA';
+  const shortAddr = `${walletAddress.slice(0, 6)}..${walletAddress.slice(-4)}`;
+  const dcaAmountDisplay = (() => {
+    const v = dcaAmount as bigint | undefined;
+    if (!v) return '-';
+    const num = Number(v) / 1_000_000; // USDC 6 decimals
+    const str = num % 1 === 0 ? String(num) : num.toFixed(2);
+    return `${str} USDC`;
+  })();
+  const freqDays = (() => {
+    const f = freq as bigint | undefined;
+    if (!f) return '-';
+    const days = Math.round(Number(f) / 86400);
+    return `${days}d`;
+  })();
+
+  return (
+    <Card variant="outlined" sx={{ height: '100%' }}>
+      <CardContent sx={{ py: 1.5, px: 1.5 }}>
+        <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Wallet Address</Typography>
+            <Typography variant="body2" sx={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+              {shortAddr}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Strategy</Typography>
+            <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+              {strategyName} - {dcaAmountDisplay} {freqDays}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Total Value</Typography>
+            <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+              {formatUsd6(valueUsd as bigint)}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 0, pt: 2 }}>
+            <Button size="small" variant="outlined" href={`/wallet?address=${walletAddress}`}>Open</Button>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import baseSepoliaAssets from '@/lib/assets/base-sepolia.json';
@@ -45,6 +45,8 @@ export default function WalletDetails() {
     if (id === 84532) return 'https://sepolia.basescan.org';
     return '';
   };
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const shortAddress = React.useMemo(() => {
     if (!walletAddress || walletAddress.length < 10) return walletAddress || '';
     return `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`;
@@ -228,39 +230,73 @@ export default function WalletDetails() {
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight="bold">My Assets</Typography>
-              <Grid container spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
-                <Grid item xs={12} sm={6} md={4}>
-                  <Stack>
-                    <Typography variant="caption">Total Value</Typography>
-                    <Typography variant="h5">{formatUsd6(valueUsd as bigint)}</Typography>
-                  </Stack>
-                </Grid>
-                {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
-                  const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
-                  if (!m) return null;
-                  let amt: bigint | undefined = sym === 'USDC'
-                    ? stableBal
-                    : (() => {
-                        const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
-                        return idx === -1 ? undefined : riskBals[idx];
-                      })();
-                  if (amt === undefined) return null;
-                  const p = prices[m.symbol];
-                  const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
-                  return (
-                    <Grid key={sym} item xs={12} sm={6} md={4}>
-                      <Stack>
-                        <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+              {isMobile ? (
+                <Stack spacing={0.75} sx={{ mt: 1, minWidth: 0 }}>
+                  {(['cbBTC', 'USDC', 'WETH'] as const).map((sym) => {
+                    const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
+                    if (!m) return null;
+                    let amt: bigint | undefined = sym === 'USDC'
+                      ? stableBal
+                      : (() => {
+                          const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
+                          return idx === -1 ? undefined : riskBals[idx];
+                        })();
+                    if (amt === undefined) return null;
+                    const p = prices[m.symbol];
+                    const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
+                    return (
+                      <Box key={sym} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                           {formatTokenAmount(amt, m.decimals)} {m.symbol}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
                           {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                         </Typography>
-                      </Stack>
-                    </Grid>
-                  );
-                })}
-              </Grid>
+                      </Box>
+                    );
+                  })}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Total Value</Typography>
+                    <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+                      {formatUsd6(valueUsd as bigint)}
+                    </Typography>
+                  </Box>
+                </Stack>
+              ) : (
+                <Grid container spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
+                  {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
+                    const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
+                    if (!m) return null;
+                    let amt: bigint | undefined = sym === 'USDC'
+                      ? stableBal
+                      : (() => {
+                          const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
+                          return idx === -1 ? undefined : riskBals[idx];
+                        })();
+                    if (amt === undefined) return null;
+                    const p = prices[m.symbol];
+                    const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
+                    return (
+                      <Grid key={sym} item xs={12} sm={6} md={4}>
+                        <Stack>
+                          <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+                            {formatTokenAmount(amt, m.decimals)} {m.symbol}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
+                            {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                          </Typography>
+                        </Stack>
+                      </Grid>
+                    );
+                  })}
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Stack>
+                      <Typography variant="caption">Total Value</Typography>
+                      <Typography variant="h5">{formatUsd6(valueUsd as bigint)}</Typography>
+                    </Stack>
+                  </Grid>
+                </Grid>
+              )}
               <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
                 <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
                 <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
