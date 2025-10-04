@@ -3,7 +3,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert } from '@mui/material';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
-import { encodeFunctionData } from 'viem';
+import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
+import { getViemChain } from '@/config/networks';
 import WalletConnectModal from '@/components/WalletConnectModal';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import appConfig from '@/config/appConfig.json';
@@ -63,6 +64,8 @@ export default function PortfolioPage() {
   const chainKey = useMemo(() => getChainKey(chainId), [chainId]);
 
   const explorerBase = (appConfig as any)[chainKey]?.explorer || '';
+
+  const feeClient = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
 
   const factoryAddress = contractAddresses[chainKey]?.walletFactory;
 
@@ -158,6 +161,13 @@ export default function PortfolioPage() {
       if (!factoryAddress || !cbBTC || !strategyIdBytes32) return;
       setCreating(true);
       try {
+        let maxFeePerGas: bigint | undefined;
+        let maxPriorityFeePerGas: bigint | undefined;
+        try {
+          const fees = await feeClient.estimateFeesPerGas();
+          maxFeePerGas = fees.maxFeePerGas;
+          maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
+        } catch {}
         const hash = await writeContractAsync({
           address: factoryAddress as `0x${string}`,
           abi: walletFactoryAbi as any,
@@ -170,6 +180,8 @@ export default function PortfolioPage() {
             priceFeeds as [`0x${string}`],
             poolFees,
           ],
+          ...(maxFeePerGas ? { maxFeePerGas } : {}),
+          ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
         });
         setTxHash(hash as `0x${string}`);
       } finally {

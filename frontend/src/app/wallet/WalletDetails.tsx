@@ -7,8 +7,8 @@ import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import appConfig from '@/config/appConfig.json';
 import { getChainKey } from '@/config/networks';
-import { createPublicClient, http } from 'viem';
-import { baseSepolia, base } from 'viem/chains';
+import { createPublicClient, http, parseUnits } from 'viem';
+import { getViemChain } from '@/config/networks';
 import { findUpkeepIdForTarget } from '@/lib/chainlink/automation';
 
 const powerWalletAbi = [
@@ -120,7 +120,7 @@ export default function WalletDetails() {
     return value.toLocaleString(undefined, { maximumFractionDigits: fractionDigits });
   };
 
-  const client = useMemo(() => createPublicClient({ chain: chainId === 8453 ? base : baseSepolia, transport: http() }), [chainId]);
+  const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
 
   const aggregatorAbi = useMemo(() => ([
     { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
@@ -366,6 +366,13 @@ export default function WalletDetails() {
               const amt = BigInt(Math.round(amount * 1_000_000));
               setIsDepositing(true);
               try {
+                let maxFeePerGas: bigint | undefined;
+                let maxPriorityFeePerGas: bigint | undefined;
+                try {
+                  const fees = await client.estimateFeesPerGas();
+                  maxFeePerGas = fees.maxFeePerGas;
+                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
+                } catch {}
                 const erc20ReadAbi = [
                   { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [ { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
                   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
@@ -387,6 +394,8 @@ export default function WalletDetails() {
                     abi: erc20WriteAbi as any,
                     functionName: 'approve',
                     args: [walletAddress, amt],
+                    ...(maxFeePerGas ? { maxFeePerGas } : {}),
+                    ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
                   });
                   setTxHash(approveHash as `0x${string}`);
                   await client.waitForTransactionReceipt({ hash: approveHash as `0x${string}` });
@@ -396,6 +405,8 @@ export default function WalletDetails() {
                   abi: powerWalletAbi as any,
                   functionName: 'deposit',
                   args: [amt],
+                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
+                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
                 });
                 setTxHash(depositHash as `0x${string}`);
                 setDepositOpen(false);
@@ -440,11 +451,20 @@ export default function WalletDetails() {
               const amt = BigInt(Math.round(amount * 1_000_000));
               setIsWithdrawing(true);
               try {
+                let maxFeePerGas: bigint | undefined;
+                let maxPriorityFeePerGas: bigint | undefined;
+                try {
+                  const fees = await client.estimateFeesPerGas();
+                  maxFeePerGas = fees.maxFeePerGas;
+                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
+                } catch {}
                 const hash = await writeContractAsync({
                   address: walletAddress,
                   abi: powerWalletAbi as any,
                   functionName: 'withdraw',
                   args: [amt],
+                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
+                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
                 });
                 setTxHash(hash as `0x${string}`);
                 setWithdrawOpen(false);
