@@ -92,8 +92,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
         uint24[] calldata _poolFees,
         address _swapRouter,
         address _uniswapV3Factory,
-        address _strategy,
-        bytes calldata _strategyInitData
+        address _strategy
     ) external onlyOwner {
         require(stableAsset == address(0), "inited");
         stableAsset = _stableAsset;
@@ -109,12 +108,7 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
         require(_uniswapV3Factory != address(0), "factory");
         uniswapV3Factory = _uniswapV3Factory;
         require(_strategy != address(0), "strategy");
-        // Initialize strategy and set it
         strategy = _strategy;
-        if (_strategyInitData.length > 0) {
-            (bool ok,) = strategy.call(_strategyInitData);
-            require(ok, "strategy init failed");
-        }
         emit Initialized(owner(), _stableAsset, _riskAssets, _priceFeeds, _poolFees, _strategy);
     }
 

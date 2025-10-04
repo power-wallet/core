@@ -46,8 +46,19 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         // Clone a fresh instance of the strategy and initialize it
         address strategyInstance = Clones.clone(strategyImpl);
 
+        // Initialize strategy FIRST so the factory is the owner
+        if (strategyInitData.length > 0) {
+            (bool ok,) = strategyInstance.call(strategyInitData);
+            require(ok, "strategy init failed");
+        }
+
+        // Transfer strategy ownership to the user before wiring into wallet
+        (bool ok2,) = strategyInstance.call(abi.encodeWithSignature("transferOwnership(address)", msg.sender));
+        require(ok2, "transferOwnership failed");
+
         // Deploy wallet owned by factory so it can initialize, then transfer to user
         PowerWallet wallet = new PowerWallet(address(this));
+        // Pass empty strategy init data because already initialized above
         wallet.initialize(
             stableAsset,
             riskAssets,
@@ -55,13 +66,8 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
             poolFees,
             swapRouter,
             uniswapV3Factory,
-            strategyInstance,
-            strategyInitData
+            strategyInstance
         );
-
-        // Transfer strategy ownership to the wallet owner (msg.sender)
-        (bool ok2,) = strategyInstance.call(abi.encodeWithSignature("transferOwnership(address)", msg.sender));
-        require(ok2, "transferOwnership failed");
 
         // Transfer wallet ownership after full initialization
         wallet.transferOwnership(msg.sender);
