@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert } from '@mui/material';
+import LaunchIcon from '@mui/icons-material/Launch';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain, getChainKey } from '@/config/networks';
@@ -90,6 +91,10 @@ export default function PortfolioPage() {
     query: { enabled: Boolean(isConnected && address && factoryAddress) },
   });
 
+  // Normalize wallets and sort by createdAt (desc) for display
+  const wallets = useMemo(() => (userWallets as string[] | undefined) || [], [userWallets]);
+  const [sortedWallets, setSortedWallets] = useState<string[]>([]);
+
   // After success, refetch wallets without full page reload
   useEffect(() => {
     if (!isConfirmed || !txHash) return;
@@ -138,7 +143,7 @@ export default function PortfolioPage() {
     );
   }
 
-  const wallets = (userWallets as string[] | undefined) || [];
+  // duplicate block removed
 
   if (!factoryAddress) {
     return (
@@ -327,9 +332,9 @@ export default function PortfolioPage() {
       </Typography>
 
       <Grid container spacing={3}>
-        {wallets.map((w) => (
+        {(sortedWallets.length ? sortedWallets : wallets).map((w) => (
           <Grid item xs={12} md={6} key={w}>
-            <WalletSummaryCard walletAddress={w as `0x${string}`} />
+            <WalletSummaryCard walletAddress={w as `0x${string}`} explorerBase={explorerBase} feeClient={feeClient} />
           </Grid>
         ))}
       </Grid>
@@ -359,10 +364,11 @@ export default function PortfolioPage() {
   );
 }
 
-function WalletSummaryCard({ walletAddress }: { walletAddress: `0x${string}` }) {
+function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: { walletAddress: `0x${string}`; explorerBase: string; feeClient: any }) {
   const powerWalletAbi = [
     { type: 'function', name: 'getPortfolioValueUSD', stateMutability: 'view', inputs: [], outputs: [ { name: 'usd6', type: 'uint256' } ] },
     { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
+    { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint64' } ] },
   ] as const;
   const simpleDcaAbi = [
     { type: 'function', name: 'description', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
@@ -379,6 +385,11 @@ function WalletSummaryCard({ walletAddress }: { walletAddress: `0x${string}` }) 
     address: walletAddress,
     abi: powerWalletAbi as any,
     functionName: 'strategy',
+  });
+  const { data: createdAtTs } = useReadContract({
+    address: walletAddress,
+    abi: powerWalletAbi as any,
+    functionName: 'createdAt',
   });
   const { data: strategyDesc } = useReadContract({
     address: strategyAddr as `0x${string}` | undefined,
@@ -407,6 +418,7 @@ function WalletSummaryCard({ walletAddress }: { walletAddress: `0x${string}` }) 
 
   const strategyName = 'Simple DCA';
   const shortAddr = `${walletAddress.slice(0, 6)}..${walletAddress.slice(-4)}`;
+  const createdAt = createdAtTs ? new Date(Number(createdAtTs) * 1000).toLocaleDateString() : '';
   const dcaAmountDisplay = (() => {
     const v = dcaAmount as bigint | undefined;
     if (!v) return '-';
@@ -427,14 +439,23 @@ function WalletSummaryCard({ walletAddress }: { walletAddress: `0x${string}` }) 
         <Stack spacing={0.75} sx={{ minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
             <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Wallet Address</Typography>
-            <Typography variant="body2" sx={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-              {shortAddr}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: 'flex-end', flex: 1 }}>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortAddr}</Typography>
+              <a href={`${explorerBase}/address/${walletAddress}`} target="_blank" rel="noopener noreferrer" aria-label="Open on explorer" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <LaunchIcon sx={{ fontSize: 14 }} />
+              </a>
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
             <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Strategy</Typography>
             <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
               {strategyName} - {dcaAmountDisplay} {freqDays}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Created</Typography>
+            <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+              {createdAt}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
