@@ -482,7 +482,7 @@ export default function PoolsEntry() {
                     <Typography variant="body2">tick: {tick ?? '-'}</Typography>
                     <Typography variant="body2">liquidity: {liquidity?.toString() || '-'}</Typography>
                     <Typography variant="body2">reserves: {formatNumber(bal0Human)} {sym0} | {formatNumber(bal1Human)} {sym1}</Typography>
-                    <Typography variant="body2">price: 1 {sym0} = {formatNumber(priceToken1PerToken0, 6)} {sym1}</Typography>
+                    <Typography variant="body2">price: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 6)} USDC</Typography>
                   </Stack>
                 </CardContent></Card>
               </Grid>
