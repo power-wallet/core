@@ -15,6 +15,8 @@ import { baseSepolia } from 'wagmi/chains';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
+  const [showNotice, setShowNotice] = useState(true);
+  const dismissNotice = () => { setShowNotice(false); };
 
   function NetworkGuard() {
     const { isConnected } = useAccount();
@@ -77,6 +79,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <CssBaseline />
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
+          {showNotice && (
+            <div style={{ width: '100%', position: 'relative', background: 'rgb(135, 56, 56)', color: '#FECACA', fontSize: 12, padding: '6px 32px 6px 12px', textAlign: 'center', borderBottom: '1px solid rgba(239, 68, 68, 0.25)' }}>
+              This project is in early development and available for demo on the Base Sepolia testnet.
+              <button aria-label="Dismiss" onClick={dismissNotice} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#FECACA', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>
+                ×
+              </button>
+            </div>
+          )}
           <Navbar />
           <NetworkGuard />
           {children}
