@@ -31,7 +31,7 @@ export default function About() {
             </Typography>
             <Typography variant="body1" paragraph>
               Power Wallet is building the next generation of on-chain investment tools. 
-              We believe that everyone should have access to long term bitcoin and crypto investment strategies 
+              We believe that everyone should have access to long term Bitcoin and digital asset investment strategies 
               that combine high returns with built-in risk management.
             </Typography>
             <Typography variant="body1" paragraph>
@@ -54,7 +54,7 @@ export default function About() {
               <Box component="img" src="/img/eth-global-hackaton.png" alt="ETH Global Bangkok Hackathon" sx={{ width: '100%', maxWidth: 720, borderRadius: 1, boxShadow: 3 }} />
             </Box>
             <Typography variant="body1" paragraph>
-              Over an intense weekend we prototyped a fully on-chain, automated investing experience: seamsless onboarding with Coinbase Smart Wallet, live market data via Chainlink oracles, Uniswap V3 execution on Base, and automated upkeep to keep strategies running 24/7.
+              Over an intense weekend we prototyped a fully on-chain, automated Bitcoin investing experience: seamsless onboarding with Coinbase Smart Wallet, live market data via Chainlink oracles, Uniswap V3 execution on Base, and Chainlink Automation to keep your investments strategies running 24/7.
             </Typography>
             <Typography variant="body1" paragraph>
               We presented our prototype in front of judges and sponsors, and the response was clear: <br/>
