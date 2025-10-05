@@ -7,6 +7,8 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ConfigSimpleDcaV1 from './strategies/ConfigSimpleDcaV1';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
+import WalletHistoryChart from './charts/WalletHistoryChart';
+import { buildWalletHistorySeries } from '@/lib/walletHistory';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
@@ -250,6 +252,46 @@ export default function WalletDetails() {
   const [closeOpen, setCloseOpen] = React.useState(false);
   const [strategyConfigOpen, setStrategyConfigOpen] = React.useState(false);
 
+  // createdAt for history chart
+  const { data: createdAtTs } = useReadContract({
+    address: walletAddress || undefined,
+    abi: [ { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint64' } ] } ] as const,
+    functionName: 'createdAt',
+    query: { enabled: Boolean(walletAddress) },
+  });
+
+  // Build wallet value time series for chart
+  const [walletSeries, setWalletSeries] = React.useState<any[] | null>(null);
+  const [historyLoading, setHistoryLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!walletAddress || !createdAtTs) return;
+      try {
+        setHistoryLoading(true);
+        const stableMeta = addressToMeta(stableTokenAddr as string | undefined);
+        if (!stableMeta) { setWalletSeries([]); setHistoryLoading(false); return; }
+        const riskMetas = riskAssets.map((a) => addressToMeta(a)).filter(Boolean) as { address: string; symbol: string; decimals: number; feed: `0x${string}` }[];
+        const deposits = (depositsData as any[] | undefined)?.map((d) => ({ timestamp: d.timestamp as bigint, user: d.user as `0x${string}`, amount: d.amount as bigint, balanceAfter: d.balanceAfter as bigint })) || [];
+        const withdrawals = (withdrawalsData as any[] | undefined)?.map((w) => ({ timestamp: w.timestamp as bigint, user: w.user as `0x${string}`, asset: w.asset as `0x${string}`, amount: w.amount as bigint, balanceAfter: w.balanceAfter as bigint })) || [];
+        const swaps = (swapsData as any[] | undefined)?.map((s) => ({ timestamp: s.timestamp as bigint, tokenIn: s.tokenIn as `0x${string}`, tokenOut: s.tokenOut as `0x${string}`, amountIn: s.amountIn as bigint, amountOut: s.amountOut as bigint, balanceInAfter: s.balanceInAfter as bigint, balanceOutAfter: s.balanceOutAfter as bigint })) || [];
+        const series = await buildWalletHistorySeries({
+          createdAt: createdAtTs as bigint,
+          stable: { address: (stableTokenAddr as `0x${string}`)!, symbol: stableMeta.symbol, decimals: stableMeta.decimals },
+          risks: riskMetas.map(r => ({ address: r.address as `0x${string}`, symbol: r.symbol, decimals: r.decimals })),
+          deposits,
+          withdrawals,
+          swaps,
+        });
+        setWalletSeries(series);
+      } catch (e) {
+        setWalletSeries([]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    })();
+  }, [walletAddress, createdAtTs, depositsData, withdrawalsData, swapsData, stableTokenAddr, riskAssets, addressToMeta]);
+
   React.useEffect(() => {
     if (txHash) {
       setToast({ open: true, message: 'Transaction submitted. Waiting for confirmation…', severity: 'info' });
@@ -375,6 +417,12 @@ export default function WalletDetails() {
           <LaunchIcon sx={{ fontSize: 14 }} />
         </a>
       </Typography>
+
+      {walletSeries && walletSeries.length ? (
+        <Box sx={{ mb: 3 }}>
+          <WalletHistoryChart data={walletSeries as any} />
+        </Box>
+      ) : null}
 
       {isClosed ? (
         <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'warning.main', bgcolor: 'rgba(245, 158, 11, 0.08)', borderRadius: 1 }}>

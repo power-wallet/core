@@ -95,6 +95,39 @@ export default function PortfolioPage() {
   const wallets = useMemo(() => (userWallets as string[] | undefined) || [], [userWallets]);
   const [sortedWallets, setSortedWallets] = useState<string[]>([]);
 
+  // Fetch createdAt for each wallet and sort addresses by newest-first
+  useEffect(() => {
+    if (!wallets || wallets.length === 0) {
+      setSortedWallets([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const abi = [
+          { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint64' }] },
+        ] as const;
+        const timestamps = await Promise.all(
+          wallets.map((addr) =>
+            feeClient
+              .readContract({ address: addr as `0x${string}`, abi: abi as any, functionName: 'createdAt', args: [] })
+              .catch(() => BigInt(0))
+          )
+        );
+        const ordered = wallets
+          .map((addr, i) => ({ addr, ts: Number((timestamps[i] as bigint | undefined) ?? BigInt(0)) }))
+          .sort((a, b) => b.ts - a.ts)
+          .map((x) => x.addr);
+        if (!cancelled) setSortedWallets(ordered);
+      } catch {
+        if (!cancelled) setSortedWallets(wallets);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [wallets, feeClient]);
+
   // After success, refetch wallets without full page reload
   useEffect(() => {
     if (!isConfirmed || !txHash) return;
