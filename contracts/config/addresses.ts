@@ -15,6 +15,7 @@ export interface ChainAddresses {
   // Chainlink Price Feeds
   btcUsdPriceFeed: string;
   ethUsdPriceFeed: string;
+  usdcUsdPriceFeed: string;
 
   walletFactory?: string;  // optional, deployed addresses
   strategyRegistry?: string; // optional, deployed addresses
@@ -42,7 +43,8 @@ export const addresses: Record<string, ChainAddresses> = {
     // Chainlink Price Feeds
     btcUsdPriceFeed: "0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298",
     ethUsdPriceFeed: "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1",
-
+    usdcUsdPriceFeed: "0xd30e2101a97dcbAeBCBC04F14C3f624E67A35165 ",
+    
     walletFactory: "0x6e6A4C1094a064030c30607549BF8d87311cB219",
     strategyRegistry: "0x53B4C7F51904b888f61859971B11ff51a8e43F80",
     technicalIndicators: "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
@@ -66,8 +68,9 @@ export const addresses: Record<string, ChainAddresses> = {
     cbBTC: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
     
     // Chainlink Price Feeds
-    btcUsdPriceFeed: "0xCf5F5b97F0670A1a9aFc98e6738435D40B444589",
+    btcUsdPriceFeed: "0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D",
     ethUsdPriceFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
+    usdcUsdPriceFeed: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
 
     strategies: {}
   },
@@ -84,8 +87,9 @@ export const addresses: Record<string, ChainAddresses> = {
     wbtc: "0x29f2D40B0605204364af54EC677bD022dA425d03",  // Mock WBTC
     
     // Chainlink Price Feeds
-    btcUsdPriceFeed: "0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43",
-    ethUsdPriceFeed: "0x694AA1769357215DE4FAC081bf1f309aDC325306",
+    btcUsdPriceFeed: "",
+    ethUsdPriceFeed: "",
+    usdcUsdPriceFeed: "",
 
     strategies: { }
   }

@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Divider, TableContainer } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Divider, TableContainer, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ConfigSimpleDcaV1 from './strategies/ConfigSimpleDcaV1';
@@ -24,6 +24,7 @@ const powerWalletAbi = [
   { type: 'function', name: 'getPortfolioValueUSD', stateMutability: 'view', inputs: [], outputs: [ { name: 'usd6', type: 'uint256' } ] },
   { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
   { type: 'function', name: 'stableAsset', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
+  { type: 'function', name: 'isClosed', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'bool' } ] },
   { type: 'function', name: 'automationPaused', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'bool' } ] },
   { type: 'function', name: 'pauseAutomation', stateMutability: 'nonpayable', inputs: [], outputs: [] },
   { type: 'function', name: 'unpauseAutomation', stateMutability: 'nonpayable', inputs: [], outputs: [] },
@@ -68,6 +69,12 @@ export default function WalletDetails() {
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getRiskAssets',
+    query: { enabled: Boolean(walletAddress) },
+  });
+  const { data: isClosed } = useReadContract({
+    address: walletAddress || undefined,
+    abi: powerWalletAbi as any,
+    functionName: 'isClosed',
     query: { enabled: Boolean(walletAddress) },
   });
   const { data: balances } = useReadContract({
@@ -187,6 +194,16 @@ export default function WalletDetails() {
     const n = typeof ts === 'number' ? ts : Number(ts);
     return new Date(n * 1000).toLocaleString();
   };
+  const formatDateOnly = (ts?: bigint | number) => {
+    if (ts === undefined) return '';
+    const n = typeof ts === 'number' ? ts : Number(ts);
+    return new Date(n * 1000).toLocaleDateString();
+  };
+  const formatDateTime = (ts?: bigint | number) => {
+    if (ts === undefined) return '';
+    const n = typeof ts === 'number' ? ts : Number(ts);
+    return new Date(n * 1000).toLocaleString();
+  };
 
   // Also read user USDC balance via wagmi to avoid any race in the effect
   const { data: userUsdcBalance } = useReadContract({
@@ -301,6 +318,41 @@ export default function WalletDetails() {
 
   if (!walletAddress) return null;
 
+  // If wallet is closed, show only the banner and breadcrumb
+  if (isClosed === true) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
+          <a
+            href="/portfolio"
+            style={{ color: 'inherit', textDecoration: 'underline' }}
+          >
+            Portfolio
+          </a>
+          {` / `}
+          <span>{shortAddress}</span>
+          <a
+            href={`${explorerBase}/address/${walletAddress}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
+            aria-label="Open on block explorer"
+          >
+            <LaunchIcon sx={{ fontSize: 14 }} />
+          </a>
+        </Typography>
+        <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'warning.main', bgcolor: 'rgba(245, 158, 11, 0.08)', borderRadius: 1 }}>
+          <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 'bold' }}>This wallet has been closed</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>You can no longer deposit or trade with this wallet.</Typography>
+          <Box sx={{ mt: 1 }}>
+            <Button variant="outlined" size="small" href="/portfolio">Back to Portfolio</Button>
+          </Box>
+        </Box>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
@@ -323,6 +375,16 @@ export default function WalletDetails() {
           <LaunchIcon sx={{ fontSize: 14 }} />
         </a>
       </Typography>
+
+      {isClosed ? (
+        <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'warning.main', bgcolor: 'rgba(245, 158, 11, 0.08)', borderRadius: 1 }}>
+          <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 'bold' }}>This wallet has been closed</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>You can no longer deposit or trade with this wallet.</Typography>
+          <Box sx={{ mt: 1 }}>
+            <Button variant="outlined" size="small" href="/portfolio">Back to Portfolio</Button>
+          </Box>
+        </Box>
+      ) : null}
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
@@ -825,7 +887,10 @@ export default function WalletDetails() {
           {hasAnyFunds ? (
             <Alert severity="warning">Your wallet has funds. Withdraw all your funds before closing your wallet.</Alert>
           ) : (
-            <Typography variant="caption" color="text.secondary">No funds detected. You can close the wallet safely.</Typography>
+            <Typography variant="caption" color="text.secondary">
+              No funds detected. You can close the wallet safely. <br />
+              This will require 2 transactions to complete, one to pause automation and one to unregister your wallet.
+            </Typography>
           )}
         </DialogContent>
         <DialogActions>
@@ -945,20 +1010,35 @@ export default function WalletDetails() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(Array.isArray(depositsData) ? depositsData : []).map((d: any, idx: number) => (
+                    {((Array.isArray(depositsData) ? depositsData : []).length === 0 && (Array.isArray(withdrawalsData) ? withdrawalsData : []).length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={4}>
+                          <Typography variant="body2" color="text.secondary">No deposits or withdrawals yet.</Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {[...(Array.isArray(depositsData) ? depositsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((d: any, idx: number) => (
                       <TableRow key={`dep-${idx}`}>
-                        <TableCell>{formatDate(d.timestamp)}</TableCell>
+                        <TableCell>
+                          <Tooltip title={formatDateTime(d.timestamp)} placement="top" disableFocusListener disableTouchListener>
+                            <span>{formatDateOnly(d.timestamp)}</span>
+                          </Tooltip>
+                        </TableCell>
                         <TableCell>Deposit</TableCell>
                         <TableCell>USDC</TableCell>
                         <TableCell align="right">{formatTokenAmount(d.amount as bigint, 6)}</TableCell>
                       </TableRow>
                     ))}
-                    {(Array.isArray(withdrawalsData) ? withdrawalsData : []).map((w: any, idx: number) => {
+                    {[...(Array.isArray(withdrawalsData) ? withdrawalsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((w: any, idx: number) => {
                       const meta = addressToMeta(w.asset as string);
                       const sym = meta?.symbol || `${String(w.asset).slice(0, 6)}…${String(w.asset).slice(-4)}`;
                       return (
                         <TableRow key={`wd-${idx}`}>
-                          <TableCell>{formatDate(w.timestamp)}</TableCell>
+                          <TableCell>
+                            <Tooltip title={formatDateTime(w.timestamp)} placement="top" disableFocusListener disableTouchListener>
+                              <span>{formatDateOnly(w.timestamp)}</span>
+                            </Tooltip>
+                          </TableCell>
                           <TableCell>Withdrawal</TableCell>
                           <TableCell>{sym}</TableCell>
                           <TableCell align="right">{formatTokenAmount(w.amount as bigint, meta?.decimals)}</TableCell>
@@ -989,7 +1069,14 @@ export default function WalletDetails() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(Array.isArray(swapsData) ? swapsData : []).map((s: any, idx: number) => {
+                    {((Array.isArray(swapsData) ? swapsData : []).length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <Typography variant="body2" color="text.secondary">No swaps yet.</Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {[...(Array.isArray(swapsData) ? swapsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((s: any, idx: number) => {
                       const tokenIn = String(s.tokenIn);
                       const tokenOut = String(s.tokenOut);
                       const amountIn = s.amountIn as bigint;
@@ -1014,7 +1101,11 @@ export default function WalletDetails() {
                       const valueUsdc = priceNum !== null ? amountRisk * priceNum : null;
                       return (
                         <TableRow key={`sw-${idx}`}>
-                          <TableCell>{formatDate(s.timestamp)}</TableCell>
+                          <TableCell>
+                            <Tooltip title={formatDateTime(s.timestamp)} placement="top" disableFocusListener disableTouchListener>
+                              <span>{formatDateOnly(s.timestamp)}</span>
+                            </Tooltip>
+                          </TableCell>
                           <TableCell>{isBuy ? 'BUY' : 'SELL'}</TableCell>
                           <TableCell>{riskMeta?.symbol || '-'}</TableCell>
                           <TableCell align="right">{Number.isFinite(amountRisk) ? amountRisk.toLocaleString('en-US', { maximumFractionDigits: 8 }) : '-'}</TableCell>

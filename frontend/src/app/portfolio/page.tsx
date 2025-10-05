@@ -49,6 +49,7 @@ export default function PortfolioPage() {
     }
   }, [chainId]);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   // Onboarding params (must be top-level to preserve hooks order)
   const [amount, setAmount] = useState<string>('100');
   const [frequency, setFrequency] = useState<string>('86400'); // 1 day in seconds
@@ -68,6 +69,7 @@ export default function PortfolioPage() {
   useEffect(() => {
     if (isConfirmed && txHash) {
       setToast({ open: true, message: `Transaction confirmed: ${txHash}`, severity: 'success' });
+      setShowCreate(false);
     }
   }, [isConfirmed, txHash]);
 
@@ -154,7 +156,7 @@ export default function PortfolioPage() {
     );
   }
 
-  if (wallets.length === 0) {
+  if (wallets.length === 0 || showCreate) {
 
     const strategyPreset = (appConfig as any)[chainKey]?.strategies?.['simple-dca-v1'];
 
@@ -229,6 +231,11 @@ export default function PortfolioPage() {
           <Card variant="outlined">
             <CardContent>
               <Stack spacing={2}>
+                {wallets.length > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button size="small" onClick={() => setShowCreate(false)}>Cancel</Button>
+                  </Box>
+                )}
                 <Typography variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
                 <Typography variant="body2">Simple DCA</Typography>
                 <Typography variant="caption" color="text.secondary">{strategyPreset.description}</Typography>
@@ -298,7 +305,10 @@ export default function PortfolioPage() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>Your Portfolio</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>Your Wallets</Typography>
+        <Button variant="contained" size="small" onClick={() => setShowCreate(true)}>Create New Wallet</Button>
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Wallets owned by {shortAddr} 
       </Typography>
@@ -310,6 +320,28 @@ export default function PortfolioPage() {
           </Grid>
         ))}
       </Grid>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={6000}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setToast((t) => ({ ...t, open: false }))} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.severity === 'success' && txHash ? (
+            <>
+              Transaction confirmed.{' '}
+              {explorerBase ? (
+                <a href={`${explorerBase}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                  View on explorer
+                </a>
+              ) : null}
+            </>
+          ) : (
+            toast.message
+          )}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
