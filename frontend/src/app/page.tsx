@@ -27,12 +27,12 @@ export default function Home() {
     {
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 48 }} />,
       title: 'On-Chain Wallets',
-      description: 'Create multiple smart wallets directly on the blockchain. Your funds, your control.',
+      description: 'Create multiple smart wallets directly on the blockchain. Your wallets, your funds, your control.',
     },
     {
       icon: <AutoGraphIcon sx={{ fontSize: 48 }} />,
       title: 'Automated Strategies',
-      description: 'Deploy proven trading strategies that manage your investments 24/7 using technical indicators.',
+      description: 'Deploy proven, long-term investment strategies that manage your assets for you 24/7.',
     },
     {
       icon: <SecurityIcon sx={{ fontSize: 48 }} />,
@@ -42,7 +42,7 @@ export default function Home() {
     {
       icon: <TrendingUpIcon sx={{ fontSize: 48 }} />,
       title: 'Smart Investing',
-      description: 'Deposit USDC and let algorithmic strategies optimize your Bitcoin and digital asset investments.',
+      description: 'Optimize your Bitcoin and digital asset investments, manage risk so you can enjoy a peace of mind.',
     },
   ];
 
@@ -90,7 +90,7 @@ export default function Home() {
               </Typography>
               <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0 }}>
                 <li>
-                  <Typography variant="body1">Power up your bitcoin & crypto portfolio with proven investment strategies automated on-chain.</Typography>
+                  <Typography variant="body1">Power up your bitcoin & crypto wallet with proven investment strategies automated on-chain.</Typography>
                 </li>
                 <li>
                   <Typography variant="body1">Enjoy the benefits of automated risk management.</Typography>
@@ -172,7 +172,7 @@ export default function Home() {
           color="text.secondary"
           sx={{ mb: 6, maxWidth: 600, mx: 'auto' }}
         >
-          Experience the future of digital asset management with our on-chain platform
+          Experience the future of Bitcoin digital asset investing with smart on-chain wallets that can manage your assets for you.
         </Typography>
 
         <Grid container spacing={4}>

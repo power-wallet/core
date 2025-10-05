@@ -371,7 +371,7 @@ export default function SmartContractsPage() {
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink Automation</Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                We use Chainlink Automation to keep price feeds and technical indicators (e.g., SMA, RSI) up to date on-chain.
+                We use Chainlink Automation to keep price feeds and technical indicators up to date on-chain.
               </Typography>
               <Typography variant="body2">
                 Upkeep: <MuiLink href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>View on Chainlink Automation</MuiLink>
