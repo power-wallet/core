@@ -30,14 +30,15 @@ export default function About() {
               Our Mission
             </Typography>
             <Typography variant="body1" paragraph>
-              Power Wallet is building the next generation of on-chain investment tools. 
-              We believe that everyone should have access to long term Bitcoin and digital asset investment strategies 
-              that combine high returns with built-in risk management.
+              Power Wallet is building non-custodial, on-chain investment tools for everyone.
             </Typography>
             <Typography variant="body1" paragraph>
-              By combining blockchain technology, portfolio management, algorithmic trading 
-              and risk management, we&apos;re creating a platform where users can invest long 
-              term with security, transparency and peace of mind.
+              We believe, that your assets should stay always in your control. 
+              We help you optimize exposure and manage risk in your portfolio, so you&apos;ll be a more successful long-term investor.
+            </Typography>
+            <Typography variant="body1" paragraph>
+              By combining blockchain technology, algorithmic execution and risk management, 
+              we&apos;re creating a platform where you can invest long-term with security, transparency and peace of mind.
             </Typography>
           </CardContent>
         </Card>
@@ -75,8 +76,8 @@ export default function About() {
                   1. Create Your Wallet
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Connect an existing Web3 wallet or create a new Coinbase Smart Wallet 
-                  in seconds - no extensions or recovery phrases needed.
+                  Create your own on-chain wallets, smart contracts owned by you 
+                  that hold your digital assets, and execute your favourite investment strategies.
                 </Typography>
               </Box>
               
@@ -85,8 +86,7 @@ export default function About() {
                   2. Deposit USDC
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Fund your on-chain wallet with USDC stablecoins. Your funds remain 
-                  under your control at all times.
+                  Fund your on-chain wallets with USDC, they will be invested by the strategy configured in your wallets.
                 </Typography>
               </Box>
               
@@ -96,7 +96,13 @@ export default function About() {
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Select from our library of automated investment strategies, each designed 
-                  to optimize returns and manage risk.
+                  to optimize returns and manage risk. Examples include:
+                  <ul>
+                    <li>Simple DCA: Buy a fixed amount of BTC at a fixed cadence.</li>
+                    <li>Smart DCA: Optimize BTC accumulation, guided by the bitcoin Power Law price model.</li>
+                    <li>BTC-ETH Momentum: A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.</li>
+                    <li>Trend Following: A trend following strategy that buys BTC when the trend is up and sells when the trend is down.</li>
+                  </ul>
                 </Typography>
               </Box>
               
