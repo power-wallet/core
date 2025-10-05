@@ -340,7 +340,10 @@ export default function SmartContractsPage() {
               </Typography>
               <Stack spacing={1}>
                 <Typography variant="body2">
-                  cbBTC / USDC: {cbBtcUsdcPool ? (<Ext href={BASESCAN + cbBtcUsdcPool}>{isMobile ? shortAddr(cbBtcUsdcPool) : cbBtcUsdcPool}</Ext>) : 'Resolving...'}
+                  cbBTC / USDC: {cbBtcUsdcPool ? (<Ext href={BASESCAN + cbBtcUsdcPool}>{isMobile ? shortAddr(cbBtcUsdcPool) : cbBtcUsdcPool}</Ext>) : 'Resolving...'}{' '}
+                  {cbBtcUsdcPool ? (
+                    <Button size="small" variant="outlined" href={`/pools?address=${cbBtcUsdcPool}`} sx={{ ml: 1 }}>Manage</Button>
+                  ) : null}
                 </Typography>
                 {cbBtcInfo && (
                   <Box sx={{ pl: 2 }}>
@@ -351,7 +354,10 @@ export default function SmartContractsPage() {
                   </Box>
                 )}
                 <Typography variant="body2">
-                  WETH / USDC: {wethUsdcPool ? (<Ext href={BASESCAN + wethUsdcPool}>{isMobile ? shortAddr(wethUsdcPool) : wethUsdcPool}</Ext>) : 'Resolving...'}
+                  WETH / USDC: {wethUsdcPool ? (<Ext href={BASESCAN + wethUsdcPool}>{isMobile ? shortAddr(wethUsdcPool) : wethUsdcPool}</Ext>) : 'Resolving...'}{' '}
+                  {wethUsdcPool ? (
+                    <Button size="small" variant="outlined" href={`/pools?address=${wethUsdcPool}`} sx={{ ml: 1 }}>Manage</Button>
+                  ) : null}
                 </Typography>
                 {wethInfo && (
                   <Box sx={{ pl: 2 }}>
