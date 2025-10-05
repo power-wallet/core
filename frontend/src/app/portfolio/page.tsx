@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain, getChainKey } from '@/config/networks';
 import { baseSepolia } from 'wagmi/chains';
@@ -82,6 +82,20 @@ export default function PortfolioPage() {
   const feeClient = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
 
   const factoryAddress = contractAddresses[chainKey]?.walletFactory;
+  const usdcAddress = contractAddresses[chainKey]?.usdc as `0x${string}` | undefined;
+
+  // Balances for onboarding funding check
+  const { data: nativeBal } = useBalance({ address: address as `0x${string}` | undefined, chainId });
+  const erc20ReadAbi = [
+    { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+  ] as const;
+  const { data: usdcBal } = useReadContract({
+    address: usdcAddress,
+    abi: erc20ReadAbi as any,
+    functionName: 'balanceOf',
+    args: address ? [address as `0x${string}`] : undefined,
+    query: { enabled: Boolean(usdcAddress && address) },
+  });
 
   const { data: userWallets, isLoading, refetch: refetchWallets } = useReadContract({
     abi: walletFactoryAbi as any,
@@ -272,60 +286,109 @@ export default function PortfolioPage() {
         setCreating(false);
       }
     };
+    const needsFunding = ((nativeBal?.value ?? BigInt(0)) === BigInt(0)) || ((usdcBal as bigint | undefined) === BigInt(0));
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Stack spacing={3}>
           <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
-          <Typography variant="body1" color="text.secondary">
-            Create your first on-chain Power Wallet to start investing with automated strategies.
-          </Typography>
-          <Card variant="outlined">
-            <CardContent>
-              <Stack spacing={2}>
-                {wallets.length > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button size="small" onClick={() => setShowCreate(false)}>Cancel</Button>
-                  </Box>
-                )}
-                <Typography variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
-                <Typography variant="body2">Simple DCA</Typography>
-                <Typography variant="caption" color="text.secondary">{strategyPreset.description}</Typography>
-
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 2 }}>Parameters</Typography>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-                  <TextField
-                    label="DCA amount (USDC)"
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    inputProps={{ min: 1 }}
-                  />
-                  <Box>
-                    <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
-                    <ToggleButtonGroup
-                      value={frequency}
-                      exclusive
-                      onChange={(_, val) => val && setFrequency(val)}
-                      size="small"
-                    >
-                      <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
-                      <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
-                      <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
-                      <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
-                      <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
-                      <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
-                    </ToggleButtonGroup>
-                  </Box>
+          {needsFunding ? (
+            <Card variant="outlined">
+              <CardContent>
+                <Stack spacing={2}>
+                  <Typography variant="subtitle1" fontWeight="bold">Fund your account</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    To get started, your connected wallet needs ETH (for gas) and USDC.
+                  </Typography>
+                  {chainKey === 'base-sepolia' ? (
+                    <>
+                      <Typography variant="body2" sx={{ pb: 1 }}>On Base Sepolia (testnet), use the following faucets:</Typography>
+                      
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {[{
+                          href: 'https://faucet.circle.com/',
+                          label: 'Circle USDC Faucet',
+                        }, {
+                          href: 'https://faucets.chain.link/base-sepolia',
+                          label: 'Chainlink Base Sepolia Faucet (ETH)',
+                        }, {
+                          href: 'https://faucet.quicknode.com/base/sepolia',
+                          label: 'QuickNode Base Sepolia Faucet (ETH)',
+                        }, {
+                          href: 'https://www.alchemy.com/faucets/base-sepolia',
+                          label: 'Alchemy Base Sepolia Faucet (ETH)',
+                        }, {
+                          href: 'https://portal.cdp.coinbase.com/products/faucet',
+                          label: 'Coinbase Developer Faucet',
+                        }].map((link) => (
+                          <li key={link.href}>
+                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                              <a href={link.href} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{link.label}</a>
+                              <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
+                            </Box>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="body2">On Base mainnet, transfer some ETH and USDC to your address:</Typography>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        {address ? `${address}` : ''}
+                      </Typography>
+                    </>
+                  )}
                 </Stack>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card variant="outlined">
+              <CardContent>
+                <Stack spacing={2}>
+                  {wallets.length > 0 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button size="small" onClick={() => setShowCreate(false)}>Cancel</Button>
+                    </Box>
+                  )}
+                  <Typography variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
+                  <Typography variant="body2">Simple DCA</Typography>
+                  <Typography variant="caption" color="text.secondary">{strategyPreset.description}</Typography>
 
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                  <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>
-                    {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}
-                  </Button>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 2 }}>Parameters</Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                    <TextField
+                      label="DCA amount (USDC)"
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      inputProps={{ min: 1 }}
+                    />
+                    <Box>
+                      <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
+                      <ToggleButtonGroup
+                        value={frequency}
+                        exclusive
+                        onChange={(_, val) => val && setFrequency(val)}
+                        size="small"
+                      >
+                        <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
+                        <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
+                        <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
+                        <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
+                        <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
+                        <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
+                      </ToggleButtonGroup>
+                    </Box>
+                  </Stack>
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
+                    <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>
+                      {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}
+                    </Button>
+                  </Stack>
                 </Stack>
-              </Stack>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
           <Snackbar
             open={toast.open}
             autoHideDuration={6000}

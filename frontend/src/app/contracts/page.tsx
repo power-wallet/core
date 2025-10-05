@@ -147,6 +147,7 @@ export default function SmartContractsPage() {
         args: [],
       }) as any;
       const sqrtPriceX96 = BigInt(slot0[0]);
+      const tick = Number(slot0[1]);
       // Fetch token0/token1 addresses
       const token0Addr = await client.readContract({ address: poolAddr as `0x${string}`, abi: [{type:'function',name:'token0',stateMutability:'view',inputs:[],outputs:[{type:'address'}]}] as any, functionName: 'token0', args: [] }) as `0x${string}`;
       const token1Addr = await client.readContract({ address: poolAddr as `0x${string}`, abi: [{type:'function',name:'token1',stateMutability:'view',inputs:[],outputs:[{type:'address'}]}] as any, functionName: 'token1', args: [] }) as `0x${string}`;
@@ -167,27 +168,17 @@ export default function SmartContractsPage() {
       const riskAddr = token0IsStable ? token1Addr : token0Addr;
       const riskDec = token0IsStable ? dec1 : dec0;
       const riskSym = token0IsStable ? sym1 : sym0;
-      // Price: USDC per 1 risk (no slippage) from sqrtPriceX96
-      const Q96 = (BigInt(1) << BigInt(96));
-      const ratioX192 = (sqrtPriceX96 * sqrtPriceX96); // Q192 scale
-      let priceUSDCperRisk: number;
-      if (token0IsStable) {
-        // token0 = USDC, token1 = risk; price token0 per token1 = (Q192 / ratio) * 10^(dec1-dec0)
-        const price0Per1 = Number((Q96 * Q96) / ratioX192);
-        const adj = 10 ** (riskDec - 6);
-        priceUSDCperRisk = price0Per1 * adj;
-      } else {
-        // token0 = risk, token1 = USDC; price token1 per token0 = ratio * 10^(dec1-dec0)
-        const price1Per0 = Number(ratioX192 / (Q96 * Q96));
-        const adj = 10 ** (6 - riskDec);
-        priceUSDCperRisk = price1Per0 * adj;
-      }
+      // Price: USDC per 1 risk using tick (avoids BigInt precision/rounding issues)
+      // price1_per_0 = 1.0001^tick * 10^(dec0 - dec1)
+      // We want USDC per risk. If token0 is stable (USDC), invert by using -tick; else use tick directly.
+      const effTick = token0IsStable ? -tick : tick;
+      let priceUSDCperRisk: number = Math.pow(1.0001, effTick) * Math.pow(10, riskDec - 6);
 
       const bal0 = Number(bal0Raw) / 10 ** dec0;
       const bal1 = Number(bal1Raw) / 10 ** dec1;
       const riskBal = token0IsStable ? bal1 : bal0;
       const usdVal = riskBal * priceUSDCperRisk;
-      const unitPrice = `${formatNumber(priceUSDCperRisk, 6)} USDC per ${riskSym}`;
+      const unitPrice = `${formatUSD(priceUSDCperRisk)} per ${riskSym}`;
       const riskUsdText = `${formatUSD(usdVal)}`;
       const disp0 = token0IsStable ? `${formatNumber(bal0)} ${sym0}` : `${formatNumber(bal0)} ${sym0} (${riskUsdText})`;
       const disp1 = token0IsStable ? `${formatNumber(bal1)} ${sym1} (${riskUsdText})` : `${formatNumber(bal1)} ${sym1}`;
