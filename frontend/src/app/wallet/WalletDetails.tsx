@@ -176,11 +176,28 @@ export default function WalletDetails() {
     }
   };
 
+  const formatAllowance = (amount?: bigint) => {
+    if (amount === undefined) return '0';
+    if (amount === BigInt(0)) return '0';
+    return formatTokenAmount(amount, 6);
+  };
+
   const formatDate = (ts?: bigint | number) => {
     if (ts === undefined) return '';
     const n = typeof ts === 'number' ? ts : Number(ts);
     return new Date(n * 1000).toLocaleString();
   };
+
+  // Also read user USDC balance via wagmi to avoid any race in the effect
+  const { data: userUsdcBalance } = useReadContract({
+    address: (stableTokenAddr as `0x${string}`) || undefined,
+    abi: [
+      { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+    ] as const,
+    functionName: 'balanceOf',
+    args: connected ? [connected as `0x${string}`] : undefined,
+    query: { enabled: Boolean(stableTokenAddr && connected) },
+  });
 
   const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
 
@@ -209,6 +226,7 @@ export default function WalletDetails() {
   const [isDepositing, setIsDepositing] = React.useState(false);
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
+  const [userStableBalance, setUserStableBalance] = React.useState<bigint | undefined>(undefined);
   const [upkeepId, setUpkeepId] = React.useState<bigint | null | undefined>(undefined);
   const [slippageOpen, setSlippageOpen] = React.useState(false);
   const [slippageInput, setSlippageInput] = React.useState<string>('');
@@ -502,7 +520,10 @@ export default function WalletDetails() {
             inputProps={{ min: 0, step: '0.01' }}
           />
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            Allowance: {formatTokenAmount(allowance, 6)} USDC
+            Your balance: {formatTokenAmount((userUsdcBalance as bigint) ?? userStableBalance, 6)} USDC
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Allowance: {formatAllowance(allowance)} USDC
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -907,17 +928,14 @@ export default function WalletDetails() {
         </Grid>
       </Grid>
 
-      {/* Transactions Card */}
+      {/* Transactions - Deposits & Withdrawals */}
       <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid item xs={12} md={12} sx={{ display: 'flex' }}>
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Wallet Transactions</Typography>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2">Deposits & Withdrawals</Typography>
-                  <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
-                  <Table size="small" sx={{ minWidth: 520, whiteSpace: 'nowrap' }}>
+              <Typography variant="subtitle1" fontWeight="bold">Deposits & Withdrawals</Typography>
+              <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 520, whiteSpace: 'nowrap' }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Date</TableCell>
@@ -926,85 +944,88 @@ export default function WalletDetails() {
                       <TableCell align="right">Amount</TableCell>
                     </TableRow>
                   </TableHead>
-                <TableBody>
-                  {(Array.isArray(depositsData) ? depositsData : []).map((d: any, idx: number) => (
-                    <TableRow key={`dep-${idx}`}>
-                      <TableCell>{formatDate(d.timestamp)}</TableCell>
-                      <TableCell>Deposit</TableCell>
-                      <TableCell>USDC</TableCell>
-                      <TableCell align="right">{formatTokenAmount(d.amount as bigint, 6)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {(Array.isArray(withdrawalsData) ? withdrawalsData : []).map((w: any, idx: number) => {
-                    const meta = addressToMeta(w.asset as string);
-                    const sym = meta?.symbol || `${String(w.asset).slice(0, 6)}…${String(w.asset).slice(-4)}`;
-                    return (
+                  <TableBody>
+                    {(Array.isArray(depositsData) ? depositsData : []).map((d: any, idx: number) => (
+                      <TableRow key={`dep-${idx}`}>
+                        <TableCell>{formatDate(d.timestamp)}</TableCell>
+                        <TableCell>Deposit</TableCell>
+                        <TableCell>USDC</TableCell>
+                        <TableCell align="right">{formatTokenAmount(d.amount as bigint, 6)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(Array.isArray(withdrawalsData) ? withdrawalsData : []).map((w: any, idx: number) => {
+                      const meta = addressToMeta(w.asset as string);
+                      const sym = meta?.symbol || `${String(w.asset).slice(0, 6)}…${String(w.asset).slice(-4)}`;
+                      return (
                         <TableRow key={`wd-${idx}`}>
                           <TableCell>{formatDate(w.timestamp)}</TableCell>
                           <TableCell>Withdrawal</TableCell>
                           <TableCell>{sym}</TableCell>
                           <TableCell align="right">{formatTokenAmount(w.amount as bigint, meta?.decimals)}</TableCell>
                         </TableRow>
-                    );
-                  })}
-                </TableBody>
-                  </Table>
-                  </TableContainer>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2">Swaps</Typography>
-                  <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
-                  <Table size="small" sx={{ minWidth: 680, whiteSpace: 'nowrap' }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Side</TableCell>
-                    <TableCell>Asset</TableCell>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+        {/* Transactions - Swaps */}
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="subtitle1" fontWeight="bold">Swaps</Typography>
+              <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 680, whiteSpace: 'nowrap' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Side</TableCell>
+                      <TableCell>Asset</TableCell>
                       <TableCell align="right">Amount</TableCell>
                       <TableCell align="right">Price (USDC)</TableCell>
                       <TableCell align="right">Value (USDC)</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {(Array.isArray(swapsData) ? swapsData : []).map((s: any, idx: number) => {
-                    const tokenIn = String(s.tokenIn);
-                    const tokenOut = String(s.tokenOut);
-                    const amountIn = s.amountIn as bigint;
-                    const amountOut = s.amountOut as bigint;
-                    const tokenInMeta = addressToMeta(tokenIn);
-                    const tokenOutMeta = addressToMeta(tokenOut);
-                    const isBuy = tokenInMeta?.symbol === 'USDC';
-                    const riskMeta = isBuy ? tokenOutMeta : tokenInMeta;
-                    const stableDec = (chainAssets as any)['USDC']?.decimals ?? 6;
-                    const riskDec = riskMeta?.decimals ?? 18;
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(Array.isArray(swapsData) ? swapsData : []).map((s: any, idx: number) => {
+                      const tokenIn = String(s.tokenIn);
+                      const tokenOut = String(s.tokenOut);
+                      const amountIn = s.amountIn as bigint;
+                      const amountOut = s.amountOut as bigint;
+                      const tokenInMeta = addressToMeta(tokenIn);
+                      const tokenOutMeta = addressToMeta(tokenOut);
+                      const isBuy = tokenInMeta?.symbol === 'USDC';
+                      const riskMeta = isBuy ? tokenOutMeta : tokenInMeta;
+                      const stableDec = (chainAssets as any)['USDC']?.decimals ?? 6;
+                      const riskDec = riskMeta?.decimals ?? 18;
                       let priceNum: number | null = null;
-                    if (isBuy && riskMeta) {
-                      const usdcSold = Number(amountIn) / 10 ** stableDec;
-                      const riskBought = Number(amountOut) / 10 ** riskDec;
+                      if (isBuy && riskMeta) {
+                        const usdcSold = Number(amountIn) / 10 ** stableDec;
+                        const riskBought = Number(amountOut) / 10 ** riskDec;
                         if (riskBought > 0) priceNum = usdcSold / riskBought;
-                    } else if (!isBuy && riskMeta) {
-                      const usdcBought = Number(amountOut) / 10 ** stableDec;
-                      const riskSold = Number(amountIn) / 10 ** riskDec;
+                      } else if (!isBuy && riskMeta) {
+                        const usdcBought = Number(amountOut) / 10 ** stableDec;
+                        const riskSold = Number(amountIn) / 10 ** riskDec;
                         if (riskSold > 0) priceNum = usdcBought / riskSold;
-                    }
+                      }
                       const amountRisk = isBuy ? (Number(amountOut) / 10 ** riskDec) : (Number(amountIn) / 10 ** riskDec);
                       const valueUsdc = priceNum !== null ? amountRisk * priceNum : null;
-                    return (
-                      <TableRow key={`sw-${idx}`}>
-                        <TableCell>{formatDate(s.timestamp)}</TableCell>
-                        <TableCell>{isBuy ? 'BUY' : 'SELL'}</TableCell>
-                        <TableCell>{riskMeta?.symbol || '-'}</TableCell>
+                      return (
+                        <TableRow key={`sw-${idx}`}>
+                          <TableCell>{formatDate(s.timestamp)}</TableCell>
+                          <TableCell>{isBuy ? 'BUY' : 'SELL'}</TableCell>
+                          <TableCell>{riskMeta?.symbol || '-'}</TableCell>
                           <TableCell align="right">{Number.isFinite(amountRisk) ? amountRisk.toLocaleString('en-US', { maximumFractionDigits: 8 }) : '-'}</TableCell>
                           <TableCell align="right">{priceNum !== null ? `$${priceNum.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-'}</TableCell>
                           <TableCell align="right">{valueUsdc !== null ? `$${valueUsdc.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-                  </Table>
-                  </TableContainer>
-                </Grid>
-              </Grid>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         </Grid>
