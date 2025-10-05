@@ -49,6 +49,7 @@ export default function PortfolioPage() {
     }
   }, [chainId]);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   // Onboarding params (must be top-level to preserve hooks order)
   const [amount, setAmount] = useState<string>('100');
@@ -101,6 +102,18 @@ export default function PortfolioPage() {
       } catch {}
     })();
   }, [isConfirmed, txHash, refetchWallets]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   if (!isConnected) {
     return (
