@@ -48,7 +48,7 @@ export default function About() {
               From Hackathon to Product
             </Typography>
             <Typography variant="body1" paragraph>
-              Power Wallet began as a bold idea at the <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>ETH Global Bangkok Hackathon</Box> in November 2024. <br />
+              The Power Wallet project started at the <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>ETH Global Bangkok Hackathon</Box> in November 2024. <br />
             </Typography>
             <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-block', mb: 2, color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
               <Box component="img" src="/img/eth-global-hackaton.png" alt="ETH Global Bangkok Hackathon" sx={{ width: '100%', maxWidth: 720, borderRadius: 1, boxShadow: 3 }} />
@@ -57,7 +57,9 @@ export default function About() {
               Over an intense weekend we prototyped a fully on-chain, automated investing experience: seamsless onboarding with Coinbase Smart Wallet, live market data via Chainlink oracles, Uniswap V3 execution on Base, and automated upkeep to keep strategies running 24/7.
             </Typography>
             <Typography variant="body1" paragraph>
-              The response from builders and judges was clear — there’s a real need for self-sovereign, transparent, long‑term bitcoin investing. That momentum carried forward: what started as a scrappy prototype became the foundation of the product you see today.
+              We presented our prototype in front of judges and sponsors, and the response was clear: <br/>
+              There’s a real need for simple, secure, self-sovereign solutions for long-term investing in Bitcoin and digital assets. 
+              That momentum carried forward, what started as a scrappy prototype is evolving into the product you see today.
             </Typography>
           </CardContent>
         </Card>
@@ -120,6 +122,11 @@ export default function About() {
               Power Wallet is built on cutting-edge blockchain technology:
             </Typography>
             <Stack spacing={1.5}>
+              <Box>
+                <Typography variant="body2">
+                  <strong>Smart Contracts:</strong> A secure and transparent suite of carefully crafted smart contracts that power the platform
+                </Typography>
+              </Box>
               <Box>
                 <Typography variant="body2">
                   <strong>Base Network:</strong> Low-cost, high-speed Layer 2 blockchain for efficient transactions
