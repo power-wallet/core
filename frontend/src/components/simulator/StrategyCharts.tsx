@@ -26,6 +26,17 @@ const StrategyCharts: React.FC<Props> = ({ result }) => {
     );
   }
 
+  if (result.strategyId === 'simple-btc-dca') {
+    return (
+      <>
+        <PortfolioValueChart result={result} />
+        <PortfolioAllocationChart result={result} />
+        <DrawdownChart result={result} />
+        <TradesTable result={result} />
+      </>
+    );
+  }
+
   // Default (momentum) layout: Portfolio Value → Allocation → Drawdown → Asset Prices & Trades → RSI & Signals → Trades
   return (
     <>

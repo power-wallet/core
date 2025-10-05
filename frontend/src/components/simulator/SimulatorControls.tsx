@@ -26,9 +26,8 @@ export interface SimulationParams {
   initialCapital: number;
 }
 
-const SimulatorControls: React.FC<SimulatorControlsProps> = ({ onRunSimulation, isLoading }) => {
+const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; onStrategyChange: (id: string) => void }> = ({ onRunSimulation, isLoading, strategy, onStrategyChange }) => {
   const STORAGE_KEY = 'simulator:settings';
-  const [strategy, setStrategy] = useState('btc-eth-momentum');
   const [startDate, setStartDate] = useState('2025-01-01');
   const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [initialCapital, setInitialCapital] = useState(10000);
@@ -40,7 +39,6 @@ const SimulatorControls: React.FC<SimulatorControlsProps> = ({ onRunSimulation, 
       const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
       if (raw) {
         const saved = JSON.parse(raw);
-        if (saved?.strategy) setStrategy(saved.strategy);
         if (saved?.startDate) setStartDate(saved.startDate);
         if (saved?.endDate) setEndDate(saved.endDate);
         if (typeof saved?.initialCapital === 'number') setInitialCapital(saved.initialCapital);
@@ -103,7 +101,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps> = ({ onRunSimulation, 
                 fullWidth
                 label="Strategy"
                 value={strategy}
-                onChange={(e) => setStrategy(e.target.value)}
+                onChange={(e) => onStrategyChange(e.target.value)}
                 variant="outlined"
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -116,8 +114,9 @@ const SimulatorControls: React.FC<SimulatorControlsProps> = ({ onRunSimulation, 
                   '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
                 }}
               >
-                <MenuItem value="btc-eth-momentum">BTC-ETH Momentum RSI</MenuItem>
+                <MenuItem value="simple-btc-dca">Simple BTC DCA</MenuItem>
                 <MenuItem value="smart-btc-dca">Smart BTC DCA (Power Law)</MenuItem>
+                <MenuItem value="btc-eth-momentum">BTC-ETH Momentum RSI</MenuItem>
               </TextField>
             </Grid>
 

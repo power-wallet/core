@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Box, Typography, Card, CardContent, Stack, Link as MuiLink, Divider, useMediaQuery } from '@mui/material';
+import { Container, Box, Typography, Card, CardContent, Stack, Link as MuiLink, Divider, useMediaQuery, Button } from '@mui/material';
+import { useAccount, useChainId } from 'wagmi';
 import { createPublicClient, http } from 'viem';
 import appConfig from '@/config/appConfig.json';
 import { getChainKey, getViemChain } from '@/config/networks';
@@ -88,6 +89,28 @@ function formatUSD(n: number) {
 export default function SmartContractsPage() {
   const isMobile = useMediaQuery('(max-width:600px)');
   const shortAddr = (a: string) => (a ? `${a.slice(0, 6)}...${a.slice(-4)}` : '');
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const isBaseMainnet = isConnected && chainId === 8453;
+  const showTokens = !isConnected || chainId === 84532 || chainId === 8453;
+  const addTokenToWallet = async (key: 'cbBTC' | 'WETH' | 'USDC') => {
+    try {
+      const assetCfg = (cfg.assets as any)[key];
+      const address = (ADDR as any)[key.toLowerCase()] as string;
+      if (!address || !assetCfg) return;
+      await (window as any)?.ethereum?.request?.({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address,
+            symbol: assetCfg.symbol,
+            decimals: Number(assetCfg.decimals || 18),
+          },
+        },
+      });
+    } catch {}
+  };
   const [cbBtcUsdcPool, setCbBtcUsdcPool] = useState<string>('');
   const [wethUsdcPool, setWethUsdcPool] = useState<string>('');
   const [cbBtcInfo, setCbBtcInfo] = useState<PoolInfo | null>(null);
@@ -356,6 +379,45 @@ export default function SmartContractsPage() {
             </CardContent>
           </Card>
         </Box>
+
+        {showTokens && (
+        <Box sx={{ mt: 4 }}>
+          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>Tokens</Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                {isBaseMainnet ? 'Core tokens used by Power Wallet on Base chain.' : 'Core tokens used by Power Wallet on Base Sepolia network.'}
+              </Typography>
+              <Stack spacing={1}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    cbBTC: {ADDR.cbBTC ? (<MuiLink href={`${BASESCAN}${ADDR.cbBTC}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.cbBTC) : ADDR.cbBTC}</MuiLink>) : '—'}
+                  </Typography>
+                  {isConnected && ADDR.cbBTC ? (
+                    <Button size="small" variant="outlined" onClick={() => addTokenToWallet('cbBTC')}>Add</Button>
+                  ) : null}
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    WETH: {ADDR.weth ? (<MuiLink href={`${BASESCAN}${ADDR.weth}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.weth) : ADDR.weth}</MuiLink>) : '—'}
+                  </Typography>
+                  {isConnected && ADDR.weth ? (
+                    <Button size="small" variant="outlined" onClick={() => addTokenToWallet('WETH')}>Add</Button>
+                  ) : null}
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    USDC: {ADDR.usdc ? (<MuiLink href={`${BASESCAN}${ADDR.usdc}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.usdc) : ADDR.usdc}</MuiLink>) : '—'}
+                  </Typography>
+                  {isConnected && ADDR.usdc ? (
+                    <Button size="small" variant="outlined" onClick={() => addTokenToWallet('USDC')}>Add</Button>
+                  ) : null}
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
+        )}
       </Container>
     </Box>
   );

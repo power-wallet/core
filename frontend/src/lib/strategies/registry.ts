@@ -1,6 +1,6 @@
 import type { SimulationResult } from '@/lib/types';
 
-export type StrategyId = 'btc-eth-momentum' | 'smart-btc-dca';
+export type StrategyId = 'btc-eth-momentum' | 'smart-btc-dca' | 'simple-btc-dca';
 
 export interface Strategy {
   id: StrategyId;
@@ -19,6 +19,11 @@ async function getDcaStrategy() {
   return mod.default as Strategy;
 }
 
+async function getSimpleDcaStrategy() {
+  const mod = await import('@/lib/strategies/simpleBtcDca');
+  return mod.default as Strategy;
+}
+
 export async function runStrategy(
   strategyId: StrategyId,
   initialCapital: number,
@@ -32,6 +37,10 @@ export async function runStrategy(
     }
     case 'smart-btc-dca': {
       const s = await getDcaStrategy();
+      return s.run(initialCapital, startDate, endDate);
+    }
+    case 'simple-btc-dca': {
+      const s = await getSimpleDcaStrategy();
       return s.run(initialCapital, startDate, endDate);
     }
     default:
