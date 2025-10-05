@@ -554,9 +554,9 @@ export default function WalletDetails() {
         </Grid>
       </Grid>
 
-      {/* Wallet Config Card */}
+      {/* Wallet Config + Automate Your Wallet side by side on desktop */}
       <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid item xs={12} md={12} sx={{ display: 'flex' }}>
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight="bold">Wallet Config</Typography>
@@ -611,9 +611,49 @@ export default function WalletDetails() {
             </CardContent>
           </Card>
         </Grid>
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
+        {upkeepId === undefined ? (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Checking Chainlink Automation status…
+          </Typography>
+        ) : upkeepId ? (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+              Upkeep registered for this wallet: ID {upkeepId.toString()}.
+            </Typography>
+            <Button
+              variant="outlined"
+              href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View Upkeep
+            </Button>
+          </>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+                  To automate the execution of your wallet strategy, register an Upkeep for the address of this wallet with Chainlink Automation.
+            </Typography>
+            <Button
+              variant="outlined"
+                    size="small"
+              href="https://automation.chain.link/base-sepolia"
+              target="_blank"
+              rel="noopener noreferrer"
+                    sx={{ alignSelf: 'flex-start' }}
+            >
+              Open Chainlink Automation
+            </Button>
+          </>
+        )}
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
-
-      
 
       {/* Deposit Modal */}
       <Dialog open={depositOpen} onClose={() => setDepositOpen(false)} maxWidth="xs" fullWidth>
@@ -995,51 +1035,7 @@ export default function WalletDetails() {
           </Button>
         </DialogActions>
       </Dialog>
-      {/* Chainlink Automation Card */}
-      <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid item xs={12} md={12} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
-        {upkeepId === undefined ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Checking Chainlink Automation status…
-          </Typography>
-        ) : upkeepId ? (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-              Upkeep registered for this wallet: ID {upkeepId.toString()}.
-            </Typography>
-            <Button
-              variant="outlined"
-              href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View Upkeep
-            </Button>
-          </>
-        ) : (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-                  To automate the execution of your wallet strategy, register an Upkeep for the address of this wallet with Chainlink Automation.
-            </Typography>
-            <Button
-              variant="outlined"
-                    size="small"
-              href="https://automation.chain.link/base-sepolia"
-              target="_blank"
-              rel="noopener noreferrer"
-                    sx={{ alignSelf: 'flex-start' }}
-            >
-              Open Chainlink Automation
-            </Button>
-          </>
-        )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      
 
       {/* Transactions - Deposits & Withdrawals */}
       <Grid container spacing={3} sx={{ mt: 0 }}>
