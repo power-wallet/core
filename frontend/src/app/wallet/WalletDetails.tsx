@@ -2,9 +2,10 @@
 
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, IconButton } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Divider, TableContainer } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ConfigSimpleDcaV1 from './strategies/ConfigSimpleDcaV1';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import appConfig from '@/config/appConfig.json';
@@ -32,6 +33,9 @@ const powerWalletAbi = [
   { type: 'function', name: 'deposit', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
   { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
   { type: 'function', name: 'withdrawAsset', stateMutability: 'nonpayable', inputs: [ { name: 'asset', type: 'address' }, { name: 'amount', type: 'uint256' } ], outputs: [] },
+  { type: 'function', name: 'getDeposits', stateMutability: 'view', inputs: [], outputs: [ { type: 'tuple[]', components: [ { name: 'timestamp', type: 'uint256' }, { name: 'user', type: 'address' }, { name: 'amount', type: 'uint256' }, { name: 'balanceAfter', type: 'uint256' } ] } ] },
+  { type: 'function', name: 'getWithdrawals', stateMutability: 'view', inputs: [], outputs: [ { type: 'tuple[]', components: [ { name: 'timestamp', type: 'uint256' }, { name: 'user', type: 'address' }, { name: 'asset', type: 'address' }, { name: 'amount', type: 'uint256' }, { name: 'balanceAfter', type: 'uint256' } ] } ] },
+  { type: 'function', name: 'getSwaps', stateMutability: 'view', inputs: [], outputs: [ { type: 'tuple[]', components: [ { name: 'timestamp', type: 'uint256' }, { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' }, { name: 'amountIn', type: 'uint256' }, { name: 'amountOut', type: 'uint256' }, { name: 'balanceInAfter', type: 'uint256' }, { name: 'balanceOutAfter', type: 'uint256' } ] } ] },
 ] as const;
 
 const simpleDcaAbi = [
@@ -122,6 +126,26 @@ export default function WalletDetails() {
     query: { enabled: Boolean(strategyAddr) },
   });
 
+  // Transactions
+  const { data: depositsData } = useReadContract({
+    address: walletAddress || undefined,
+    abi: powerWalletAbi as any,
+    functionName: 'getDeposits',
+    query: { enabled: Boolean(walletAddress) },
+  });
+  const { data: withdrawalsData } = useReadContract({
+    address: walletAddress || undefined,
+    abi: powerWalletAbi as any,
+    functionName: 'getWithdrawals',
+    query: { enabled: Boolean(walletAddress) },
+  });
+  const { data: swapsData } = useReadContract({
+    address: walletAddress || undefined,
+    abi: powerWalletAbi as any,
+    functionName: 'getSwaps',
+    query: { enabled: Boolean(walletAddress) },
+  });
+
   const riskAssets = (assets as string[] | undefined) || [];
   const stableBal = (balances as any)?.[0] as bigint | undefined;
   const riskBals = ((balances as any)?.[1] as bigint[] | undefined) || [];
@@ -150,6 +174,12 @@ export default function WalletDetails() {
       const frac = `${zeros}${s}`;
       return `0.${frac}`;
     }
+  };
+
+  const formatDate = (ts?: bigint | number) => {
+    if (ts === undefined) return '';
+    const n = typeof ts === 'number' ? ts : Number(ts);
+    return new Date(n * 1000).toLocaleString();
   };
 
   const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
@@ -312,41 +342,41 @@ export default function WalletDetails() {
                       {formatUsd6(valueUsd as bigint)}
                     </Typography>
                   </Box>
-                </Stack>
+                  </Stack>
               ) : (
                 <Grid container spacing={0.5} sx={{ mt: 1, pr: 0.5 }} textAlign={'center'}>
-                  {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
-                    const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
-                    if (!m) return null;
-                    let amt: bigint | undefined = sym === 'USDC'
-                      ? stableBal
-                      : (() => {
-                          const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
-                          return idx === -1 ? undefined : riskBals[idx];
-                        })();
-                    if (amt === undefined) return null;
-                    const p = prices[m.symbol];
-                    const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
-                    return (
-                      <Grid key={sym} item xs={12} sm={6} md={4}>
-                        <Stack>
+                {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
+                  const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
+                  if (!m) return null;
+                  let amt: bigint | undefined = sym === 'USDC'
+                    ? stableBal
+                    : (() => {
+                        const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
+                        return idx === -1 ? undefined : riskBals[idx];
+                      })();
+                  if (amt === undefined) return null;
+                  const p = prices[m.symbol];
+                  const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
+                  return (
+                    <Grid key={sym} item xs={12} sm={6} md={4}>
+                      <Stack>
                           <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem', pr: 0.1}}>
-                            {formatTokenAmount(amt, m.decimals)} {m.symbol}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
-                            {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                          </Typography>
-                        </Stack>
-                      </Grid>
-                    );
-                  })}
+                          {formatTokenAmount(amt, m.decimals)} {m.symbol}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
+                          {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                        </Typography>
+                      </Stack>
+                    </Grid>
+                  );
+                })}
                   <Grid item xs={12} sm={6} md={4}>
                     <Stack>
                       <Typography variant="caption">Total Value</Typography>
                       <Typography variant="h5">{formatUsd6(valueUsd as bigint)}</Typography>
                     </Stack>
                   </Grid>
-                </Grid>
+              </Grid>
               )}
 
               
@@ -407,7 +437,7 @@ export default function WalletDetails() {
                   <Typography variant="caption" color="text.secondary">Automation</Typography>
                   <Typography variant="body2">{automationPaused ? 'Paused' : 'Active'}</Typography>
                 </Box>
-                <Box>
+                  <Box>
                   <Button
                     size="small"
                     variant="outlined"
@@ -448,7 +478,7 @@ export default function WalletDetails() {
                     setSlippageInput(slippage ? String(Number(slippage)) : '');
                     setSlippageOpen(true);
                   }}>Update Slippage</Button>
-                </Box>
+                  </Box>
               </Stack>
             </CardContent>
           </Card>
@@ -704,9 +734,38 @@ export default function WalletDetails() {
       <Dialog open={strategyConfigOpen} onClose={() => setStrategyConfigOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Configure Strategy</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            Configure parameters for your strategy. (Coming soon)
-          </Typography>
+          {(() => {
+            // Determine strategy id by matching description from appConfig
+            const strategies = (appConfig as any)[chainKey]?.strategies || {};
+            const descStr = String(desc || '').trim();
+            let matchedId: string | null = null;
+            let stableKey: string | null = null;
+            for (const [id, st] of Object.entries<any>(strategies)) {
+              if (String(st.description).trim() === descStr) {
+                matchedId = id;
+                stableKey = st.stable;
+                break;
+              }
+            }
+            if (matchedId === 'simple-dca-v1') {
+              const stableMeta = stableKey ? (appConfig as any)[chainKey].assets[Object.keys((appConfig as any)[chainKey].assets).find(k => k.toLowerCase() === String(stableKey).toLowerCase()) as string] : null;
+              const stableSymbol = stableMeta?.symbol || 'USDC';
+              const stableDecimals = stableMeta?.decimals ?? 6;
+              return (
+                <ConfigSimpleDcaV1
+                  strategyAddr={String(strategyAddr) as `0x${string}`}
+                  chainId={chainId}
+                  stableSymbol={stableSymbol}
+                  stableDecimals={stableDecimals}
+                  initialAmountStable={dcaAmount as bigint}
+                  initialFrequency={freq as bigint}
+                />
+              );
+            }
+            return (
+              <Typography variant="body2" color="text.secondary">This strategy is not yet configurable in the app.</Typography>
+            );
+          })()}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setStrategyConfigOpen(false)}>Close</Button>
@@ -807,42 +866,145 @@ export default function WalletDetails() {
         <Grid item xs={12} md={12} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
-              {upkeepId === undefined ? (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Checking Chainlink Automation status…
-                </Typography>
-              ) : upkeepId ? (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-                    Upkeep registered for this wallet: ID {upkeepId.toString()}.
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View Upkeep
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
+        {upkeepId === undefined ? (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Checking Chainlink Automation status…
+          </Typography>
+        ) : upkeepId ? (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+              Upkeep registered for this wallet: ID {upkeepId.toString()}.
+            </Typography>
+            <Button
+              variant="outlined"
+              href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View Upkeep
+            </Button>
+          </>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
                   To automate the execution of your wallet strategy, register an Upkeep for the address of this wallet with Chainlink Automation.
-                  </Typography>
-                  <Button
-                    variant="outlined"
+            </Typography>
+            <Button
+              variant="outlined"
                     size="small"
-                    href="https://automation.chain.link/base-sepolia"
-                    target="_blank"
-                    rel="noopener noreferrer"
+              href="https://automation.chain.link/base-sepolia"
+              target="_blank"
+              rel="noopener noreferrer"
                     sx={{ alignSelf: 'flex-start' }}
-                  >
-                    Open Chainlink Automation
-                  </Button>
-                </>
-              )}
+            >
+              Open Chainlink Automation
+            </Button>
+          </>
+        )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Transactions Card */}
+      <Grid container spacing={3} sx={{ mt: 0 }}>
+        <Grid item xs={12} md={12} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="subtitle1" fontWeight="bold">Wallet Transactions</Typography>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2">Deposits & Withdrawals</Typography>
+                  <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
+                  <Table size="small" sx={{ minWidth: 520, whiteSpace: 'nowrap' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Asset</TableCell>
+                      <TableCell align="right">Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                <TableBody>
+                  {(Array.isArray(depositsData) ? depositsData : []).map((d: any, idx: number) => (
+                    <TableRow key={`dep-${idx}`}>
+                      <TableCell>{formatDate(d.timestamp)}</TableCell>
+                      <TableCell>Deposit</TableCell>
+                      <TableCell>USDC</TableCell>
+                      <TableCell align="right">{formatTokenAmount(d.amount as bigint, 6)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {(Array.isArray(withdrawalsData) ? withdrawalsData : []).map((w: any, idx: number) => {
+                    const meta = addressToMeta(w.asset as string);
+                    const sym = meta?.symbol || `${String(w.asset).slice(0, 6)}…${String(w.asset).slice(-4)}`;
+                    return (
+                        <TableRow key={`wd-${idx}`}>
+                          <TableCell>{formatDate(w.timestamp)}</TableCell>
+                          <TableCell>Withdrawal</TableCell>
+                          <TableCell>{sym}</TableCell>
+                          <TableCell align="right">{formatTokenAmount(w.amount as bigint, meta?.decimals)}</TableCell>
+                        </TableRow>
+                    );
+                  })}
+                </TableBody>
+                  </Table>
+                  </TableContainer>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2">Swaps</Typography>
+                  <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
+                  <Table size="small" sx={{ minWidth: 680, whiteSpace: 'nowrap' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Side</TableCell>
+                    <TableCell>Asset</TableCell>
+                      <TableCell align="right">Amount</TableCell>
+                      <TableCell align="right">Price (USDC)</TableCell>
+                      <TableCell align="right">Value (USDC)</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {(Array.isArray(swapsData) ? swapsData : []).map((s: any, idx: number) => {
+                    const tokenIn = String(s.tokenIn);
+                    const tokenOut = String(s.tokenOut);
+                    const amountIn = s.amountIn as bigint;
+                    const amountOut = s.amountOut as bigint;
+                    const tokenInMeta = addressToMeta(tokenIn);
+                    const tokenOutMeta = addressToMeta(tokenOut);
+                    const isBuy = tokenInMeta?.symbol === 'USDC';
+                    const riskMeta = isBuy ? tokenOutMeta : tokenInMeta;
+                    const stableDec = (chainAssets as any)['USDC']?.decimals ?? 6;
+                    const riskDec = riskMeta?.decimals ?? 18;
+                      let priceNum: number | null = null;
+                    if (isBuy && riskMeta) {
+                      const usdcSold = Number(amountIn) / 10 ** stableDec;
+                      const riskBought = Number(amountOut) / 10 ** riskDec;
+                        if (riskBought > 0) priceNum = usdcSold / riskBought;
+                    } else if (!isBuy && riskMeta) {
+                      const usdcBought = Number(amountOut) / 10 ** stableDec;
+                      const riskSold = Number(amountIn) / 10 ** riskDec;
+                        if (riskSold > 0) priceNum = usdcBought / riskSold;
+                    }
+                      const amountRisk = isBuy ? (Number(amountOut) / 10 ** riskDec) : (Number(amountIn) / 10 ** riskDec);
+                      const valueUsdc = priceNum !== null ? amountRisk * priceNum : null;
+                    return (
+                      <TableRow key={`sw-${idx}`}>
+                        <TableCell>{formatDate(s.timestamp)}</TableCell>
+                        <TableCell>{isBuy ? 'BUY' : 'SELL'}</TableCell>
+                        <TableCell>{riskMeta?.symbol || '-'}</TableCell>
+                          <TableCell align="right">{Number.isFinite(amountRisk) ? amountRisk.toLocaleString('en-US', { maximumFractionDigits: 8 }) : '-'}</TableCell>
+                          <TableCell align="right">{priceNum !== null ? `$${priceNum.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-'}</TableCell>
+                          <TableCell align="right">{valueUsdc !== null ? `$${valueUsdc.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+                  </Table>
+                  </TableContainer>
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
