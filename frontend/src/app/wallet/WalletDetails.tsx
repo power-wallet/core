@@ -6,6 +6,7 @@ import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dia
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import appConfig from '@/config/appConfig.json';
+import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import { getChainKey } from '@/config/networks';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain } from '@/config/networks';
@@ -20,6 +21,12 @@ const powerWalletAbi = [
   { type: 'function', name: 'getPortfolioValueUSD', stateMutability: 'view', inputs: [], outputs: [ { name: 'usd6', type: 'uint256' } ] },
   { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
   { type: 'function', name: 'stableAsset', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
+  { type: 'function', name: 'automationPaused', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'bool' } ] },
+  { type: 'function', name: 'pauseAutomation', stateMutability: 'nonpayable', inputs: [], outputs: [] },
+  { type: 'function', name: 'unpauseAutomation', stateMutability: 'nonpayable', inputs: [], outputs: [] },
+  { type: 'function', name: 'slippageBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
+  { type: 'function', name: 'setSlippageBps', stateMutability: 'nonpayable', inputs: [ { name: 'newSlippageBps', type: 'uint16' } ], outputs: [] },
+  { type: 'function', name: 'closeWallet', stateMutability: 'nonpayable', inputs: [], outputs: [] },
   { type: 'function', name: 'deposit', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
   { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
 ] as const;
@@ -74,6 +81,18 @@ export default function WalletDetails() {
     functionName: 'strategy',
     query: { enabled: Boolean(walletAddress) },
   });
+  const { data: automationPaused } = useReadContract({
+    address: walletAddress || undefined,
+    abi: powerWalletAbi as any,
+    functionName: 'automationPaused',
+    query: { enabled: Boolean(walletAddress) },
+  });
+  const { data: slippage, refetch: refetchSlippage } = useReadContract({
+    address: walletAddress || undefined,
+    abi: powerWalletAbi as any,
+    functionName: 'slippageBps',
+    query: { enabled: Boolean(walletAddress) },
+  });
   const { data: stableTokenAddr } = useReadContract({
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
@@ -103,6 +122,9 @@ export default function WalletDetails() {
   const riskAssets = (assets as string[] | undefined) || [];
   const stableBal = (balances as any)?.[0] as bigint | undefined;
   const riskBals = ((balances as any)?.[1] as bigint[] | undefined) || [];
+  const sb = (stableBal !== undefined ? stableBal : BigInt(0));
+  const anyRisk = riskBals.some((b) => (b !== undefined ? b : BigInt(0)) > BigInt(0));
+  const hasAnyFunds = sb > BigInt(0) || anyRisk;
 
   const chainAssets = (appConfig as any)[chainKey]?.assets as Record<string, { address: string; symbol: string; decimals: number; feed: `0x${string}` }>;
   const addressToMeta = React.useCallback((addr: string | undefined) => {
@@ -147,6 +169,9 @@ export default function WalletDetails() {
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
   const [upkeepId, setUpkeepId] = React.useState<bigint | null | undefined>(undefined);
+  const [slippageOpen, setSlippageOpen] = React.useState(false);
+  const [slippageInput, setSlippageInput] = React.useState<string>('');
+  const [closeOpen, setCloseOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (txHash) {
@@ -295,6 +320,8 @@ export default function WalletDetails() {
                   </Grid>
                 </Grid>
               )}
+
+              
               <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
                 <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
                 <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
@@ -336,6 +363,70 @@ export default function WalletDetails() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Wallet Config Card */}
+      <Grid container spacing={3} sx={{ mt: 0 }}>
+        <Grid item xs={12} md={12} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="subtitle1" fontWeight="bold">Wallet Config</Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 1 }} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Automation</Typography>
+                  <Typography variant="body2">{automationPaused ? 'Paused' : 'Active'}</Typography>
+                </Box>
+                <Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={async () => {
+                      if (!walletAddress) return;
+                      try {
+                        let maxFeePerGas: bigint | undefined;
+                        let maxPriorityFeePerGas: bigint | undefined;
+                        try {
+                          const fees = await client.estimateFeesPerGas();
+                          maxFeePerGas = fees.maxFeePerGas;
+                          maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
+                        } catch {}
+                        const fn = automationPaused ? 'unpauseAutomation' : 'pauseAutomation';
+                        const hash = await writeContractAsync({
+                          address: walletAddress,
+                          abi: powerWalletAbi as any,
+                          functionName: fn as any,
+                          args: [],
+                          ...(maxFeePerGas ? { maxFeePerGas } : {}),
+                          ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
+                        });
+                        setTxHash(hash as `0x${string}`);
+                      } catch (e: any) {
+                        setToast({ open: true, message: e?.shortMessage || e?.message || 'Transaction failed', severity: 'error' });
+                      }
+                    }}
+                  >
+                    {automationPaused ? 'Activate Automation' : 'Pause Automation'}
+                  </Button>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Slippage</Typography>
+                  <Typography variant="body2">{slippage ? `${Number(slippage)} bps (${(Number(slippage)/100).toFixed(2)}%)` : '-'}</Typography>
+                </Box>
+                <Box>
+                  <Button size="small" variant="outlined" onClick={() => {
+                    setSlippageInput(slippage ? String(Number(slippage)) : '');
+                    setSlippageOpen(true);
+                  }}>Update Slippage</Button>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Close Wallet Section */}
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-start' }}>
+        <Button color="error" variant="outlined" onClick={() => setCloseOpen(true)}>Close Wallet</Button>
+      </Box>
 
       {/* Deposit Modal */}
       <Dialog open={depositOpen} onClose={() => setDepositOpen(false)} maxWidth="xs" fullWidth>
@@ -425,6 +516,63 @@ export default function WalletDetails() {
         </DialogActions>
       </Dialog>
 
+      {/* Update Slippage Modal */}
+      <Dialog open={slippageOpen} onClose={() => setSlippageOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Update Slippage</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label={`Slippage (bps) — ${(Number(slippage ?? 0)/100).toFixed(2)}%`}
+            type="number"
+            fullWidth
+            value={slippageInput}
+            onChange={(e) => setSlippageInput(e.target.value)}
+            inputProps={{ min: 0, max: 4999, step: 1, placeholder: String(Number(slippage ?? 0)) }}
+            helperText="Max 5000 bps (50%)"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSlippageOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (!walletAddress) return;
+              const val = Math.max(0, Math.floor(Number(slippageInput || '0')));
+              if (Number.isNaN(val) || val >= 5000) {
+                setToast({ open: true, message: 'Enter a value below 5000', severity: 'error' });
+                return;
+              }
+              try {
+                let maxFeePerGas: bigint | undefined;
+                let maxPriorityFeePerGas: bigint | undefined;
+                try {
+                  const fees = await client.estimateFeesPerGas();
+                  maxFeePerGas = fees.maxFeePerGas;
+                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
+                } catch {}
+                const hash = await writeContractAsync({
+                  address: walletAddress,
+                  abi: powerWalletAbi as any,
+                  functionName: 'setSlippageBps',
+                  args: [val],
+                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
+                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
+                });
+                setTxHash(hash as `0x${string}`);
+                await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+                await refetchSlippage();
+                setSlippageOpen(false);
+              } catch (e: any) {
+                setToast({ open: true, message: e?.shortMessage || e?.message || 'Update failed', severity: 'error' });
+              }
+            }}
+          >
+            Update Slippage
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Withdraw Modal */}
       <Dialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Withdraw USDC</DialogTitle>
@@ -504,43 +652,116 @@ export default function WalletDetails() {
         </Alert>
       </Snackbar>
 
-      {/* Chainlink Automation CTA */}
-      <Box sx={{ mt: 6, textAlign: 'left' }}>
-        <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
-        {upkeepId === undefined ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Checking Chainlink Automation status…
+      {/* Close Wallet Modal */}
+      <Dialog open={closeOpen} onClose={() => setCloseOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Close Wallet</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            This will pause automation and permanently close this wallet.
           </Typography>
-        ) : upkeepId ? (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-              Upkeep registered for this wallet: ID {upkeepId.toString()}.
-            </Typography>
-            <Button
-              variant="outlined"
-              href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View Upkeep
-            </Button>
-          </>
-        ) : (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-              Register a Chainlink Automation Upkeep for this wallet.
-            </Typography>
-            <Button
-              variant="outlined"
-              href="https://automation.chain.link/base-sepolia"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open Chainlink Automation
-            </Button>
-          </>
-        )}
-      </Box>
+          {hasAnyFunds ? (
+            <Alert severity="warning">Withdraw all your funds before closing your wallet.</Alert>
+          ) : (
+            <Typography variant="caption" color="text.secondary">No funds detected. You can close the wallet safely.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCloseOpen(false)}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={hasAnyFunds}
+            onClick={async () => {
+              if (!walletAddress) return;
+              try {
+                let maxFeePerGas: bigint | undefined;
+                let maxPriorityFeePerGas: bigint | undefined;
+                try {
+                  const fees = await client.estimateFeesPerGas();
+                  maxFeePerGas = fees.maxFeePerGas;
+                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
+                } catch {}
+                const hash = await writeContractAsync({
+                  address: walletAddress,
+                  abi: powerWalletAbi as any,
+                  functionName: 'closeWallet',
+                  args: [],
+                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
+                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
+                });
+                setTxHash(hash as `0x${string}`);
+                await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+                // After closing, request factory to delete the wallet reference
+                try {
+                  const factory = contractAddresses[chainKey]?.walletFactory as `0x${string}` | undefined;
+                  if (factory) {
+                    const factoryAbi = [
+                      { type: 'function', name: 'deleteWallet', stateMutability: 'nonpayable', inputs: [ { name: 'walletAddr', type: 'address' } ], outputs: [] },
+                    ] as const;
+                    const delHash = await writeContractAsync({
+                      address: factory,
+                      abi: factoryAbi as any,
+                      functionName: 'deleteWallet',
+                      args: [walletAddress],
+                      ...(maxFeePerGas ? { maxFeePerGas } : {}),
+                      ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
+                    });
+                    setTxHash(delHash as `0x${string}`);
+                  }
+                } catch (e) {}
+                setCloseOpen(false);
+              } catch (e: any) {
+                setToast({ open: true, message: e?.shortMessage || e?.message || 'Close failed', severity: 'error' });
+              }
+            }}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Chainlink Automation Card */}
+      <Grid container spacing={3} sx={{ mt: 0 }}>
+        <Grid item xs={12} md={12} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
+              {upkeepId === undefined ? (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Checking Chainlink Automation status…
+                </Typography>
+              ) : upkeepId ? (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+                    Upkeep registered for this wallet: ID {upkeepId.toString()}.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View Upkeep
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+                    Register a Chainlink Automation Upkeep for this wallet.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    href="https://automation.chain.link/base-sepolia"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open Chainlink Automation
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Container>
   );
 }

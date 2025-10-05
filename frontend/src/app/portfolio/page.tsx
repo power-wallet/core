@@ -2,13 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert } from '@mui/material';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
-import { getViemChain } from '@/config/networks';
+import { getViemChain, getChainKey } from '@/config/networks';
+import { baseSepolia } from 'wagmi/chains';
 import WalletConnectModal from '@/components/WalletConnectModal';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import appConfig from '@/config/appConfig.json';
-import { getChainKey } from '@/config/networks';
 
 // Minimal ABI for WalletFactory functions we call
 const walletFactoryAbi = [
@@ -38,6 +38,16 @@ const walletFactoryAbi = [
 export default function PortfolioPage() {
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const chainName = useMemo(() => {
+    if (!chainId) return 'this network';
+    try {
+      const key = getChainKey(chainId);
+      return key === 'base' ? 'Base' : 'Base Sepolia';
+    } catch {
+      return `Chain ${chainId}`;
+    }
+  }, [chainId]);
   const [connectOpen, setConnectOpen] = useState(false);
   // Onboarding params (must be top-level to preserve hooks order)
   const [amount, setAmount] = useState<string>('100');
@@ -118,7 +128,28 @@ export default function PortfolioPage() {
   if (!factoryAddress) {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
-        <Typography color="error">WalletFactory address is not configured for this chain.</Typography>
+        <Stack spacing={2} alignItems="center" textAlign="center">
+          <Typography color="warning">Power Wallet is not available on {chainName}. Please switch to Base Sepolia Testnet.</Typography>
+          <Button variant="contained" onClick={async () => {
+            try {
+              await switchChainAsync({ chainId: baseSepolia.id });
+            } catch (_) {
+              try {
+                const params = {
+                  chainId: `0x${baseSepolia.id.toString(16)}`,
+                  chainName: baseSepolia.name,
+                  nativeCurrency: baseSepolia.nativeCurrency,
+                  rpcUrls: [baseSepolia.rpcUrls.default.http[0]],
+                  blockExplorerUrls: [baseSepolia.blockExplorers?.default.url || ''],
+                } as const;
+                await (window as any)?.ethereum?.request({ method: 'wallet_addEthereumChain', params: [params] });
+                await switchChainAsync({ chainId: baseSepolia.id });
+              } catch {}
+            }
+          }}>
+            Switch to Base Sepolia
+          </Button>
+        </Stack>
       </Container>
     );
   }

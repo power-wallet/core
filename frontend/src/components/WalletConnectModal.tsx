@@ -16,7 +16,8 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddIcon from '@mui/icons-material/Add';
-import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { useConnect, useAccount, useDisconnect, useChainId } from 'wagmi';
+import { getChainKey } from '@/config/networks';
 
 interface WalletConnectModalProps {
   open: boolean;
@@ -27,6 +28,17 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const { connect, connectors, isPending } = useConnect();
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
+  const chainId = useChainId();
+
+  const networkName = React.useMemo(() => {
+    if (!chainId) return '';
+    try {
+      const key = getChainKey(chainId);
+      return key === 'base' ? 'Base' : 'Base Sepolia';
+    } catch {
+      return `Chain ${chainId}`;
+    }
+  }, [chainId]);
 
   const handleConnect = async (connector: any) => {
     try {
@@ -106,6 +118,14 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
                   {address}
                 </Typography>
+                {networkName && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Network
+                    </Typography>
+                    <Typography variant="body2">{networkName}</Typography>
+                  </Box>
+                )}
               </CardContent>
             </Card>
             <Button
