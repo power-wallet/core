@@ -423,10 +423,7 @@ export default function WalletDetails() {
         </Grid>
       </Grid>
 
-      {/* Close Wallet Section */}
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-start' }}>
-        <Button color="error" variant="outlined" onClick={() => setCloseOpen(true)}>Close Wallet</Button>
-      </Box>
+      
 
       {/* Deposit Modal */}
       <Dialog open={depositOpen} onClose={() => setDepositOpen(false)} maxWidth="xs" fullWidth>
@@ -660,7 +657,7 @@ export default function WalletDetails() {
             This will pause automation and permanently close this wallet.
           </Typography>
           {hasAnyFunds ? (
-            <Alert severity="warning">Withdraw all your funds before closing your wallet.</Alert>
+            <Alert severity="warning">Your wallet has funds. Withdraw all your funds before closing your wallet.</Alert>
           ) : (
             <Typography variant="caption" color="text.secondary">No funds detected. You can close the wallet safely.</Typography>
           )}
@@ -746,13 +743,15 @@ export default function WalletDetails() {
               ) : (
                 <>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-                    Register a Chainlink Automation Upkeep for this wallet.
+                  To automate the execution of your wallet strategy, register an Upkeep for the address of this wallet with Chainlink Automation.
                   </Typography>
                   <Button
                     variant="outlined"
+                    size="small"
                     href="https://automation.chain.link/base-sepolia"
                     target="_blank"
                     rel="noopener noreferrer"
+                    sx={{ alignSelf: 'flex-start' }}
                   >
                     Open Chainlink Automation
                   </Button>
@@ -762,6 +761,11 @@ export default function WalletDetails() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Close Wallet Section (below Automation card) */}
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-start' }}>
+        <Button color="error" variant="outlined" onClick={() => setCloseOpen(true)}>Close Wallet</Button>
+      </Box>
     </Container>
   );
 }
