@@ -42,7 +42,7 @@ const Navbar = () => {
   };
 
   const menuItems = [
-    { text: 'Home', href: '/' },
+    { text: 'Home', href: '/portfolio' },
     { text: 'Simulator', href: '/simulator' },
     { text: 'Smart Contracts', href: '/contracts' },
     { text: 'About', href: '/about' },
@@ -50,9 +50,11 @@ const Navbar = () => {
 
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
-      <Typography variant="h6" sx={{ my: 2, fontWeight: 'bold' }}>
-        Power Wallet
-      </Typography>
+      <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Typography variant="h6" sx={{ my: 2, fontWeight: 'bold' }}>
+          Power Wallet
+        </Typography>
+      </Link>
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
@@ -110,20 +112,22 @@ const Navbar = () => {
               </IconButton>
             )}
             
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{ 
-                flexGrow: isMobile ? 1 : 0,
-                fontWeight: 'bold',
-                background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                mr: 4,
-              }}
-            >
-              Power Wallet
-            </Typography>
+            <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{ 
+                  flexGrow: isMobile ? 1 : 0,
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mr: 4,
+                }}
+              >
+                Power Wallet
+              </Typography>
+            </Link>
 
             {!isMobile && (
               <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
