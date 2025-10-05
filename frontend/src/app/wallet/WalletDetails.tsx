@@ -2,7 +2,9 @@
 
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, IconButton } from '@mui/material';
+import LaunchIcon from '@mui/icons-material/Launch';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import appConfig from '@/config/appConfig.json';
@@ -29,6 +31,7 @@ const powerWalletAbi = [
   { type: 'function', name: 'closeWallet', stateMutability: 'nonpayable', inputs: [], outputs: [] },
   { type: 'function', name: 'deposit', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
   { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
+  { type: 'function', name: 'withdrawAsset', stateMutability: 'nonpayable', inputs: [ { name: 'asset', type: 'address' }, { name: 'amount', type: 'uint256' } ], outputs: [] },
 ] as const;
 
 const simpleDcaAbi = [
@@ -136,10 +139,17 @@ export default function WalletDetails() {
 
   const formatTokenAmount = (amount?: bigint, decimals?: number) => {
     if (amount === undefined || decimals === undefined) return '0';
-    const base = 10 ** Math.min(decimals, 18);
-    const value = Number(amount) / base;
-    const fractionDigits = decimals >= 6 ? 4 : decimals;
-    return value.toLocaleString(undefined, { maximumFractionDigits: fractionDigits });
+    const s = amount.toString();
+    if (decimals === 0) return s;
+    if (s.length > decimals) {
+      const whole = s.slice(0, s.length - decimals);
+      const frac = s.slice(s.length - decimals).replace(/0+$/, '');
+      return frac ? `${whole}.${frac}` : whole;
+    } else {
+      const zeros = '0'.repeat(decimals - s.length);
+      const frac = `${zeros}${s}`;
+      return `0.${frac}`;
+    }
   };
 
   const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
@@ -165,6 +175,7 @@ export default function WalletDetails() {
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
   const [depositAmount, setDepositAmount] = React.useState<string>('');
   const [withdrawAmount, setWithdrawAmount] = React.useState<string>('');
+  const [withdrawAssetAddr, setWithdrawAssetAddr] = React.useState<`0x${string}` | ''>('');
   const [isDepositing, setIsDepositing] = React.useState(false);
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
@@ -172,6 +183,7 @@ export default function WalletDetails() {
   const [slippageOpen, setSlippageOpen] = React.useState(false);
   const [slippageInput, setSlippageInput] = React.useState<string>('');
   const [closeOpen, setCloseOpen] = React.useState(false);
+  const [strategyConfigOpen, setStrategyConfigOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (txHash) {
@@ -218,6 +230,13 @@ export default function WalletDetails() {
     })();
   }, [depositOpen, stableTokenAddr, walletAddress, connected, client]);
 
+  // Initialize selected withdraw asset when modal opens
+  React.useEffect(() => {
+    if (!withdrawOpen) return;
+    const preferred = (stableTokenAddr as `0x${string}` | undefined) || (riskAssets[0] as `0x${string}` | undefined) || '' as any;
+    setWithdrawAssetAddr(preferred || '');
+  }, [withdrawOpen, stableTokenAddr, riskAssets]);
+
   // Discover Chainlink Automation Upkeep ID on Base Sepolia only
   React.useEffect(() => {
     (async () => {
@@ -239,19 +258,28 @@ export default function WalletDetails() {
       <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
       <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
         <a
+          href="/portfolio"
+          style={{ color: 'inherit', textDecoration: 'underline' }}
+        >
+          Portfolio
+        </a>
+        {` / `}
+        <span>{shortAddress}</span>
+        <a
           href={`${explorerBase}/address/${walletAddress}`}
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: 'inherit', textDecoration: 'underline' }}
+          style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
+          aria-label="Open on block explorer"
         >
-          {shortAddress}
+          <LaunchIcon sx={{ fontSize: 14 }} />
         </a>
       </Typography>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', px: 1 }}>
               <Typography variant="subtitle1" fontWeight="bold">My Assets</Typography>
               {isMobile ? (
                 <Stack spacing={0.75} sx={{ mt: 1, minWidth: 0 }}>
@@ -268,11 +296,11 @@ export default function WalletDetails() {
                     const p = prices[m.symbol];
                     const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
                     return (
-                      <Box key={sym} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                      <Box key={sym} sx={{ display: 'flex', flexDirection: 'column', gap: 0.15, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                           {formatTokenAmount(amt, m.decimals)} {m.symbol}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'right' }}>
                           {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                         </Typography>
                       </Box>
@@ -286,7 +314,7 @@ export default function WalletDetails() {
                   </Box>
                 </Stack>
               ) : (
-                <Grid container spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
+                <Grid container spacing={0.5} sx={{ mt: 1, pr: 0.5 }} textAlign={'center'}>
                   {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
                     const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
                     if (!m) return null;
@@ -302,7 +330,7 @@ export default function WalletDetails() {
                     return (
                       <Grid key={sym} item xs={12} sm={6} md={4}>
                         <Stack>
-                          <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+                          <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem', pr: 0.1}}>
                             {formatTokenAmount(amt, m.decimals)} {m.symbol}
                           </Typography>
                           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
@@ -332,8 +360,27 @@ export default function WalletDetails() {
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Strategy</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ flex: 1 }}>Strategy</Typography>
+                <IconButton size="small" aria-label="Configure strategy" onClick={() => setStrategyConfigOpen(true)}>
+                  <SettingsIcon fontSize="small" />
+                </IconButton>
+              </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{String(desc || '')}</Typography>
+              {strategyAddr ? (
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', mt: 1 }}>
+                  <span>{`${String(strategyAddr).slice(0, 6)}…${String(strategyAddr).slice(-4)}`}</span>
+                  <a
+                    href={`${explorerBase}/address/${strategyAddr}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
+                    aria-label="Open strategy on block explorer"
+                  >
+                    <LaunchIcon sx={{ fontSize: 14 }} />
+                  </a>
+                </Typography>
+              ) : null}
               <Stack direction="row" spacing={3} sx={{ mt: 2, flexWrap: 'wrap' }}>
                 <Box>
                   <Typography variant="caption">DCA Amount</Typography>
@@ -343,21 +390,6 @@ export default function WalletDetails() {
                   <Typography variant="caption">Frequency</Typography>
                   <Typography variant="body1">{freq ? `${Number(freq) / 86400} d` : '-'}</Typography>
                 </Box>
-                {strategyAddr ? (
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">Strategy Contract</Typography>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                      <a
-                        href={`${explorerBase}/address/${strategyAddr}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: 'inherit', textDecoration: 'underline' }}
-                      >
-                        {`${String(strategyAddr).slice(0, 6)}…${String(strategyAddr).slice(-4)}`}
-                      </a>
-                    </Typography>
-                  </Box>
-                ) : null}
               </Stack>
             </CardContent>
           </Card>
@@ -570,30 +602,71 @@ export default function WalletDetails() {
         </DialogActions>
       </Dialog>
 
-      {/* Withdraw Modal */}
+      {/* Withdraw Modal (supports stable and risk assets) */}
       <Dialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Withdraw USDC</DialogTitle>
+        <DialogTitle>Withdraw Asset</DialogTitle>
         <DialogContent>
+          <FormControl fullWidth sx={{ mt: 1 }}>
+            <InputLabel id="withdraw-asset-label">Asset</InputLabel>
+            <Select
+              labelId="withdraw-asset-label"
+              label="Asset"
+              value={withdrawAssetAddr || ''}
+              onChange={(e) => setWithdrawAssetAddr(e.target.value as `0x${string}`)}
+            >
+              {stableTokenAddr ? (
+                <MenuItem value={stableTokenAddr as `0x${string}`}>USDC</MenuItem>
+              ) : null}
+              {riskAssets.map((ra) => {
+                const key = String(ra);
+                const m = addressToMeta(key);
+                const sym = m?.symbol || `${key.slice(0, 6)}…${key.slice(-4)}`;
+                return <MenuItem key={key} value={key as `0x${string}`}>{sym}</MenuItem>;
+              })}
+            </Select>
+          </FormControl>
           <TextField
             autoFocus
             margin="dense"
-            label="Amount (USDC)"
+            label={(() => {
+              const m = addressToMeta(withdrawAssetAddr);
+              return `Amount (${m?.symbol || 'token'})`;
+            })()}
             type="number"
             fullWidth
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}
-            inputProps={{ min: 0, step: '0.01' }}
+            inputProps={{ min: 0, step: '0.000001' }}
           />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            {(() => {
+              const addr = withdrawAssetAddr?.toLowerCase();
+              const isStable = addr && stableTokenAddr && addr === String(stableTokenAddr).toLowerCase();
+              let bal: bigint | undefined = undefined;
+              if (isStable) {
+                bal = stableBal;
+              } else if (addr) {
+                const idx = riskAssets.findIndex(x => x.toLowerCase() === addr);
+                bal = idx === -1 ? undefined : riskBals[idx];
+              }
+              const dec = addressToMeta(withdrawAssetAddr || '')?.decimals;
+              const sym = addressToMeta(withdrawAssetAddr || '')?.symbol || 'token';
+              return bal !== undefined && dec !== undefined ? `Available: ${formatTokenAmount(bal, dec)} ${sym}` : '';
+            })()}
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setWithdrawOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
             onClick={async () => {
-              if (!walletAddress) return;
+              if (!walletAddress || !withdrawAssetAddr) return;
               const amount = Math.max(0, Number(withdrawAmount || '0'));
               if (amount <= 0) return;
-              const amt = BigInt(Math.round(amount * 1_000_000));
+              const meta = addressToMeta(withdrawAssetAddr);
+              const decimals = meta?.decimals ?? 6;
+              const scale = Math.pow(10, Math.min(decimals, 18));
+              const amt = BigInt(Math.round(amount * scale));
               setIsWithdrawing(true);
               try {
                 let maxFeePerGas: bigint | undefined;
@@ -606,8 +679,8 @@ export default function WalletDetails() {
                 const hash = await writeContractAsync({
                   address: walletAddress,
                   abi: powerWalletAbi as any,
-                  functionName: 'withdraw',
-                  args: [amt],
+                  functionName: 'withdrawAsset',
+                  args: [withdrawAssetAddr, amt],
                   ...(maxFeePerGas ? { maxFeePerGas } : {}),
                   ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
                 });
@@ -624,6 +697,19 @@ export default function WalletDetails() {
           >
             {isWithdrawing ? (<><CircularProgress size={16} sx={{ mr: 1 }} /> Withdrawing…</>) : 'Withdraw'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Strategy Config Modal */}
+      <Dialog open={strategyConfigOpen} onClose={() => setStrategyConfigOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Configure Strategy</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Configure parameters for your strategy. (Coming soon)
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStrategyConfigOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
@@ -654,7 +740,7 @@ export default function WalletDetails() {
         <DialogTitle>Close Wallet</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1 }}>
-            This will pause automation and permanently close this wallet.
+            This will pause automation and permanently delete this wallet.
           </Typography>
           {hasAnyFunds ? (
             <Alert severity="warning">Your wallet has funds. Withdraw all your funds before closing your wallet.</Alert>
