@@ -42,7 +42,7 @@ export default function Home() {
     {
       icon: <TrendingUpIcon sx={{ fontSize: 48 }} />,
       title: 'Smart Investing',
-      description: 'Optimize your Bitcoin and digital asset investments, manage risk so you can enjoy a peace of mind.',
+      description: 'Optimize your Bitcoin and digital asset returns, manage risk so you can enjoy a peace of mind.',
     },
   ];
 
@@ -90,7 +90,7 @@ export default function Home() {
               </Typography>
               <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0 }}>
                 <li>
-                  <Typography variant="body1">Power up your bitcoin & crypto wallet with proven investment strategies automated on-chain.</Typography>
+                  <Typography variant="body1">Power up your Bitcoin & crypto investments with proven investment strategies automated on-chain.</Typography>
                 </li>
                 <li>
                   <Typography variant="body1">Enjoy the benefits of automated risk management.</Typography>
@@ -240,8 +240,8 @@ export default function Home() {
               Ready to Start Smart Investing?
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.9 }}>
-              Connect your wallet or create a new one to begin your journey into 
-              automated, on-chain investment strategies.
+              Create your first Power Wallet and begin your journey into 
+              self-sovereign, automated, on-chain investing.
             </Typography>
             <Button
               variant="contained"
