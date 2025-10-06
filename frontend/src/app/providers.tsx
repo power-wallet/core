@@ -11,7 +11,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { baseSepolia } from 'wagmi/chains';
+import { switchOrAddPrimaryChain, isOnPrimaryAppChain, getFriendlyChainName } from '@/lib/web3';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -25,7 +25,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const [showNetworkPrompt, setShowNetworkPrompt] = useState(false);
 
     useEffect(() => {
-      if (isConnected && currentChainId && currentChainId !== baseSepolia.id) {
+      if (isConnected && currentChainId && !isOnPrimaryAppChain(currentChainId)) {
         setShowNetworkPrompt(true);
       } else {
         setShowNetworkPrompt(false);
@@ -33,28 +33,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }, [isConnected, currentChainId]);
 
     const handleSwitchNetwork = async () => {
-      try {
-        await switchChainAsync({ chainId: baseSepolia.id });
-        setShowNetworkPrompt(false);
-      } catch (_) {
-        try {
-          const params = {
-            chainId: `0x${baseSepolia.id.toString(16)}`,
-            chainName: baseSepolia.name,
-            nativeCurrency: baseSepolia.nativeCurrency,
-            rpcUrls: [baseSepolia.rpcUrls.default.http[0]],
-            blockExplorerUrls: [baseSepolia.blockExplorers?.default.url || ''],
-          } as const;
-          await (window as any)?.ethereum?.request({
-            method: 'wallet_addEthereumChain',
-            params: [params],
-          });
-          await switchChainAsync({ chainId: baseSepolia.id });
-          setShowNetworkPrompt(false);
-        } catch {
-          // keep dialog open; user can retry or cancel
-        }
-      }
+      const ok = await switchOrAddPrimaryChain((args: any) => switchChainAsync(args as any));
+      if (ok) setShowNetworkPrompt(false);
     };
 
     return (
@@ -62,7 +42,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <DialogTitle>Switch to Base Sepolia Testnet?</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            Power Wallet is not live on the <b>Base</b> mainnet chain yet, but you can experience an early version on the <b>Base Sepolia</b> Testnet.
+            Power Wallet is not live on the <b>Base</b> mainnet chain yet, but you can experience an early version on the <b>Base Sepolia</b> Testnet. <br />
             Do you want to switch to the Base Sepolia Testnet?
           </Typography>
         </DialogContent>

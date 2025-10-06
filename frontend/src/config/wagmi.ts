@@ -1,5 +1,5 @@
 import { createConfig, http } from 'wagmi';
-import { baseSepolia, base } from 'wagmi/chains';
+import { baseSepolia, base, mainnet, sepolia } from 'wagmi/chains';
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
 
 // Get WalletConnect project ID from environment
@@ -10,7 +10,7 @@ const connectors = [
   injected({ target: 'metaMask' }),
   coinbaseWallet({
     appName: 'Power Wallet',
-    appLogoUrl: 'https://power-wallet.app/logo.png',
+    appLogoUrl: 'https://powerwallet.finance/logo.png',
     preference: 'smartWalletOnly', // Enable Smart Wallet by default
   }),
 ];
@@ -23,8 +23,8 @@ if (projectId && projectId !== 'placeholder_get_from_walletconnect') {
       metadata: {
         name: 'Power Wallet',
         description: 'Trading Strategy Simulator',
-        url: 'https://power-wallet.app',
-        icons: ['https://power-wallet.app/logo.png']
+        url: 'https://powerwallet.finance',
+        icons: ['https://powerwallet.finance/logo.png']
       },
       showQrModal: true
     }) as any // Type assertion to bypass version mismatch
@@ -32,11 +32,13 @@ if (projectId && projectId !== 'placeholder_get_from_walletconnect') {
 }
 
 export const config = createConfig({
-  chains: [baseSepolia, base],
+  chains: [baseSepolia, base, mainnet, sepolia],
   connectors,
   transports: {
     [baseSepolia.id]: http(),
     [base.id]: http(),
+    [sepolia.id]: http(),
+    [mainnet.id]: http(),
   },
 });
 

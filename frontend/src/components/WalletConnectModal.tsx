@@ -16,8 +16,10 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddIcon from '@mui/icons-material/Add';
-import { useConnect, useAccount, useDisconnect, useChainId } from 'wagmi';
+import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
 import { getChainKey } from '@/config/networks';
+import { baseSepolia } from 'wagmi/chains';
+import { getFriendlyChainName, switchOrAddPrimaryChain } from '@/lib/web3';
 
 interface WalletConnectModalProps {
   open: boolean;
@@ -29,16 +31,13 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
 
-  const networkName = React.useMemo(() => {
-    if (!chainId) return '';
-    try {
-      const key = getChainKey(chainId);
-      return key === 'base' ? 'Base' : 'Base Sepolia';
-    } catch {
-      return `Chain ${chainId}`;
-    }
-  }, [chainId]);
+  const networkName = React.useMemo(() => getFriendlyChainName(chainId), [chainId]);
+
+  const handleSwitchNetwork = async () => {
+    await switchOrAddPrimaryChain((args: any) => switchChainAsync(args as any));
+  };
 
   const handleConnect = async (connector: any) => {
     try {
@@ -124,6 +123,24 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                       Network
                     </Typography>
                     <Typography variant="body2">{networkName}</Typography>
+                  </Box>
+                )}
+                {chainId && chainId !== baseSepolia.id && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      bgcolor: 'rgba(245, 158, 11, 0.1)',
+                      borderRadius: 1,
+                      border: '1px solid rgba(245, 158, 11, 0.2)',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      You're connected to {networkName}. <br /> Power Wallet currently supports Base Sepolia.
+                    </Typography>
+                    <Button variant="contained" size="small" onClick={handleSwitchNetwork}>
+                      Switch to Base Sepolia
+                    </Button>
                   </Box>
                 )}
               </CardContent>

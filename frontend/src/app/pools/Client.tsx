@@ -2,13 +2,14 @@
 
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, TextField, Typography, Link as MuiLink, Snackbar, Alert } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Grid, Stack, TextField, Typography, Link as MuiLink, Snackbar, Alert, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { getChainKey, getViemChain } from '@/config/networks';
 import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
+import { ensureOnPrimaryChain, getFriendlyChainName } from '@/lib/web3';
 
 const POOL_ABI = [
   { type: 'function', name: 'slot0', stateMutability: 'view', inputs: [], outputs: [
@@ -41,6 +42,19 @@ const FEED_ABI = [
     { name: 'updatedAt', type: 'uint256' },
     { name: 'answeredInRound', type: 'uint80' },
   ] },
+] as const;
+
+// QuoterV2 ABI used for price/amount quoting
+const QUOTER_ABI = [
+  { type: 'function', name: 'quoteExactInputSingle', stateMutability: 'view', inputs: [
+    { name: 'params', type: 'tuple', components: [
+      { name: 'tokenIn', type: 'address' },
+      { name: 'tokenOut', type: 'address' },
+      { name: 'amountIn', type: 'uint256' },
+      { name: 'fee', type: 'uint24' },
+      { name: 'sqrtPriceLimitX96', type: 'uint160' },
+    ] }
+  ], outputs: [ { type: 'uint256' }, { type: 'uint160' } ] },
 ] as const;
 
 function formatNumber(n: number, maxFrac = 6) {
@@ -76,6 +90,8 @@ export default function Client() {
   const [bal0, setBal0] = useState<bigint | null>(null);
   const [bal1, setBal1] = useState<bigint | null>(null);
   const [oracleStablePerRisk, setOracleStablePerRisk] = useState<number | null>(null);
+  const [usdPerToken0, setUsdPerToken0] = useState<number | null>(null);
+  const [usdPerToken1, setUsdPerToken1] = useState<number | null>(null);
   const [wrapAmount, setWrapAmount] = useState<string>('');
   const [unwrapAmount, setUnwrapAmount] = useState<string>('');
   const [usdcLiquidity, setUsdcLiquidity] = useState<string>('');
@@ -86,15 +102,15 @@ export default function Client() {
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const BASE_SEPOLIA_ID = 84532;
+  // Slippage simulator state
+  const [simTokenIn, setSimTokenIn] = useState<'token0' | 'token1'>('token0');
+  const [simAmount, setSimAmount] = useState<string>('');
+  const [simWorking, setSimWorking] = useState(false);
+  const [simResult, setSimResult] = useState<{ amountOut: number; usdIn: number; usdOut: number; slippagePct: number } | null>(null);
+
   const ensureChain = async () => {
-    try {
-      if (chainId !== BASE_SEPOLIA_ID) {
-        await switchChainAsync({ chainId: BASE_SEPOLIA_ID });
-      }
-    } catch (e: any) {
-      throw new Error('Please switch to Base Sepolia');
-    }
+    const ok = await ensureOnPrimaryChain(chainId, (args: any) => switchChainAsync(args as any));
+    if (!ok) throw new Error('Please switch to Base Sepolia');
   };
 
   useEffect(() => {
@@ -198,6 +214,17 @@ export default function Client() {
 
         const stablePerRisk = usdcUsd === 0 ? null : (riskUsd / usdcUsd);
         setOracleStablePerRisk(stablePerRisk);
+        // Map USD prices to token0/token1
+        if (stableIsToken0) {
+          setUsdPerToken0(usdcUsd);
+          setUsdPerToken1(riskUsd);
+        } else if (stableIsToken1) {
+          setUsdPerToken1(usdcUsd);
+          setUsdPerToken0(riskUsd);
+        } else {
+          setUsdPerToken0(null);
+          setUsdPerToken1(null);
+        }
       } catch {
         setOracleStablePerRisk(null);
       }
@@ -387,18 +414,6 @@ export default function Client() {
       const outputToken = (priceNeedsIncrease ? token0 : token1) as `0x${string}`;
 
       // Helper to quote post-swap price using quoterV2
-      const QUOTER_ABI = [
-        { type: 'function', name: 'quoteExactInputSingle', stateMutability: 'view', inputs: [
-          { name: 'params', type: 'tuple', components: [
-            { name: 'tokenIn', type: 'address' },
-            { name: 'tokenOut', type: 'address' },
-            { name: 'amountIn', type: 'uint256' },
-            { name: 'fee', type: 'uint24' },
-            { name: 'sqrtPriceLimitX96', type: 'uint160' },
-          ] }
-        ], outputs: [ { type: 'uint256' }, { type: 'uint160' } ] },
-      ] as const;
-
       const amountInHumanStart = priceNeedsIncrease ? 1 : (token0?.toLowerCase() === ADDR?.usdc.toLowerCase() ? 100 : 0.001);
       const tokenInDec = (inputToken?.toLowerCase() === token0?.toLowerCase()) ? dec0 : dec1;
       const quotePriceAfter = async (amtHuman: number) => {
@@ -452,6 +467,38 @@ export default function Client() {
     } catch {
     } finally {
       setIsWorking(false);
+    }
+  };
+
+  // Slippage simulator: quote amountOut and compute USD in/out and slippage
+  const handleSimulateSlippage = async () => {
+    try {
+      setSimResult(null);
+      if (!poolAddress || fee === null) return;
+      const quoter = quoterV2Map[chainKey] as `0x${string}` | undefined;
+      if (!quoter) return;
+      const amountNum = Number(simAmount);
+      if (!isFinite(amountNum) || amountNum <= 0) return;
+      const inputToken = (simTokenIn === 'token0' ? token0 : token1) as `0x${string}`;
+      const outputToken = (simTokenIn === 'token0' ? token1 : token0) as `0x${string}`;
+      const inDec = simTokenIn === 'token0' ? dec0 : dec1;
+      const outDec = simTokenIn === 'token0' ? dec1 : dec0;
+      const usdInPerToken = simTokenIn === 'token0' ? usdPerToken0 : usdPerToken1;
+      const usdOutPerToken = simTokenIn === 'token0' ? usdPerToken1 : usdPerToken0;
+      if (usdInPerToken === null || usdOutPerToken === null) return;
+      setSimWorking(true);
+      const amountInParsed = parseUnits(amountNum.toFixed(inDec), inDec);
+      const [amountOut] = await client.readContract({ address: quoter, abi: QUOTER_ABI as any, functionName: 'quoteExactInputSingle', args: [{ tokenIn: inputToken, tokenOut: outputToken, amountIn: amountInParsed, fee: fee as any, sqrtPriceLimitX96: 0 }] }) as any;
+      const amountOutHuman = Number(amountOut) / Math.pow(10, outDec);
+      const usdIn = amountNum * usdInPerToken;
+      const usdOut = amountOutHuman * usdOutPerToken;
+      const eff = usdOut / usdIn;
+      const slippagePct = (eff - 1) * 100;
+      setSimResult({ amountOut: amountOutHuman, usdIn, usdOut, slippagePct });
+    } catch {
+      // ignore
+    } finally {
+      setSimWorking(false);
     }
   };
 
@@ -531,6 +578,36 @@ export default function Client() {
                 </Stack>
               </CardContent></Card>
             </Box>
+            <Box sx={{ mt: 2 }}>
+              <Card variant="outlined"><CardContent>
+                <Typography variant="subtitle1" fontWeight="bold">Slippage Simulator</Typography>
+                <Stack spacing={1.5} sx={{ mt: 1 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
+                    <ToggleButtonGroup
+                      size="small"
+                      exclusive
+                      color="primary"
+                      value={simTokenIn}
+                      onChange={(_, v) => v && setSimTokenIn(v)}
+                    >
+                      <ToggleButton value="token0">From {sym0 || 'token0'}</ToggleButton>
+                      <ToggleButton value="token1">From {sym1 || 'token1'}</ToggleButton>
+                    </ToggleButtonGroup>
+                    <TextField size="small" label="Amount In" value={simAmount} onChange={(e) => setSimAmount(e.target.value)} sx={{ maxWidth: 240 }} />
+                    <Button variant="outlined" onClick={handleSimulateSlippage} disabled={simWorking || !fee || !poolAddress || !simAmount}>Simulate Slippage</Button>
+                  </Stack>
+                  {simResult ? (
+                    <Stack spacing={0.25}>
+                      <Typography variant="body2">
+                        Estimated Out: {formatNumber(simResult.amountOut, 8)} {simTokenIn === 'token0' ? (sym1 || 'token1') : (sym0 || 'token0')} (~${formatNumber(simResult.usdOut, 2)})
+                      </Typography>
+                      <Typography variant="body2">USD In: ~${formatNumber(simResult.usdIn, 2)}</Typography>
+                      <Typography variant="body2">Slippage: {`${simResult.slippagePct > 0 ? '+' : ''}${formatNumber(simResult.slippagePct, 3)}%`}</Typography>
+                    </Stack>
+                  ) : null}
+                </Stack>
+              </CardContent></Card>
+            </Box>
           </>
         )}
       </Container>
@@ -562,5 +639,6 @@ export default function Client() {
     </Box>
   );
 }
+
 
 

@@ -13,6 +13,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import { getChainKey } from '@/config/networks';
+import { ensureOnPrimaryChain, getFriendlyChainName } from '@/lib/web3';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain } from '@/config/networks';
 import { findUpkeepIdForTarget } from '@/lib/chainlink/automation';
@@ -570,6 +571,8 @@ export default function WalletDetails() {
                     size="small"
                     variant="outlined"
                     onClick={async () => {
+                      const ok = await ensureOnPrimaryChain(chainId as number, (args: any) => (window as any));
+                      // ensureOnPrimaryChain here does not switch; we rely on global guard and Portfolio actions. Skip switching in nested actions.
                       if (!walletAddress) return;
                       try {
                         let maxFeePerGas: bigint | undefined;

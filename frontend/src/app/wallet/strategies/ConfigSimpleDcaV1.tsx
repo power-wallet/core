@@ -5,6 +5,7 @@ import { Box, Stack, TextField, Button, Typography, CircularProgress, Snackbar, 
 import { useWriteContract } from 'wagmi';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain, getChainKey } from '@/config/networks';
+import { ensureOnPrimaryChain } from '@/lib/web3';
 import appConfig from '@/config/appConfig.json';
 
 type Props = {
@@ -45,6 +46,7 @@ export default function ConfigSimpleDcaV1({ strategyAddr, chainId, stableSymbol,
   const [toast, setToast] = React.useState<{ open: boolean; hash?: `0x${string}` }>(() => ({ open: false }));
 
   const onUpdateAmount = async () => {
+    // Do not auto-switch here; rely on global prompt and explicit actions elsewhere
     const v = Math.max(0, Number(amount || '0'));
     if (!isFinite(v)) return;
     const scaled = parseUnits(String(v), stableDecimals);
@@ -73,6 +75,7 @@ export default function ConfigSimpleDcaV1({ strategyAddr, chainId, stableSymbol,
   };
 
   const onUpdateFrequency = async () => {
+    // Do not auto-switch here; rely on global prompt and explicit actions elsewhere
     const d = Math.floor(Number(days || '0'));
     if (!Number.isInteger(d) || d < 1 || d > 31) return;
     const seconds = BigInt(d * 86400);

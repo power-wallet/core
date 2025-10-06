@@ -6,6 +6,7 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain, getChainKey } from '@/config/networks';
+import { getFriendlyChainName, ensureOnPrimaryChain } from '@/lib/web3';
 import { baseSepolia } from 'wagmi/chains';
 import WalletConnectModal from '@/components/WalletConnectModal';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
@@ -40,15 +41,7 @@ export default function PortfolioPage() {
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
-  const chainName = useMemo(() => {
-    if (!chainId) return 'this network';
-    try {
-      const key = getChainKey(chainId);
-      return key === 'base' ? 'Base' : 'Base Sepolia';
-    } catch {
-      return `Chain ${chainId}`;
-    }
-  }, [chainId]);
+  const chainName = useMemo(() => getFriendlyChainName(chainId) || 'this network', [chainId]);
   const [connectOpen, setConnectOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -198,21 +191,7 @@ export default function PortfolioPage() {
         <Stack spacing={2} alignItems="center" textAlign="center">
           <Typography color="warning">Power Wallet is not available on {chainName}. Please switch to Base Sepolia Testnet.</Typography>
           <Button variant="contained" onClick={async () => {
-            try {
-              await switchChainAsync({ chainId: baseSepolia.id });
-            } catch (_) {
-              try {
-                const params = {
-                  chainId: `0x${baseSepolia.id.toString(16)}`,
-                  chainName: baseSepolia.name,
-                  nativeCurrency: baseSepolia.nativeCurrency,
-                  rpcUrls: [baseSepolia.rpcUrls.default.http[0]],
-                  blockExplorerUrls: [baseSepolia.blockExplorers?.default.url || ''],
-                } as const;
-                await (window as any)?.ethereum?.request({ method: 'wallet_addEthereumChain', params: [params] });
-                await switchChainAsync({ chainId: baseSepolia.id });
-              } catch {}
-            }
+            await ensureOnPrimaryChain(chainId, (args: any) => switchChainAsync(args as any));
           }}>
             Switch to Base Sepolia
           </Button>
