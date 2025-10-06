@@ -136,7 +136,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                     }}
                   >
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      You're connected to {networkName}. <br /> Power Wallet currently supports Base Sepolia.
+                      You&apos;re connected to {networkName}. <br /> Power Wallet currently supports Base Sepolia.
                     </Typography>
                     <Button variant="contained" size="small" onClick={handleSwitchNetwork}>
                       Switch to Base Sepolia

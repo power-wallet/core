@@ -229,7 +229,7 @@ export default function Client() {
         setOracleStablePerRisk(null);
       }
     })();
-  }, [ADDR?.btcUsdPriceFeed, ADDR?.ethUsdPriceFeed, ADDR?.usdcUsdPriceFeed, client, riskSymbol]);
+  }, [ADDR?.btcUsdPriceFeed, ADDR?.ethUsdPriceFeed, ADDR?.usdcUsdPriceFeed, client, riskSymbol, stableIsToken0, stableIsToken1]);
 
   useEffect(() => {
     if (txConfirmed && txHash) {

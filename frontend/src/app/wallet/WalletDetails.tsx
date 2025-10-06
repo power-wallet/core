@@ -156,7 +156,7 @@ export default function WalletDetails() {
     query: { enabled: Boolean(walletAddress) },
   });
 
-  const riskAssets = (assets as string[] | undefined) || [];
+  const riskAssets = React.useMemo(() => (assets as string[] | undefined) || [], [assets]);
   const stableBal = (balances as any)?.[0] as bigint | undefined;
   const riskBals = ((balances as any)?.[1] as bigint[] | undefined) || [];
   const sb = (stableBal !== undefined ? stableBal : BigInt(0));

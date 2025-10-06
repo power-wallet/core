@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, Stack } from '@mui/material';
+import { Box, Container, Typography, Stack, Link as MuiLink } from '@mui/material';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import TelegramIcon from '@mui/icons-material/Telegram';
 
 function formatUSD0(value?: number): string {
   if (!value || !isFinite(value)) return '—';
@@ -54,19 +56,53 @@ const Footer: React.FC = () => {
       }}
     >
       <Container maxWidth="lg">
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1.5}
-          justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', sm: 'center' }}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1.5,
+          }}
         >
+          {/* Left: Prices */}
           <Typography variant="body2">
             <strong>BTC</strong>: ${formatUSD0(btc)} &nbsp; | &nbsp; <strong>ETH</strong>: ${formatUSD0(eth)}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+
+          {/* Center: Copyright */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ flex: { sm: 1 }, textAlign: 'center' }}
+          >
             © {year} Power Wallet. All rights reserved.
           </Typography>
-        </Stack>
+
+          {/* Right: Links */}
+          <Stack direction="row" spacing={2} alignItems="center">
+            <MuiLink
+              href="https://github.com/orgs/power-wallet/repositories"
+              target="_blank"
+              rel="noopener noreferrer"
+              underline="hover"
+              color="inherit"
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            >
+              <GitHubIcon fontSize="small" /> GitHub
+            </MuiLink>
+            <MuiLink
+              href="https://t.me/power_wallet_finance"
+              target="_blank"
+              rel="noopener noreferrer"
+              underline="hover"
+              color="inherit"
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            >
+              <TelegramIcon fontSize="small" /> Telegram
+            </MuiLink>
+          </Stack>
+        </Box>
       </Container>
     </Box>
   );
