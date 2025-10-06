@@ -248,6 +248,8 @@ export default function WalletDetails() {
   const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
   const [userStableBalance, setUserStableBalance] = React.useState<bigint | undefined>(undefined);
   const [upkeepId, setUpkeepId] = React.useState<bigint | null | undefined>(undefined);
+  const [upkeepError, setUpkeepError] = React.useState(false);
+  const [upkeepRefresh, setUpkeepRefresh] = React.useState(0);
   const [slippageOpen, setSlippageOpen] = React.useState(false);
   const [slippageInput, setSlippageInput] = React.useState<string>('');
   const [closeOpen, setCloseOpen] = React.useState(false);
@@ -345,19 +347,44 @@ export default function WalletDetails() {
     setWithdrawAssetAddr(preferred || '');
   }, [withdrawOpen, stableTokenAddr, riskAssets]);
 
-  // Discover Chainlink Automation Upkeep ID on Base Sepolia only
+  // Temporary feature flag: disable Chainlink Automation detection
+  const ENABLE_UPKEEP_DETECTION = false;
+
+  // Discover Chainlink Automation Upkeep ID on Base Sepolia only (robust with retries and timeout)
   React.useEffect(() => {
+    let cancelled = false;
     (async () => {
-      if (!walletAddress) return setUpkeepId(undefined);
-      if (chainId !== 84532) return setUpkeepId(null); // only supported for Base Sepolia by default
-      try {
-        const id = await findUpkeepIdForTarget(walletAddress as `0x${string}`, { chainId });
-        setUpkeepId(id);
-      } catch {
-        setUpkeepId(null);
+      if (!ENABLE_UPKEEP_DETECTION) {
+        if (!cancelled) { setUpkeepError(false); setUpkeepId(null); }
+        return;
       }
+      setUpkeepError(false);
+      if (!walletAddress) { if (!cancelled) setUpkeepId(undefined); return; }
+      if (chainId !== 84532) { if (!cancelled) setUpkeepId(null); return; }
+      const rpcFallbacks = [
+        // 'https://base-sepolia.g.alchemy.com/v2/demo',
+        'https://sepolia.base.org',
+        // 'https://base-sepolia.blockpi.network/v1/rpc/public',
+      ];
+      const MAX_ATTEMPTS = 10;
+      for (let attempt = 0; attempt < MAX_ATTEMPTS && !cancelled; attempt++) {
+        try {
+          const p = findUpkeepIdForTarget(walletAddress as `0x${string}`, { chainId, pageSize: 1000, rpcUrls: rpcFallbacks, errorLimit: 10, lastBlocks: 1_000_000, maxActiveScan: 1000 });
+          const res = await Promise.race<bigint | null>([
+            p,
+            new Promise<bigint | null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+          ]);
+          if (cancelled) return;
+          setUpkeepId(res);
+          return;
+        } catch {
+          // continue
+        }
+      }
+      if (!cancelled) { setUpkeepError(true); setUpkeepId(null); }
     })();
-  }, [walletAddress, chainId]);
+    return () => { cancelled = true; };
+  }, [walletAddress, chainId, upkeepRefresh, ENABLE_UPKEEP_DETECTION]);
 
   if (!walletAddress) return null;
 
@@ -624,7 +651,7 @@ export default function WalletDetails() {
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
-        {upkeepId === undefined ? (
+        {upkeepId === undefined && !upkeepError ? (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Checking Chainlink Automation status…
           </Typography>
@@ -641,6 +668,30 @@ export default function WalletDetails() {
             >
               View Upkeep
             </Button>
+          </>
+        ) : upkeepError ? (
+          <>
+            <Alert severity="warning" sx={{ mt: 1, mb: 2 }}>
+              Unable to reach Chainlink Automation right now. Please try again later or open Automation.
+            </Alert>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                size="small"
+                href="https://automation.chain.link/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open Automation
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => setUpkeepRefresh((x) => x + 1)}
+              >
+                Retry
+              </Button>
+            </Stack>
           </>
         ) : (
           <>

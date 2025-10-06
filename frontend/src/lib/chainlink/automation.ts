@@ -3,10 +3,11 @@ import type { AbiEvent } from 'viem';
 import { baseSepolia, base } from 'viem/chains';
  
 
-const rpcUrl = process.env.BASE_SEPOLIA_RPC_URL || "https://base-sepolia.g.alchemy.com/v2/E-6fpPcY27-RuNE3AWIthyE-sXKSqeRl"
+// Prefer chain default RPC to avoid invalid/expired keys; allow override via env
+const RPC_OVERRIDE = process.env.BASE_SEPOLIA_RPC_URL;
 
 // Chainlink Automation Registry (Base Sepolia)
-export const BASE_SEPOLIA_REGISTRY_ADDRESS = '0x91D4a4C3D448c7f3CB477332B1c7D420a5810aC3' as Address;
+export const BASE_SEPOLIA_REGISTRY_ADDRESS = (process.env.CHAINLINK_BASE_SEPOLIA_REGISTRY || '0x91D4a4C3D448c7f3CB477332B1c7D420a5810aC3') as Address;
 
 // Minimal ABI for the Registry methods we need
 const REGISTRY_ABI = [
@@ -52,12 +53,12 @@ const REGISTRY_ABI = [
   },
 ] as const;
 
-// event UpkeepRegistered(uint256 id, address indexed target, uint32 executeGas, address admin)
+// event UpkeepRegistered(uint256 indexed id, address indexed target, uint32 executeGas, address admin)
 const UPKEEP_REGISTERED_EVENT = {
   type: 'event',
   name: 'UpkeepRegistered',
   inputs: [
-    { name: 'id', type: 'uint256', indexed: false },
+    { name: 'id', type: 'uint256', indexed: true },
     { name: 'target', type: 'address', indexed: true },
     { name: 'executeGas', type: 'uint32', indexed: false },
     { name: 'admin', type: 'address', indexed: false },
@@ -70,58 +71,82 @@ export async function findUpkeepIdForTarget(
     chainId?: number; // 84532 Base Sepolia, 8453 Base
     registry?: Address;
     pageSize?: number; // default 1000
+    rpcUrls?: string[]; // optional RPC fallbacks
+    errorLimit?: number; // max network errors before aborting (default 10)
+    lastBlocks?: number; // only scan last N blocks for logs (default 1,000,000)
+    maxActiveScan?: number; // only scan first N active ids (default 1000)
   }
 ): Promise<bigint | null> {
   const chain = opts?.chainId === 8453 ? base : baseSepolia;
   const registry = (opts?.registry || BASE_SEPOLIA_REGISTRY_ADDRESS) as Address;
-  const client = createPublicClient({ chain, transport: http(rpcUrl) });
+  const rpcCandidates = [
+    ...(opts?.rpcUrls || []),
+    ...(RPC_OVERRIDE ? [RPC_OVERRIDE] : []),
+    ...chain.rpcUrls.default.http,
+  ].filter(Boolean);
 
-  const total = (await client.readContract({
-    address: registry,
-    abi: REGISTRY_ABI as any,
-    functionName: 'getUpkeepCount',
-    args: [],
-  })) as bigint;
+  // Try endpoints in order until one responds
+  let client = createPublicClient({ chain, transport: http(rpcCandidates[0]!) });
+  let errorCount = 0;
+  const maxErrors = Math.max(1, opts?.errorLimit ?? 10);
+  const onError = () => { errorCount++; if (errorCount >= maxErrors) throw new Error('network-limit'); };
+  try {
+    await client.getBlockNumber();
+  } catch {
+    for (let i = 1; i < rpcCandidates.length; i++) {
+      try {
+        const c = createPublicClient({ chain, transport: http(rpcCandidates[i]!) });
+        await c.getBlockNumber();
+        client = c;
+        break;
+      } catch { onError(); }
+    }
+  }
 
-  const pageSize = BigInt(opts?.pageSize ?? 1000);
-  let start = BigInt(0);
-  while (start < total) {
-    const remaining = total - start;
-    const count = remaining > pageSize ? pageSize : remaining;
+  // Attempt a single-page active IDs scan (bounded)
+  try {
+    const maxIds = BigInt(Math.max(1, opts?.maxActiveScan ?? Math.min(1000, Number(opts?.pageSize ?? 1000))));
     const ids = (await client.readContract({
       address: registry,
       abi: REGISTRY_ABI as any,
       functionName: 'getActiveUpkeepIDs',
-      args: [start, count],
+      args: [BigInt(0), maxIds],
     })) as bigint[];
-
     for (const id of ids) {
-      const info = (await client.readContract({
-        address: registry,
-        abi: REGISTRY_ABI as any,
-        functionName: 'getUpkeep',
-        args: [id],
-      })) as { target: Address } | any;
-      const upkeepTarget: Address = (info?.target || (info?.[0] as Address)) as Address;
-      if (upkeepTarget && upkeepTarget.toLowerCase() === target.toLowerCase()) {
-        return id;
-      }
+      try {
+        const info = (await client.readContract({
+          address: registry,
+          abi: REGISTRY_ABI as any,
+          functionName: 'getUpkeep',
+          args: [id],
+        })) as { target: Address } | any;
+        const upkeepTarget: Address = (info?.target || (info?.[0] as Address)) as Address;
+        if (upkeepTarget && upkeepTarget.toLowerCase() === target.toLowerCase()) {
+          return id;
+        }
+      } catch { onError(); }
     }
-
-    start += count;
-  }
+  } catch { onError(); }
 
   // Fallback: scan UpkeepRegistered logs (target indexed)
   try {
-    const logs = await client.getLogs({
-      address: registry,
-      event: UPKEEP_REGISTERED_EVENT,
-      args: { target },
-      fromBlock: BigInt(0),
-      toBlock: 'latest',
-      strict: true,
-    });
-    if (logs.length > 0) return logs[logs.length - 1].args.id as bigint;
+    // Chunked scan to reduce node pressure
+    const latest = await client.getBlockNumber().catch((e) => { onError(); throw e; });
+    const span = BigInt(Math.max(1, opts?.lastBlocks ?? 1_000_000));
+    const fromStart = latest > span ? latest - span : BigInt(0);
+    let found: bigint | null = null;
+    try {
+      const logs = await client.getLogs({
+        address: registry,
+        event: UPKEEP_REGISTERED_EVENT,
+        args: { target },
+        fromBlock: fromStart,
+        toBlock: latest,
+        strict: true,
+      });
+      if (logs.length > 0) found = logs[logs.length - 1].args.id as bigint;
+    } catch (_) { onError(); }
+    if (found) return found;
   } catch (err) {
     // ignore and fall through
   }
