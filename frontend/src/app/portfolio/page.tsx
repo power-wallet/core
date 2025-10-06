@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain, getChainKey } from '@/config/networks';
@@ -38,7 +39,7 @@ const walletFactoryAbi = [
 ];
 
 export default function PortfolioPage() {
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, connector } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const chainName = useMemo(() => getFriendlyChainName(chainId) || 'this network', [chainId]);
@@ -270,56 +271,7 @@ export default function PortfolioPage() {
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Stack spacing={3}>
           <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
-          {needsFunding ? (
-            <Card variant="outlined">
-              <CardContent>
-                <Stack spacing={2}>
-                  <Typography variant="subtitle1" fontWeight="bold">Fund your account</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    To get started, your connected wallet needs ETH (for gas) and USDC.
-                  </Typography>
-                  {chainKey === 'base-sepolia' ? (
-                    <>
-                      <Typography variant="body2" sx={{ pb: 1 }}>On Base Sepolia (testnet), use the following faucets:</Typography>
-                      
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {[{
-                          href: 'https://faucet.circle.com/',
-                          label: 'Circle USDC Faucet',
-                        }, {
-                          href: 'https://faucets.chain.link/base-sepolia',
-                          label: 'Chainlink Base Sepolia Faucet (ETH)',
-                        }, {
-                          href: 'https://faucet.quicknode.com/base/sepolia',
-                          label: 'QuickNode Base Sepolia Faucet (ETH)',
-                        }, {
-                          href: 'https://www.alchemy.com/faucets/base-sepolia',
-                          label: 'Alchemy Base Sepolia Faucet (ETH)',
-                        }, {
-                          href: 'https://portal.cdp.coinbase.com/products/faucet',
-                          label: 'Coinbase Developer Faucet',
-                        }].map((link) => (
-                          <li key={link.href}>
-                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                              <a href={link.href} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{link.label}</a>
-                              <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
-                            </Box>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : (
-                    <>
-                      <Typography variant="body2">On Base mainnet, transfer some ETH and USDC to your address:</Typography>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {address ? `${address}` : ''}
-                      </Typography>
-                    </>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-          ) : (
+          {(showCreate || !needsFunding) ? (
             <Card variant="outlined">
               <CardContent>
                 <Stack spacing={2}>
@@ -364,6 +316,90 @@ export default function PortfolioPage() {
                       {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}
                     </Button>
                   </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card variant="outlined">
+              <CardContent>
+                <Stack spacing={2}>
+                  <Typography variant="subtitle1" fontWeight="bold">Fund your account</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    To get started, your connected wallet needs ETH (for gas) and USDC.
+                  </Typography>
+                  {chainKey === 'base-sepolia' ? (
+                    <>
+                      <Typography variant="body2" sx={{ pb: 1 }}>On Base Sepolia (testnet), use the following faucets:</Typography>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {[{
+                          href: 'https://faucet.circle.com/',
+                          label: 'Circle USDC Faucet',
+                        }, {
+                          href: 'https://faucets.chain.link/base-sepolia',
+                          label: 'Chainlink Base Sepolia Faucet (ETH)',
+                        }, {
+                          href: 'https://faucet.quicknode.com/base/sepolia',
+                          label: 'QuickNode Base Sepolia Faucet (ETH)',
+                        }, {
+                          href: 'https://www.alchemy.com/faucets/base-sepolia',
+                          label: 'Alchemy Base Sepolia Faucet (ETH)',
+                        }, {
+                          href: 'https://portal.cdp.coinbase.com/products/faucet',
+                          label: 'Coinbase Developer Faucet',
+                        }].map((link) => (
+                          <li key={link.href}>
+                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                              <a href={link.href} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{link.label}</a>
+                              <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
+                            </Box>
+                          </li>
+                        ))}
+                      </ul>
+                      {connector?.id === 'coinbaseWalletSDK' ? (
+                        <Alert
+                          severity="success"
+                          icon={<InfoOutlinedIcon fontSize="small" />}
+                          sx={{ mt: 1 }}
+                        >
+                          Using Coinbase Smart Wallet? You can continue without ETH: gas fees may be sponsored when creating your first Power Wallet. You will still need USDC later to deposit.
+                        </Alert>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          You will need a small amount of ETH for gas to create your first Power Wallet.
+                        </Typography>
+                      )}
+                      <Box>
+                        <Button variant="contained" sx={{ mt: 1 }} onClick={() => setShowCreate(true)}>
+                          Continue to Create Power Wallet
+                        </Button>
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="body2">On Base mainnet, transfer some ETH and USDC to your address:</Typography>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        {address ? `${address}` : ''}
+                      </Typography>
+                      {connector?.id === 'coinbaseWalletSDK' ? (
+                        <Alert
+                          severity="success"
+                          icon={<InfoOutlinedIcon fontSize="small" />}
+                          sx={{ mt: 1 }}
+                        >
+                          Using Coinbase Smart Wallet? You can continue without ETH: gas fees may be sponsored when creating your first Power Wallet. You will still need USDC later to deposit.
+                        </Alert>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          You will need a small amount of ETH for gas to create your first Power Wallet.
+                        </Typography>
+                      )}
+                      <Box>
+                        <Button variant="contained" sx={{ mt: 1 }} onClick={() => setShowCreate(true)}>
+                          Continue to Create Power Wallet
+                        </Button>
+                      </Box>
+                    </>
+                  )}
                 </Stack>
               </CardContent>
             </Card>

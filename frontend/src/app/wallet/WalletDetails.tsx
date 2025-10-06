@@ -513,6 +513,12 @@ export default function WalletDetails() {
                 <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
                 <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
               </Stack>
+              {chainKey === 'base-sepolia' && (sb === BigInt(0)) ? (
+                <Alert severity="info" sx={{ mt: 3 }}>
+                  You can claim testnet USDC from the{' '}
+                  <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Circle Faucet</a>.
+                </Alert>
+              ) : null}
             </CardContent>
           </Card>
         </Grid>
