@@ -10,7 +10,7 @@ const connectors = [
   injected({ target: 'metaMask' }),
   coinbaseWallet({
     appName: 'Power Wallet',
-    appLogoUrl: 'https://powerwallet.finance/logo.png',
+    appLogoUrl: 'https://powerwallet.finance/img/logo.png',
     preference: 'smartWalletOnly', // Enable Smart Wallet by default
   }),
 ];
@@ -24,7 +24,7 @@ if (projectId && projectId !== 'placeholder_get_from_walletconnect') {
         name: 'Power Wallet',
         description: 'Trading Strategy Simulator',
         url: 'https://powerwallet.finance',
-        icons: ['https://powerwallet.finance/logo.png']
+        icons: ['https://powerwallet.finance/img/logo.png']
       },
       showQrModal: true
     }) as any // Type assertion to bypass version mismatch
