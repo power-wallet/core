@@ -528,7 +528,15 @@ export default function Client() {
                     <Typography variant="body2">tick: {tick ?? '-'}</Typography>
                     <Typography variant="body2">liquidity: {liquidity?.toString() || '-'}</Typography>
                     <Typography variant="body2">reserves: {formatNumber(bal0Human)} {sym0} | {formatNumber(bal1Human)} {sym1}</Typography>
-                    <Typography variant="body2">price: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 6)} USDC</Typography>
+                    <Typography variant="body2">price: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 2)} USDC</Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      TVL: ${(() => {
+                        const usd0 = usdPerToken0 !== null ? bal0Human * (usdPerToken0 || 0) : null;
+                        const usd1 = usdPerToken1 !== null ? bal1Human * (usdPerToken1 || 0) : null;
+                        const tvl = (usd0 ?? 0) + (usd1 ?? 0);
+                        return Number.isFinite(tvl) ? tvl.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '-';
+                      })()}
+                    </Typography>
                   </Stack>
                 </CardContent></Card>
               </Grid>
@@ -572,7 +580,7 @@ export default function Client() {
               <Card variant="outlined"><CardContent>
                 <Typography variant="subtitle1" fontWeight="bold">Oracle vs Pool Price</Typography>
                 <Stack spacing={0.5} sx={{ mt: 1 }}>
-                  <Typography variant="body2">Pool: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 6)} USDC</Typography>
+                  <Typography variant="body2">Pool: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 0)} USDC</Typography>
                 <Typography variant="body2">Oracle: 1 {riskSymbol || 'RISK'} = {oracleStablePerRisk !== null ? formatNumber(oracleStablePerRisk, 0) : '-'} USDC</Typography>
                 <Typography variant="body2">Deviation: {deviationPct !== null ? `${deviationPct > 0 ? '+' : ''}${formatNumber(deviationPct, 3)}%` : '-'}</Typography>
                 </Stack>
