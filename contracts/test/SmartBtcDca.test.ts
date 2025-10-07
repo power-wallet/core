@@ -35,8 +35,10 @@ describe("SmartBtcDca strategy", () => {
 
   it("buys when price below lower band", async () => {
     const { smart, btcFeed, usdc, cbBTC } = await deployFixture();
-    // Model is internal; we simulate low price well below lower band
-    await btcFeed.updateAnswer(10_000_000n); // $0.10
+    const res = await smart.getModelAndBands();
+    const lower = res[1];
+    const belowLower = lower > 0n ? lower - 1n : 0n;
+    await btcFeed.updateAnswer(belowLower);
 
     const stableBal = 1_000_000_000n; // 1,000 USDC (6d)
     const riskBal = 0n;
@@ -57,7 +59,9 @@ describe("SmartBtcDca strategy", () => {
 
   it("sells when price above upper band", async () => {
     const { smart, btcFeed, usdc, cbBTC } = await deployFixture();
-    await btcFeed.updateAnswer(1_000_000_000_000n); // very high price
+    const res = await smart.getModelAndBands();
+    const upper = res[2];
+    await btcFeed.updateAnswer(upper + 1n);
 
     const stableBal = 0n;
     const riskBal = 1_000_000_000n; // 10 BTC (8d)
@@ -78,8 +82,11 @@ describe("SmartBtcDca strategy", () => {
 
   it("buys small amount when price between lower band and model", async () => {
     const { smart, btcFeed, usdc, cbBTC } = await deployFixture();
-    // Set price between lower band and model (exact model is opaque, we use a moderate price)
-    await btcFeed.updateAnswer(50_000_000n); // $0.50
+    const res = await smart.getModelAndBands();
+    const lower = res[1];
+    const model = res[0];
+    const between = lower + 1n < model ? lower + 1n : model; // ensure within (lower, model]
+    await btcFeed.updateAnswer(between);
 
     const stableBal = 1_000_000_000n; // 1,000 USDC (6d)
     const riskBal = 0n;
@@ -100,8 +107,11 @@ describe("SmartBtcDca strategy", () => {
 
   it("does nothing when price is above model but below upper band", async () => {
     const { smart, btcFeed, usdc, cbBTC } = await deployFixture();
-    // Choose a price above model but below upper band
-    await btcFeed.updateAnswer(150_000_000n); // $1.50
+    const res = await smart.getModelAndBands();
+    const model = res[0];
+    const upper = res[2];
+    const between = model + 1n < upper ? model + 1n : (upper - 1n);
+    await btcFeed.updateAnswer(between);
 
     const stableBal = 500_000_000n;
     const riskBal = 500_000_000n;
