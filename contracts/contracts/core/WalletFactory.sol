@@ -14,6 +14,10 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // user => list of wallets
     mapping(address => address[]) public userWallets;
 
+    // Track unique users who have created at least one wallet
+    address[] private users;
+    mapping(address => bool) public hasCreatedWallet;
+
     event WalletCreated(address indexed user, address wallet, bytes32 indexed strategyId, address strategyImpl, address strategyInstance);
     address public swapRouter;
     address public uniswapV3Factory;
@@ -28,6 +32,10 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     function getUserWallets(address user) external view returns (address[] memory) {
         return userWallets[user];
+    }
+
+    function getUsers() external view returns (address[] memory) {
+        return users;
     }
 
     function createWallet(
@@ -74,6 +82,10 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
         walletAddr = address(wallet);
         userWallets[msg.sender].push(walletAddr);
+        if (!hasCreatedWallet[msg.sender]) {
+            hasCreatedWallet[msg.sender] = true;
+            users.push(msg.sender);
+        }
         emit WalletCreated(msg.sender, walletAddr, strategyId, strategyImpl, strategyInstance);
     }
     
