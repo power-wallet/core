@@ -115,7 +115,7 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
           traded = true; lastTradeIndex = i;
         }
       } else if (btcPrice >= lower && btcPrice <= model && usdc > 0) {
-        // BUY 1% of available USDC when between lower band and model price
+        // BUY 1% of available USDC when between lower band and model price (small DCA)
         const buyAmount = Math.min(usdc * 0.01, usdcSpendable);
         if (buyAmount > 0) {
           const fee = buyAmount * 0.003;
