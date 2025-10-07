@@ -17,7 +17,7 @@ async function main() {
   // Addresses - provide deployed addresses here or load from env/args
   const factoryAddr = process.env.FACTORY_ADDR!;   // set before running
 
-  const strategyId = ethers.id('simple-dca-v1');
+  const strategyId = ethers.id('simple-btc-dca-v1');
 
   // Use TypeChain-typed factory for proper typings
   const factory = WalletFactory__factory.connect(factoryAddr, user);

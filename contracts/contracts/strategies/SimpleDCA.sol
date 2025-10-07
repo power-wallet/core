@@ -31,6 +31,8 @@ contract SimpleDCA is IStrategy {
     uint256 public frequency; // seconds
     uint256 public lastTimestamp;
     string private _description;
+    string private _id;
+    string private _name;
 
     event Initialized(address risk, address stable, uint256 amount, uint256 frequency);
     event Executed(uint256 when, uint256 amountStable);
@@ -50,6 +52,8 @@ contract SimpleDCA is IStrategy {
         frequency = _frequency;
         lastTimestamp = 0;
         _description = desc;
+        _id = "simple-btc-dca-v1";
+        _name = "Simple BTC DCA";
         
         emit Initialized(_risk, _stable, _amountStable, _frequency);
     }
@@ -79,6 +83,14 @@ contract SimpleDCA is IStrategy {
 
     function description() external view override returns (string memory) {
         return _description;
+    }
+
+    function id() external view override returns (string memory) {
+        return _id;
+    }
+
+    function name() external view override returns (string memory) {
+        return _name;
     }
 
     // Owner setters

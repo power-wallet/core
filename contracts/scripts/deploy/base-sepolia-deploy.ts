@@ -40,8 +40,8 @@ async function main() {
   await dca.waitForDeployment();
   console.log('SimpleDCA (template):', await dca.getAddress());
 
-  // Register strategy id
-  const strategyId = ethers.id('simple-dca-v1');
+  // Register strategy id (updated canonical id)
+  const strategyId = ethers.id('simple-btc-dca-v1');
   await (await registry.registerStrategy(strategyId, await dca.getAddress(), nextOverrides())).wait();
   console.log('Registered strategy id:', strategyId);
 

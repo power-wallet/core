@@ -39,6 +39,8 @@ contract SmartBtcDca is IStrategy {
     uint16 public sellBpsOfRisk;       // portion of risk balance to sell, in bps
 
     string private _description;
+    string private _id;
+    string private _name;
 
     // Power-law constants (from TypeScript model)
     // P = C * d^N, with C ~ 9.65e-18 and N ~ 5.845
@@ -82,12 +84,16 @@ contract SmartBtcDca is IStrategy {
         sellBpsOfRisk = _sellBpsRisk;
         lastTimestamp = 0;
         _description = desc;
+        _id = "btc-dca-power-law-v1";
+        _name = "Smart BTC DCA (Power Law)";
 
         emit Initialized(_risk, _stable, _feed, _frequency, _lowerBps, _upperBps, _buyBpsStable, _smallBuyBpsStable, _sellBpsRisk);
     }
 
     // ---- Strategy logic ----
     function description() external view override returns (string memory) { return _description; }
+    function id() external view override returns (string memory) { return _id; }
+    function name() external view override returns (string memory) { return _name; }
 
     function shouldRebalance(
         address stable,

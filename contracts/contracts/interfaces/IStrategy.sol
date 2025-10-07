@@ -9,6 +9,8 @@ interface IStrategy {
     }
 
     function description() external view returns (string memory);
+    function id() external view returns (string memory);
+    function name() external view returns (string memory);
 
     function shouldRebalance(
         address stableAsset,
