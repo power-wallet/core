@@ -12,8 +12,8 @@ export async function deployWithHistoricalDataFixture() {
 
     // Deploy mock tokens
     const MockToken = await ethers.getContractFactory("MockERC20");
-    const wbtc = await MockToken.deploy("Wrapped Bitcoin", "WBTC");
-    const weth = await MockToken.deploy("Wrapped Ether", "WETH");
+    const wbtc = await MockToken.deploy("Wrapped Bitcoin", "WBTC", 8);
+    const weth = await MockToken.deploy("Wrapped Ether", "WETH", 18);
 
     // Deploy mock price feeds
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
@@ -92,8 +92,8 @@ export async function deployDeterministicSep28Fixture() {
     const [owner] = await ethers.getSigners();
 
     const MockToken = await ethers.getContractFactory("MockERC20");
-    const wbtc = await MockToken.deploy("Wrapped Bitcoin", "WBTC");
-    const weth = await MockToken.deploy("Wrapped Ether", "WETH");
+    const wbtc = await MockToken.deploy("Wrapped Bitcoin", "WBTC", 8);
+    const weth = await MockToken.deploy("Wrapped Ether", "WETH", 18);
 
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
 
