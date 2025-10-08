@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Divider, TableContainer, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ConfigSimpleDcaV1 from './strategies/ConfigSimpleDcaV1';
 import ConfigSmartBtcDcaV1 from './strategies/ConfigSmartBtcDcaV1';
@@ -180,6 +181,7 @@ export default function WalletDetails() {
 
   const formatTokenAmount = (amount?: bigint, decimals?: number) => {
     if (amount === undefined || decimals === undefined) return '0';
+    if (amount === BigInt(0)) return '0';
     const s = amount.toString();
     if (decimals === 0) return s;
     if (s.length > decimals) {
@@ -188,8 +190,8 @@ export default function WalletDetails() {
       return frac ? `${whole}.${frac}` : whole;
     } else {
       const zeros = '0'.repeat(decimals - s.length);
-      const frac = `${zeros}${s}`;
-      return `0.${frac}`;
+      const frac = `${zeros}${s}`.replace(/0+$/, '');
+      return frac ? `0.${frac}` : '0';
     }
   };
 
@@ -450,6 +452,15 @@ export default function WalletDetails() {
         </a>
         {` / `}
         <span>{shortAddress}</span>
+        <a
+          href="#"
+          onClick={(e) => { e.preventDefault(); if (walletAddress) navigator.clipboard.writeText(walletAddress).catch(() => {}); }}
+          style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
+          aria-label="Copy wallet address"
+          title="Copy address"
+        >
+          <ContentCopyIcon sx={{ fontSize: 14 }} />
+        </a>
         <a
           href={`${explorerBase}/address/${walletAddress}`}
           target="_blank"

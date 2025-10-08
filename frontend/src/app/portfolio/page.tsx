@@ -594,7 +594,7 @@ export default function PortfolioPage() {
         <Button variant="contained" size="small" onClick={() => setShowCreate(true)}>Create New Wallet</Button>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Wallets owned by {shortAddr} 
+        Power Wallets owned by {shortAddr} 
       </Typography>
 
       <Grid container spacing={3}>
