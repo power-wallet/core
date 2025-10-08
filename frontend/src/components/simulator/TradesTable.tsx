@@ -37,19 +37,26 @@ const TradesTable: React.FC<TradesTableProps> = ({ result }) => {
     setPage(0);
   };
 
-  const sortedTrades = useMemo(() => {
-    // Ascending by date (oldest first) for CSV and table
+  const sortedAsc = useMemo(() => {
+    // Ascending by date (oldest first) for CSV export
     return [...trades].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   }, [trades]);
 
-  const paginatedTrades = sortedTrades.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const sortedDesc = useMemo(() => {
+    // Descending by date (newest first) for table display
+    return [...trades].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  }, [trades]);
+
+  const paginatedTrades = rowsPerPage > 0
+    ? sortedDesc.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+    : sortedDesc;
 
   const formatUSD0 = (value: number): string =>
     value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const handleDownload = () => {
     const header = ['Date', 'Asset', 'Side', 'Price', 'Quantity', 'Value', 'Fee', 'Portfolio Value'];
-    const rows = sortedTrades.map((t) => [
+    const rows = sortedAsc.map((t) => [
       new Date(t.date).toLocaleDateString('en-CA'), // YYYY-MM-DD
       t.symbol,
       t.side,
@@ -165,7 +172,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ result }) => {
             </Table>
           </TableContainer>
           <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50]}
+            rowsPerPageOptions={[5, 10, 25, 50, 100, { label: 'All', value: -1 }]}
             component="div"
             count={trades.length}
             rowsPerPage={rowsPerPage}
