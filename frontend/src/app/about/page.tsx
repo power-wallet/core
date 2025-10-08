@@ -10,6 +10,7 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
+import TeamCarousel from '@/components/TeamCarousel';
 
 export default function About() {
   return (
@@ -50,11 +51,12 @@ export default function About() {
             <Typography variant="body1" paragraph>
               The Power Wallet project started at the <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>ETH Global Bangkok Hackathon</Box> in November 2024. <br />
             </Typography>
-            <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-block', mb: 2, color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
-              <Box component="img" src="/img/eth-global-hackaton.png" alt="ETH Global Bangkok Hackathon" sx={{ width: '100%', maxWidth: 720, borderRadius: 1, boxShadow: 3 }} />
+            <Box sx={{ mb: 2 }}>
+              <TeamCarousel />
             </Box>
             <Typography variant="body1" paragraph>
-              Over an intense weekend we prototyped a fully on-chain, automated Bitcoin investing experience: seamsless onboarding with Coinbase Smart Wallet, live market data via Chainlink oracles, Uniswap V3 execution on Base, and Chainlink Automation to keep your investments strategies running 24/7.
+              Over an intense weekend we prototyped a fully on-chain, automated Bitcoin investing experience: seamsless onboarding with Coinbase Smart Wallet, 
+              live market data via Chainlink oracles, Uniswap V3 execution on Base, and Chainlink Automation to keep the DCA strategies running 24/7.
             </Typography>
             <Typography variant="body1" paragraph>
               We presented our prototype in front of judges and sponsors, and the response reinforced our belief: <br/>
@@ -72,11 +74,11 @@ export default function About() {
             <Stack spacing={2} sx={{ mt: 2 }}>
               <Box>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  1. Create Your Wallet
+                  1. Create Your Power Wallets
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Create your own on-chain wallets, smart contracts owned by you 
-                  that hold your digital assets, and execute your favourite investment strategies.
+                  that hold your digital assets, and execute your favourite rebalancing strategies.
                 </Typography>
               </Box>
               
@@ -94,12 +96,20 @@ export default function About() {
                   3. Choose a Strategy
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Select from our library of automated investment strategies, each designed 
+                  Select from a growing library of automated investment strategies, each designed 
                   to optimize returns and manage risk. <br/>
                   Examples include:
                   <ul>
                     <li>Simple DCA: Buy a fixed amount of BTC at a fixed cadence.</li>
-                    <li>Smart DCA: Optimize BTC accumulation, guided by the bitcoin Power Law price model.</li>
+                    <li>
+                      Smart DCA: Optimize BTC accumulation, guided by the &nbsp;
+                      <Box component="a" 
+                        href="https://bitcoinpower.law/" target="_blank" 
+                        rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
+                          Bitcoin Power Law
+                      </Box>
+                      &nbsp; price model.
+                    </li>
                     <li>BTC-ETH Momentum: A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.</li>
                     <li>Trend Following: A trend following strategy that buys BTC when the trend is up and sells when the trend is down.</li>
                   </ul>

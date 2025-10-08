@@ -175,7 +175,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
             </Button>
           </Stack>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            Default: lower=5000 (50% below), upper=5000 (50% above)
+            Default: lower=5000 (50% below model price), upper=1000 (100% above model price)
           </Typography>
         </Box>
         <Box>

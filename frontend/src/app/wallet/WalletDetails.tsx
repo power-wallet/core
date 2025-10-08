@@ -136,6 +136,12 @@ export default function WalletDetails() {
     functionName: 'description',
     query: { enabled: Boolean(strategyAddr) },
   });
+  const { data: strategyName } = useReadContract({
+    address: strategyAddr as `0x${string}` | undefined,
+    abi: [ { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] } ] as const,
+    functionName: 'name',
+    query: { enabled: Boolean(strategyAddr) },
+  });
 
   // Transactions
   const { data: depositsData } = useReadContract({
@@ -561,13 +567,15 @@ export default function WalletDetails() {
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ flex: 1 }}>Strategy</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ flex: 1 }}>Strategy</Typography>
                 <IconButton size="small" aria-label="Configure strategy" onClick={() => setStrategyConfigOpen(true)}>
                   <SettingsIcon fontSize="small" />
                 </IconButton>
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{String(desc || '')}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {strategyName ? `${String(strategyName)} - ${String(desc || '')}` : String(desc || '')}
+            </Typography>
               {strategyAddr ? (
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', mt: 1 }}>
                   <span>{`${String(strategyAddr).slice(0, 6)}…${String(strategyAddr).slice(-4)}`}</span>
@@ -585,7 +593,13 @@ export default function WalletDetails() {
               <Stack direction="row" spacing={3} sx={{ mt: 2, flexWrap: 'wrap' }}>
                 <Box>
                   <Typography variant="caption">DCA Amount</Typography>
-                  <Typography variant="body1">{formatUsd6(dcaAmount as bigint)}</Typography>
+                  <Typography variant="body1">
+                    {(() => {
+                      const nm = String(strategyName || '').trim();
+                      if (nm === 'Smart BTC DCA (Power Law)') return 'Dynamic USDC %';
+                      return formatUsd6(dcaAmount as bigint);
+                    })()}
+                  </Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption">Frequency</Typography>
