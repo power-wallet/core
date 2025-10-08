@@ -6,6 +6,7 @@ import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dia
 import LaunchIcon from '@mui/icons-material/Launch';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ConfigSimpleDcaV1 from './strategies/ConfigSimpleDcaV1';
+import ConfigSmartBtcDcaV1 from './strategies/ConfigSmartBtcDcaV1';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import WalletHistoryChart from './charts/WalletHistoryChart';
 import { buildWalletHistorySeries } from '@/lib/walletHistory';
@@ -978,7 +979,7 @@ export default function WalletDetails() {
                 break;
               }
             }
-            if (matchedId === 'simple-dca-v1') {
+            if (matchedId === 'simple-btc-dca-v1') {
               const stableMeta = stableKey ? (appConfig as any)[chainKey].assets[Object.keys((appConfig as any)[chainKey].assets).find(k => k.toLowerCase() === String(stableKey).toLowerCase()) as string] : null;
               const stableSymbol = stableMeta?.symbol || 'USDC';
               const stableDecimals = stableMeta?.decimals ?? 6;
@@ -990,6 +991,14 @@ export default function WalletDetails() {
                   stableDecimals={stableDecimals}
                   initialAmountStable={dcaAmount as bigint}
                   initialFrequency={freq as bigint}
+                />
+              );
+            }
+            if (matchedId === 'btc-dca-power-law-v1') {
+              return (
+                <ConfigSmartBtcDcaV1
+                  strategyAddr={String(strategyAddr) as `0x${string}`}
+                  chainId={chainId}
                 />
               );
             }

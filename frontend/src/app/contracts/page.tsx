@@ -28,7 +28,8 @@ const ADDR = {
   strategyRegistry: String(addrChain.strategyRegistry || ''),
   technicalIndicators: String(addrChain.technicalIndicators || ''),
   strategies: {
-    'simple-dca-v1': String(addrChain.strategies['simple-dca-v1'] || ''),
+    'simple-btc-dca-v1': String(addrChain.strategies['simple-btc-dca-v1'] || ''),
+    'btc-dca-power-law-v1': String(addrChain.strategies['btc-dca-power-law-v1'] || ''),
   },
 } as const;
 
@@ -296,8 +297,12 @@ export default function SmartContractsPage() {
             blurb="Registry of investment strategies mapping strategy ids to implementation templates (for cloning)." />
 
           <Section title="SimpleDCA"
-            address={ADDR.strategies['simple-dca-v1']}
-            blurb="Simple DCA Strategy that buys a fixed amount of risk asset at a fixed frequency." />
+              address={ADDR.strategies['simple-btc-dca-v1']}
+              blurb="Simple DCA Strategy that buys a fixed amount of risk asset at a fixed frequency." />
+
+          <Section title="SmartDCA"
+              address={ADDR.strategies['btc-dca-power-law-v1']}
+              blurb="Smart DCA Strategy with optimized buy and sell amounts based on the power law model." />
 
           <Section title="TechnicalIndicators"
             address={ADDR.technicalIndicators}

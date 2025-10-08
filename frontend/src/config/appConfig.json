@@ -30,11 +30,21 @@
       }
     },
     "strategies": {
-      "simple-dca-v1": {
-        "id": "simple-dca-v1",
-        "idBytes32": "0x786A403612FCD5DA11E68CE2DACE5CAFFE41CEA41E2D64FF9998546517083DD3",
-        "name": "Simple DCA",
+      "simple-btc-dca-v1": {
+        "id": "simple-btc-dca-v1",
+        "idBytes32": "0xc6b7ecee70fee10e980eb5533cf3266256d80c190859cb747fd382754e908f70",
+        "name": "Simple BTC DCA",
         "description": "Dollar-cost average from into cbBTC on a set cadence.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
+      },
+      "btc-dca-power-law-v1": {
+        "id": "btc-dca-power-law-v1",
+        "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
+        "name": "Smart BTC DCA (Power Law)",
+        "description": "Rebalance using a power-law BTC/USD model with configurable bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
@@ -73,11 +83,21 @@
       }
     },
     "strategies": {
-      "simple-dca-v1": {
-        "id": "simple-dca-v1",
-        "idBytes32": "0x786A403612FCD5DA11E68CE2DACE5CAFFE41CEA41E2D64FF9998546517083DD3",
-        "name": "Simple DCA",
+      "simple-btc-dca-v1": {
+        "id": "simple-btc-dca-v1",
+        "idBytes32": "0xc6b7ecee70fee10e980eb5533cf3266256d80c190859cb747fd382754e908f70",
+        "name": "Simple BTC DCA",
         "description": "Dollar-cost average from into cbBTC on a set cadence.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
+      },
+      "btc-dca-power-law-v1": {
+        "id": "btc-dca-power-law-v1",
+        "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
+        "name": "Smart BTC DCA (Power Law)",
+        "description": "Rebalance using a power-law BTC/USD model with configurable bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],

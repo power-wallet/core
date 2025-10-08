@@ -518,6 +518,7 @@ export default function Client() {
                 </a>
               ) : null}
             </Box>
+            
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Card variant="outlined"><CardContent>
@@ -542,9 +543,65 @@ export default function Client() {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Card variant="outlined"><CardContent>
+                  <Typography variant="subtitle1" fontWeight="bold">Oracle vs Pool Price</Typography>
+                  <Stack spacing={0.5} sx={{ mt: 1 }}>
+                    <Typography variant="body2">Pool: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 0)} USDC</Typography>
+                    <Typography variant="body2">Oracle: 1 {riskSymbol || 'RISK'} = {oracleStablePerRisk !== null ? formatNumber(oracleStablePerRisk, 0) : '-'} USDC</Typography>
+                    <Typography variant="body2">Deviation: {deviationPct !== null ? `${deviationPct > 0 ? '+' : ''}${formatNumber(deviationPct, 3)}%` : '-'}</Typography>
+                  </Stack>
+                </CardContent></Card>
+              </Grid>
+            </Grid>
+
+            <Box sx={{ mt: 2 }}>
+                <Card variant="outlined"><CardContent>
                   <Typography variant="subtitle1" fontWeight="bold">Actions</Typography>
                   <Stack spacing={1.5} sx={{ mt: 1 }}>
-                    <Button variant="outlined" onClick={handleAlignToOracle} disabled={!isConnected || oracleStablePerRisk === null || fee === null || isWorking}>Align to Oracle</Button>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={5} alignItems="stretch">
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, mt: 1 }}>Align Exchange Rate to Oracle</Typography>
+                        
+                        <Button
+                          variant="outlined"
+                          onClick={handleAlignToOracle}
+                          disabled={!isConnected || oracleStablePerRisk === null || fee === null || isWorking}
+                          sx={{ minWidth: { md: 220 }, alignSelf: { xs: 'stretch', md: 'auto' } }}
+                        >
+                          Align to Oracle
+                        </Button>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, maxWidth: { md: 220 } }}>
+                          {`Perform a swap to align the exchange rate of the assets in the pool to the price of ${riskSymbol || 'RISK'} from the Oracle feed`}
+                        </Typography>
+                      </Box>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flex: 1, maxWidth: { md: 300 } }}>
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, mt: 1 }}>Add Liquidity</Typography>
+                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-start">
+                            <Box sx={{ flex: 1 }}>
+                              <TextField size="small" label="USDC Amount" value={usdcLiquidity} onChange={(e) => setUsdcLiquidity(e.target.value)} fullWidth />
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                {`Your USDC: ${userUsdcBal !== null ? (Number(userUsdcBal) / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 6 }) : '-'}`}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                {`Your ${riskSymbol || 'RISK'}: ${userRiskBal !== null ? (Number(userRiskBal) / Math.pow(10, stableIsToken0 ? dec1 : dec0)).toLocaleString('en-US', { maximumFractionDigits: 8 }) : '-'}`}
+                              </Typography>
+                              <Typography variant="caption" sx={{ display: 'block', color: hasEnoughRisk === false ? 'error.main' : 'text.secondary' }}>
+                                {`Required ${riskSymbol || 'RISK'}: ${riskRequiredDisplay}`}
+                              </Typography>
+                            </Box>
+                            <Button
+                              variant="outlined"
+                              onClick={handleAddLiquidity}
+                              disabled={!isConnected || !usdcLiquidity || Number(usdcLiquidity) <= 0 || fee === null || !token0 || !token1 || isWorking}
+                              sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
+                            >
+                              Add Liquidity
+                            </Button>
+                          </Stack>
+                        </Box>
+                        
+                      </Stack>
+                    </Stack>
                     {isWethPool ? (
                       <>
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
@@ -557,34 +614,8 @@ export default function Client() {
                         </Stack>
                       </>
                     ) : null}
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                      <Box sx={{ flex: 1 }}>
-                        <TextField size="small" label="USDC Amount" value={usdcLiquidity} onChange={(e) => setUsdcLiquidity(e.target.value)} fullWidth />
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          {`Your USDC: ${userUsdcBal !== null ? (Number(userUsdcBal) / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 6 }) : '-'}`}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          {`Your ${riskSymbol || 'RISK'}: ${userRiskBal !== null ? (Number(userRiskBal) / Math.pow(10, stableIsToken0 ? dec1 : dec0)).toLocaleString('en-US', { maximumFractionDigits: 8 }) : '-'}`}
-                        </Typography>
-                        <Typography variant="caption" sx={{ display: 'block', color: hasEnoughRisk === false ? 'error.main' : 'text.secondary' }}>
-                          {`Required ${riskSymbol || 'RISK'}: ${riskRequiredDisplay}`}
-                        </Typography>
-                      </Box>
-                      <Button variant="outlined" onClick={handleAddLiquidity} disabled={!isConnected || !usdcLiquidity || Number(usdcLiquidity) <= 0 || fee === null || !token0 || !token1 || isWorking}>Add Liquidity</Button>
-                    </Stack>
                   </Stack>
                 </CardContent></Card>
-              </Grid>
-            </Grid>
-            <Box sx={{ mt: 2 }}>
-              <Card variant="outlined"><CardContent>
-                <Typography variant="subtitle1" fontWeight="bold">Oracle vs Pool Price</Typography>
-                <Stack spacing={0.5} sx={{ mt: 1 }}>
-                  <Typography variant="body2">Pool: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 0)} USDC</Typography>
-                <Typography variant="body2">Oracle: 1 {riskSymbol || 'RISK'} = {oracleStablePerRisk !== null ? formatNumber(oracleStablePerRisk, 0) : '-'} USDC</Typography>
-                <Typography variant="body2">Deviation: {deviationPct !== null ? `${deviationPct > 0 ? '+' : ''}${formatNumber(deviationPct, 3)}%` : '-'}</Typography>
-                </Stack>
-              </CardContent></Card>
             </Box>
             <Box sx={{ mt: 2 }}>
               <Card variant="outlined"><CardContent>

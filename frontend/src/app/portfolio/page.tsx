@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert } from '@mui/material';
+import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
@@ -48,7 +48,13 @@ export default function PortfolioPage() {
   const [showCreate, setShowCreate] = useState(false);
   // Onboarding params (must be top-level to preserve hooks order)
   const [amount, setAmount] = useState<string>('100');
-  const [frequency, setFrequency] = useState<string>('86400'); // 1 day in seconds
+  const [frequency, setFrequency] = useState<string>('86400'); // 1 day in seconds (Simple DCA)
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('simple-btc-dca-v1');
+  // Smart DCA params
+  const [smartDays, setSmartDays] = useState<string>('7');
+  const [smartBuyBps, setSmartBuyBps] = useState<number>(500); // 5%
+  const [smartSmallBuyBps, setSmartSmallBuyBps] = useState<number>(100); // 1%
+  const [smartSellBps, setSmartSellBps] = useState<number>(500); // 5%
   const [creating, setCreating] = useState(false);
   const { writeContractAsync } = useWriteContract();
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
@@ -203,7 +209,8 @@ export default function PortfolioPage() {
 
   if (wallets.length === 0 || showCreate) {
 
-    const strategyPreset = (appConfig as any)[chainKey]?.strategies?.['simple-dca-v1'];
+    const strategiesMap = (appConfig as any)[chainKey]?.strategies || {};
+    const strategyPreset = strategiesMap[selectedStrategyId] || (appConfig as any)[chainKey]?.strategies?.['simple-btc-dca-v1'];
 
     const addressesForChain = contractAddresses[chainKey];
     const usdc = addressesForChain.usdc;
@@ -213,9 +220,12 @@ export default function PortfolioPage() {
     const fee = (appConfig as any)[chainKey]?.pools?.["USDC-cbBTC"]?.fee ?? 100;
     const poolFees = [fee];
 
-    const strategyIdBytes32 = strategyPreset.idBytes32 as `0x${string}`;
+    const strategyIdBytes32 = strategyPreset?.idBytes32 as `0x${string}`;
 
-    const simpleDcaInit = encodeFunctionData({
+    // Build strategy-specific init calldata
+    const initCalldata: `0x${string}` | null = (() => {
+      if (selectedStrategyId === 'simple-btc-dca-v1') {
+        return encodeFunctionData({
       abi: [
         {
           type: 'function',
@@ -232,11 +242,56 @@ export default function PortfolioPage() {
         },
       ],
       functionName: 'initialize',
-      args: [cbBTC as `0x${string}`, usdc as `0x${string}`, BigInt(Number(amount) * 1_000_000), BigInt(frequency), strategyPreset.description],
-    });
+          args: [cbBTC as `0x${string}`, usdc as `0x${string}`, BigInt(Math.max(0, Number(amount)) * 1_000_000), BigInt(Math.max(1, Number(frequency))), strategyPreset.description],
+        }) as `0x${string}`;
+      }
+      if (selectedStrategyId === 'btc-dca-power-law-v1') {
+        // Smart DCA initializer: (risk, stable, feed, frequency, lowerBps, upperBps, buyBps, smallBuyBps, sellBps, desc)
+        const freqSec = BigInt(Math.max(1, Number(smartDays)) * 86400);
+        const lowerBps = 5000; // 50% below model
+        const upperBps = 5000; // 50% above model
+        const feed = addressesForChain.btcUsdPriceFeed as `0x${string}`;
+        return encodeFunctionData({
+          abi: [
+            {
+              type: 'function',
+              name: 'initialize',
+              stateMutability: 'nonpayable',
+              inputs: [
+                { name: '_risk', type: 'address' },
+                { name: '_stable', type: 'address' },
+                { name: '_feed', type: 'address' },
+                { name: '_frequency', type: 'uint256' },
+                { name: '_lowerBps', type: 'uint16' },
+                { name: '_upperBps', type: 'uint16' },
+                { name: '_buyBpsStable', type: 'uint16' },
+                { name: '_smallBuyBpsStable', type: 'uint16' },
+                { name: '_sellBpsRisk', type: 'uint16' },
+                { name: 'desc', type: 'string' },
+              ],
+              outputs: [],
+            },
+          ],
+          functionName: 'initialize',
+          args: [
+            cbBTC as `0x${string}`,
+            usdc as `0x${string}`,
+            feed,
+            freqSec,
+            lowerBps,
+            upperBps,
+            smartBuyBps,
+            smartSmallBuyBps,
+            smartSellBps,
+            strategyPreset.description,
+          ],
+        }) as `0x${string}`;
+      }
+      return null;
+    })();
 
     const onCreate = async () => {
-      if (!factoryAddress || !cbBTC || !strategyIdBytes32) return;
+      if (!factoryAddress || !cbBTC || !strategyIdBytes32 || !initCalldata) return;
       setCreating(true);
       try {
         let maxFeePerGas: bigint | undefined;
@@ -250,14 +305,7 @@ export default function PortfolioPage() {
           address: factoryAddress as `0x${string}`,
           abi: walletFactoryAbi as any,
           functionName: 'createWallet',
-          args: [
-            strategyIdBytes32,
-            simpleDcaInit,
-            usdc as `0x${string}`,
-            [cbBTC as `0x${string}`],
-            priceFeeds as [`0x${string}`],
-            poolFees,
-          ],
+          args: [strategyIdBytes32, initCalldata, usdc as `0x${string}`, [cbBTC as `0x${string}`], priceFeeds as [`0x${string}`], poolFees],
           ...(maxFeePerGas ? { maxFeePerGas } : {}),
           ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
         });
@@ -281,35 +329,80 @@ export default function PortfolioPage() {
                     </Box>
                   )}
                   <Typography variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
-                  <Typography variant="body2">Simple DCA</Typography>
-                  <Typography variant="caption" color="text.secondary">{strategyPreset.description}</Typography>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={selectedStrategyId}
+                    onChange={(_, v) => v && setSelectedStrategyId(v)}
+                  >
+                    <ToggleButton value="simple-btc-dca-v1">Simple BTC DCA</ToggleButton>
+                    <ToggleButton value="btc-dca-power-law-v1">Smart BTC DCA</ToggleButton>
+                  </ToggleButtonGroup>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    {strategyPreset?.description || ''}
+                  </Typography>
 
                   <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 2 }}>Parameters</Typography>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-                    <TextField
-                      label="DCA amount (USDC)"
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      inputProps={{ min: 1 }}
-                    />
-                    <Box>
-                      <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
-                      <ToggleButtonGroup
-                        value={frequency}
-                        exclusive
-                        onChange={(_, val) => val && setFrequency(val)}
-                        size="small"
-                      >
-                        <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
-                      </ToggleButtonGroup>
-                    </Box>
-                  </Stack>
+                  {selectedStrategyId === 'simple-btc-dca-v1' ? (
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                      <TextField
+                        label="DCA amount (USDC)"
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        inputProps={{ min: 1 }}
+                      />
+                      <Box>
+                        <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
+                        <ToggleButtonGroup
+                          value={frequency}
+                          exclusive
+                          onChange={(_, val) => val && setFrequency(val)}
+                          size="small"
+                        >
+                          <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
+                          <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
+                          <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
+                          <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
+                          <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
+                          <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
+                        </ToggleButtonGroup>
+                      </Box>
+                    </Stack>
+                  ) : (
+                    <Stack spacing={2}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                        <Box>
+                          <Typography variant="caption" display="block">DCA Frequency (days)</Typography>
+                          <TextField size="small" type="number" value={smartDays} onChange={(e) => setSmartDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ maxWidth: 160 }} />
+                        </Box>
+                        <FormControl size="small" sx={{ minWidth: 260 }}>
+                          <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
+                          <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smartSmallBuyBps} onChange={(e) => setSmartSmallBuyBps(Number(e.target.value))}>
+                            {[50, 100, 150, 200, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                          </Select>
+                        </FormControl>
+
+                      </Stack>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                        <FormControl size="small" sx={{ minWidth: 260 }}>
+                          <InputLabel id="buy-bps-label">Larger Buy % (below lower band)</InputLabel>
+                          <Select labelId="buy-bps-label" label="Buy % (below lower band)" value={smartBuyBps} onChange={(e) => setSmartBuyBps(Number(e.target.value))}>
+                            {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                          </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{ minWidth: 260 }}>
+                          <InputLabel id="sell-bps-label">Sell % (above upper band)</InputLabel>
+                          <Select labelId="sell-bps-label" label="Sell % (above upper band)" value={smartSellBps} onChange={(e) => setSmartSellBps(Number(e.target.value))}>
+                            {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                          </Select>
+                        </FormControl>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        Below lower band uses Buy %; between lower band and model uses Small Buy %; above upper band uses Sell %.
+                      </Typography>
+                    </Stack>
+                  )}
 
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
                     <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>
@@ -481,10 +574,13 @@ function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: { walletA
     { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
     { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint64' } ] },
   ] as const;
-  const simpleDcaAbi = [
+  const strategyCommonAbi = [
+    { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
     { type: 'function', name: 'description', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
-    { type: 'function', name: 'dcaAmountStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
     { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
+  ] as const;
+  const simpleDcaOnlyAbi = [
+    { type: 'function', name: 'dcaAmountStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
   ] as const;
 
   const { data: valueUsd } = useReadContract({
@@ -502,23 +598,30 @@ function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: { walletA
     abi: powerWalletAbi as any,
     functionName: 'createdAt',
   });
-  const { data: strategyDesc } = useReadContract({
+  const { data: strategyName } = useReadContract({
     address: strategyAddr as `0x${string}` | undefined,
-    abi: simpleDcaAbi as any,
-    functionName: 'description',
+    abi: strategyCommonAbi as any,
+    functionName: 'name',
     query: { enabled: Boolean(strategyAddr) },
   });
-  const { data: dcaAmount } = useReadContract({
+  const { data: strategyDesc } = useReadContract({
     address: strategyAddr as `0x${string}` | undefined,
-    abi: simpleDcaAbi as any,
-    functionName: 'dcaAmountStable',
+    abi: strategyCommonAbi as any,
+    functionName: 'description',
     query: { enabled: Boolean(strategyAddr) },
   });
   const { data: freq } = useReadContract({
     address: strategyAddr as `0x${string}` | undefined,
-    abi: simpleDcaAbi as any,
+    abi: strategyCommonAbi as any,
     functionName: 'frequency',
     query: { enabled: Boolean(strategyAddr) },
+  });
+  const isSimple = String(strategyName || '').trim() === 'Simple BTC DCA';
+  const { data: dcaAmount } = useReadContract({
+    address: strategyAddr as `0x${string}` | undefined,
+    abi: simpleDcaOnlyAbi as any,
+    functionName: 'dcaAmountStable',
+    query: { enabled: Boolean(strategyAddr && isSimple) },
   });
 
   const formatUsd6 = (v?: bigint) => {
@@ -527,7 +630,7 @@ function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: { walletA
     return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const strategyName = 'Simple DCA';
+  const displayName = String(strategyName || '').trim() || 'Strategy';
   const shortAddr = `${walletAddress.slice(0, 6)}..${walletAddress.slice(-4)}`;
   const createdAt = createdAtTs ? new Date(Number(createdAtTs) * 1000).toLocaleDateString() : '';
   const dcaAmountDisplay = (() => {
@@ -566,7 +669,7 @@ function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: { walletA
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
             <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Strategy</Typography>
             <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-              {strategyName} - {dcaAmountDisplay} {freqDays}
+              {displayName} {isSimple ? `- ${dcaAmountDisplay} ${freqDays}` : `- ${freqDays}`}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
