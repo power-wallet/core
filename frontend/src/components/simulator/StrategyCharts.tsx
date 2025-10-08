@@ -9,43 +9,24 @@ import PriceChart from '@/components/simulator/PriceChart';
 import RSIAndSignalsChart from '@/components/simulator/RSIAndSignalsChart';
 import PowerLawChart from '@/components/simulator/PowerLawChart';
 import TradesTable from '@/components/simulator/TradesTable';
+import { strategyCharts, type ChartId } from '@/lib/strategies/registry';
 
 interface Props { result: SimulationResult }
 
 const StrategyCharts: React.FC<Props> = ({ result }) => {
-  if (result.strategyId === 'smart-btc-dca') {
-    // DCA layout: Portfolio Value → Power Law & Signals → Allocation → Drawdown → Trades
-    return (
-      <>
-        <PortfolioValueChart result={result} />
-        <PowerLawChart result={result} />
-        <PortfolioAllocationChart result={result} />
-        <DrawdownChart result={result} />
-        <TradesTable result={result} />
-      </>
-    );
-  }
-
-  if (result.strategyId === 'simple-btc-dca') {
-    return (
-      <>
-        <PortfolioValueChart result={result} />
-        <PortfolioAllocationChart result={result} />
-        <DrawdownChart result={result} />
-        <TradesTable result={result} />
-      </>
-    );
-  }
-
-  // Default (momentum) layout: Portfolio Value → Allocation → Drawdown → Asset Prices & Trades → RSI & Signals → Trades
+  const layout: ChartId[] = strategyCharts[result.strategyId as keyof typeof strategyCharts] || ['portfolio', 'allocation', 'drawdown', 'trades'];
   return (
     <>
-      <PortfolioValueChart result={result} />
-      <PortfolioAllocationChart result={result} />
-      <DrawdownChart result={result} />
-      <PriceChart result={result} />
-      <RSIAndSignalsChart result={result} />
-      <TradesTable result={result} />
+      {layout.map((c: ChartId) => {
+        if (c === 'portfolio') return <PortfolioValueChart key={c} result={result} />;
+        if (c === 'powerlaw') return <PowerLawChart key={c} result={result} />;
+        if (c === 'allocation') return <PortfolioAllocationChart key={c} result={result} />;
+        if (c === 'drawdown') return <DrawdownChart key={c} result={result} />;
+        if (c === 'prices') return <PriceChart key={c} result={result} />;
+        if (c === 'rsi') return <RSIAndSignalsChart key={c} result={result} />;
+        if (c === 'trades') return <TradesTable key={c} result={result} />;
+        return null;
+      })}
     </>
   );
 };
