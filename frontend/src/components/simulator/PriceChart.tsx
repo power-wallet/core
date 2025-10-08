@@ -58,9 +58,21 @@ const TriangleDown = (props: any) => {
 
 const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
   const { dailyPerformance, trades } = result;
+  const showSma50 = useMemo(() => result.strategyId === 'btc-trend-following', [result.strategyId]);
+  const hasEth = useMemo(() => {
+    const anyEthPrices = dailyPerformance.some((d) => (d.ethPrice || 0) > 0);
+    const anyEthTrades = trades.some((t) => t.symbol === 'ETH');
+    return anyEthPrices || anyEthTrades;
+  }, [dailyPerformance, trades]);
   
-  // Prepare chart data with prices and trade markers
-  const chartData = dailyPerformance.map((day) => {
+  // Use precomputed SMA from dailyPerformance when present (trend following)
+  const btcSma50: Array<number | null> = useMemo(() => {
+    if (!showSma50) return dailyPerformance.map(() => null);
+    return dailyPerformance.map((d) => (d.btcSma50 != null ? d.btcSma50 : null));
+  }, [dailyPerformance, showSma50]);
+
+  // Prepare chart data with prices, optional SMA, and trade markers
+  const chartData = dailyPerformance.map((day, idx) => {
     // Find trades on this day
     const dayTrades = trades.filter(t => t.date === day.date);
     const btcTrade = dayTrades.find(t => t.symbol === 'BTC');
@@ -70,6 +82,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
       date: day.date,
       btcPrice: day.btcPrice,
       ethPrice: day.ethPrice,
+      btcSma: btcSma50[idx],
       // Trade markers (use actual trade prices for marker position)
       btcBuy: btcTrade?.side === 'BUY' ? btcTrade.price : null,
       btcSell: btcTrade?.side === 'SELL' ? btcTrade.price : null,
@@ -101,7 +114,12 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               BTC: ${data.btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
           )}
-          {data.ethPrice && (
+          {showSma50 && data.btcSma && (
+            <Typography variant="caption" display="block" sx={{ color: '#22C55E' }}>
+              BTC 50D SMA: ${data.btcSma.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Typography>
+          )}
+          {hasEth && data.ethPrice && (
             <Typography variant="caption" display="block" sx={{ color: '#9CA3AF' }}>
               ETH: ${data.ethPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
@@ -111,7 +129,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               {data.btcTradeDetails}
             </Typography>
           )}
-          {data.ethTradeDetails && (
+          {hasEth && data.ethTradeDetails && (
             <Typography variant="caption" display="block" sx={{ color: data.ethBuy ? '#10B981' : '#EF4444', mt: 0.5 }}>
               {data.ethTradeDetails}
             </Typography>
@@ -180,18 +198,20 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               tickFormatter={leftTickFormatter}
               label={{ value: 'BTC Price', angle: -90, position: 'insideLeft', style: { fill: '#F97316' } }}
             />
-            {/* Right Y-axis for ETH */}
-            <YAxis 
-              yAxisId="right"
-              orientation="right"
-              stroke="#9CA3AF"
-              tick={{ fontSize: 12 }}
-              scale={scale}
-              domain={['auto','auto']}
-              allowDataOverflow
-              tickFormatter={rightTickFormatter}
-              label={{ value: 'ETH Price', angle: 90, position: 'insideRight', style: { fill: '#9CA3AF' } }}
-            />
+            {/* Right Y-axis for ETH (only when ETH present) */}
+            {hasEth && (
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                stroke="#9CA3AF"
+                tick={{ fontSize: 12 }}
+                scale={scale}
+                domain={['auto','auto']}
+                allowDataOverflow
+                tickFormatter={rightTickFormatter}
+                label={{ value: 'ETH Price', angle: 90, position: 'insideRight', style: { fill: '#9CA3AF' } }}
+              />
+            )}
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             
@@ -206,18 +226,35 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
               name="BTC Price"
               connectNulls
             />
+
+            {/* BTC 50D SMA (trend following only) */}
+            {showSma50 && (
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="btcSma"
+                stroke="#22C55E"
+                strokeWidth={2}
+                dot={false}
+                name="BTC 50D SMA"
+                connectNulls
+                strokeDasharray="5 3"
+              />
+            )}
             
             {/* ETH Price Line */}
-            <Line 
-              yAxisId="right"
-              type="monotone" 
-              dataKey="ethPrice" 
-              stroke="#9CA3AF" 
-              strokeWidth={2}
-              dot={false}
-              name="ETH Price"
-              connectNulls
-            />
+            {hasEth && (
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="ethPrice" 
+                stroke="#9CA3AF" 
+                strokeWidth={2}
+                dot={false}
+                name="ETH Price"
+                connectNulls
+              />
+            )}
             
             {/* BTC Buy Markers */}
             <Scatter 
@@ -238,22 +275,26 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
             />
             
             {/* ETH Buy Markers */}
-            <Scatter 
-              yAxisId="right"
-              dataKey="ethBuy" 
-              fill="#10B981" 
-              shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? <g /> : <TriangleUp {...props} />)}
-              name="ETH Buy"
-            />
+            {hasEth && (
+              <Scatter 
+                yAxisId="right"
+                dataKey="ethBuy" 
+                fill="#10B981" 
+                shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? <g /> : <TriangleUp {...props} />)}
+                name="ETH Buy"
+              />
+            )}
             
             {/* ETH Sell Markers */}
-            <Scatter 
-              yAxisId="right"
-              dataKey="ethSell" 
-              fill="#EF4444" 
-              shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? <g /> : <TriangleDown {...props} />)}
-              name="ETH Sell"
-            />
+            {hasEth && (
+              <Scatter 
+                yAxisId="right"
+                dataKey="ethSell" 
+                fill="#EF4444" 
+                shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? <g /> : <TriangleDown {...props} />)}
+                name="ETH Sell"
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>

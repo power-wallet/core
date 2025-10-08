@@ -48,6 +48,13 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
     btcHodlDrawdown: 0,
     btcPrice: prices[startIdx],
     ethPrice: 0,
+    btcSma50: (() => {
+      // compute SMA with full lookback so it's available from day 1
+      if (startIdx + 1 < SMA_LENGTH) return undefined;
+      let sum = 0;
+      for (let k = startIdx - SMA_LENGTH + 1; k <= startIdx; k++) sum += prices[k];
+      return sum / SMA_LENGTH;
+    })(),
   });
 
   // SMA helper over prices
@@ -105,6 +112,7 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
       btcHodlDrawdown,
       btcPrice,
       ethPrice: 0,
+      btcSma50: sma === null ? undefined : sma,
     });
   }
 

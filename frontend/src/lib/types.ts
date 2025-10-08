@@ -53,6 +53,7 @@ export interface DailyPerformance {
   btcModel?: number;
   btcUpperBand?: number;
   btcLowerBand?: number;
+  btcSma50?: number;
 }
 
 export interface SimulationResult {
