@@ -6,6 +6,7 @@ import {
   Typography,
   Card,
   CardContent,
+  IconButton,
   Table,
   TableBody,
   TableCell,
@@ -15,6 +16,7 @@ import {
   TablePagination,
   Chip,
 } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 import type { SimulationResult } from '@/lib/types';
 
 interface TradesTableProps {
@@ -36,9 +38,8 @@ const TradesTable: React.FC<TradesTableProps> = ({ result }) => {
   };
 
   const sortedTrades = useMemo(() => {
-    // Descending by date (newest first). Dates are ISO strings in YYYY-MM-DD.
-    // Copy before sort to avoid mutating props.
-    return [...trades].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    // Ascending by date (oldest first) for CSV and table
+    return [...trades].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   }, [trades]);
 
   const paginatedTrades = sortedTrades.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -46,11 +47,40 @@ const TradesTable: React.FC<TradesTableProps> = ({ result }) => {
   const formatUSD0 = (value: number): string =>
     value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+  const handleDownload = () => {
+    const header = ['Date', 'Asset', 'Side', 'Price', 'Quantity', 'Value', 'Fee', 'Portfolio Value'];
+    const rows = sortedTrades.map((t) => [
+      new Date(t.date).toLocaleDateString('en-CA'), // YYYY-MM-DD
+      t.symbol,
+      t.side,
+      t.price.toFixed(0),
+      t.quantity.toFixed(6),
+      t.value.toFixed(0),
+      t.fee.toFixed(2),
+      t.portfolioValue.toFixed(0),
+    ]);
+    const lines = [header, ...rows].map((cols) => cols.join('\t')).join('\n');
+    const blob = new Blob([lines], { type: 'text/tab-separated-values;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trades.tsv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box>
-      <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
-        Trade History ({trades.length} trades)
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold">
+          Trade History ({trades.length} trades)
+        </Typography>
+        <IconButton onClick={handleDownload} aria-label="Download trades TSV" size="small">
+          <DownloadIcon />
+        </IconButton>
+      </Box>
 
       <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
         <CardContent sx={{ p: 0 }}>

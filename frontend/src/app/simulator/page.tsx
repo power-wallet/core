@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Container, Box, Typography, Alert, AlertTitle, Card, CardContent, Collapse, Button } from '@mui/material';
+import { Container, Box, Typography, Alert, AlertTitle, Card, CardContent, Collapse, Button, IconButton } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 import SimulatorControls, { type SimulationParams } from '@/components/simulator/SimulatorControls';
 import StatsSummary from '@/components/simulator/StatsSummary';
 import StrategyCharts from '@/components/simulator/StrategyCharts';
@@ -50,6 +51,66 @@ export default function SimulatorPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDownloadPerformance = () => {
+    if (!result) return;
+    const dp = [...result.dailyPerformance].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const rsi = result.rsiSignals || [];
+    const trades = result.trades || [];
+
+    const header = [
+      // DailyPerformance
+      'Date','cash','btcQty','ethQty','btcValue','ethValue','totalValue','btcHodlValue','drawdown','btcHodlDrawdown','btcPrice','ethPrice','btcModel','btcUpperBand','btcLowerBand',
+      // DailyRsiSignals
+      'btcRsi','ethRsi','entryLine','exitLine','btcBuy','btcSell','ethBuy','ethSell','bothEligible','bothAllocated','btcBuyDetail','btcSellDetail','ethBuyDetail','ethSellDetail',
+      // Trade (if any on that date)
+      'trade.symbol','trade.side','trade.price','trade.quantity','trade.value','trade.fee','trade.portfolioValue',
+    ];
+
+    const byDateTrades = trades.reduce<Record<string, typeof trades>>((m, t) => {
+      (m[t.date] ||= []).push(t);
+      return m;
+    }, {});
+
+    const rsiByDate = rsi.reduce<Record<string, any>>((m, s) => { m[s.date] = s; return m; }, {});
+
+    const lines: string[] = [];
+    lines.push(header.join('\t'));
+
+    for (const d of dp) {
+      const r = rsiByDate[d.date];
+      const ts = byDateTrades[d.date] || [];
+      if (ts.length === 0) {
+        const row = [
+          new Date(d.date).toLocaleDateString('en-CA'), String(d.cash), String(d.btcQty), String(d.ethQty), String(d.btcValue), String(d.ethValue), String(d.totalValue), String(d.btcHodlValue), String(d.drawdown), String(d.btcHodlDrawdown), String(d.btcPrice), String(d.ethPrice),
+          d.btcModel != null ? String(d.btcModel) : '', d.btcUpperBand != null ? String(d.btcUpperBand) : '', d.btcLowerBand != null ? String(d.btcLowerBand) : '',
+          r ? String(r.btcRsi) : '', r ? String(r.ethRsi) : '', r ? String(r.entryLine) : '', r ? String(r.exitLine) : '', r ? String(r.btcBuy) : '', r ? String(r.btcSell) : '', r ? String(r.ethBuy) : '', r ? String(r.ethSell) : '', r ? String(r.bothEligible) : '', r ? String(r.bothAllocated) : '', r?.btcBuyDetail || '', r?.btcSellDetail || '', r?.ethBuyDetail || '', r?.ethSellDetail || '',
+          '', '', '', '', '', '', '',
+        ];
+        lines.push(row.join('\t'));
+      } else {
+        for (const t of ts) {
+          const row = [
+            new Date(d.date).toLocaleDateString('en-CA'), String(d.cash), String(d.btcQty), String(d.ethQty), String(d.btcValue), String(d.ethValue), String(d.totalValue), String(d.btcHodlValue), String(d.drawdown), String(d.btcHodlDrawdown), String(d.btcPrice), String(d.ethPrice),
+            d.btcModel != null ? String(d.btcModel) : '', d.btcUpperBand != null ? String(d.btcUpperBand) : '', d.btcLowerBand != null ? String(d.btcLowerBand) : '',
+            r ? String(r.btcRsi) : '', r ? String(r.ethRsi) : '', r ? String(r.entryLine) : '', r ? String(r.exitLine) : '', r ? String(r.btcBuy) : '', r ? String(r.btcSell) : '', r ? String(r.ethBuy) : '', r ? String(r.ethSell) : '', r ? String(r.bothEligible) : '', r ? String(r.bothAllocated) : '', r?.btcBuyDetail || '', r?.btcSellDetail || '', r?.ethBuyDetail || '', r?.ethSellDetail || '',
+            t.symbol, t.side, t.price.toFixed(0), t.quantity.toFixed(6), t.value.toFixed(0), t.fee.toFixed(2), t.portfolioValue.toFixed(0),
+          ];
+          lines.push(row.join('\t'));
+        }
+      }
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/tab-separated-values;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'performance.tsv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -262,9 +323,12 @@ export default function SimulatorPage() {
             {/* Summary Stats */}
             <StatsSummary result={result} />
 
-            <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 1 }}>
-              Performance Charts
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="h5" fontWeight="bold">Performance Charts</Typography>
+              <IconButton onClick={handleDownloadPerformance} aria-label="Download performance TSV" size="small">
+                <DownloadIcon />
+              </IconButton>
+            </Box>
 
             {/* Charts */}
             <StrategyCharts result={result} />
