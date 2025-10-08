@@ -156,10 +156,6 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
           </Box>
         ) : (
           <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Choose how you want to connect:
-            </Typography>
-
             <Box 
               sx={{ 
                 p: 2, 
@@ -173,6 +169,9 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                   no extensions or recovery phrases needed, and <b>no gas fees</b>!
               </Typography>
             </Box>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Choose how you want to connect:
+            </Typography>
             
             {[...connectors].sort((a, b) => (a.id === 'coinbaseWalletSDK' ? -1 : b.id === 'coinbaseWalletSDK' ? 1 : 0)).map((connector) => (
               <Card 
