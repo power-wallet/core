@@ -97,7 +97,9 @@ export default function SmartContractsPage() {
   const addTokenToWallet = async (key: 'cbBTC' | 'WETH' | 'USDC') => {
     try {
       const assetCfg = (cfg.assets as any)[key];
-      const address = (ADDR as any)[key.toLowerCase()] as string;
+      const address = (key === 'cbBTC')
+        ? (ADDR as any).cbBTC
+        : (ADDR as any)[key.toLowerCase()];
       if (!address || !assetCfg) return;
       await (window as any)?.ethereum?.request?.({
         method: 'wallet_watchAsset',
