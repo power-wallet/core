@@ -10,8 +10,6 @@ import {
   Card,
   CardContent,
   Stack,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -20,8 +18,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import Link from 'next/link';
 
 export default function Home() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Avoid runtime media queries for typography to prevent hydration flicker.
 
   const features = [
     {
@@ -73,18 +70,19 @@ export default function Home() {
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={6}>
               <Typography
-                variant={isMobile ? 'h3' : 'h2'}
+                variant="h2"
                 component="h1"
                 gutterBottom
                 fontWeight="bold"
+                sx={{ fontSize: { xs: '2rem', md: '3rem' } }}
               >
                 Power Wallet
               </Typography>
               <Typography
-                variant={isMobile ? 'h6' : 'h5'}
+                variant="h5"
                 component="h2"
                 gutterBottom
-                sx={{ opacity: 0.95, mb: 4 }}
+                sx={{ opacity: 0.95, mb: 4, fontSize: { xs: '1.25rem', md: '1.5rem' } }}
               >
                 Smart Investing in Bitcoin & Digital Assets
               </Typography>
@@ -99,7 +97,7 @@ export default function Home() {
                   <Typography variant="body1"><strong>Maintain full custody</strong> with blockchain-based secure, transparent, verifiable execution. </Typography>
                 </li>
               </Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 5 }}>
+              <Stack direction={{ xs: 'row', sm: 'row' }} spacing={2} sx={{ mt: 5, flexWrap: 'nowrap' }}>
                 <Link href="/portfolio" passHref style={{ textDecoration: 'none' }}>
                   <Button
                     variant="contained"
@@ -158,11 +156,12 @@ export default function Home() {
       {/* Features Section */}
       <Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 } }}>
         <Typography
-          variant={isMobile ? 'h4' : 'h3'}
+          variant="h3"
           component="h2"
           textAlign="center"
           gutterBottom
           fontWeight="bold"
+          sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}
         >
           Why Power Wallet?
         </Typography>
@@ -236,7 +235,7 @@ export default function Home() {
       >
         <Container maxWidth="md">
           <Stack spacing={3} alignItems="center" textAlign="center" sx={{ position: 'relative', zIndex: 1 }}>
-            <Typography variant={isMobile ? 'h4' : 'h3'} fontWeight="bold">
+            <Typography variant="h3" fontWeight="bold" sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
               Ready to Start Smart Investing?
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.9 }}>

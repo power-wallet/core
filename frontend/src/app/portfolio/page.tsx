@@ -613,7 +613,7 @@ export default function PortfolioPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>Your Wallets</Typography>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallets</Typography>
         <Button variant="contained" size="small" onClick={() => setShowCreate(true)}>Create New Wallet</Button>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

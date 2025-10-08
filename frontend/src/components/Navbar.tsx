@@ -22,12 +22,11 @@ import { useAccount } from 'wagmi';
 import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 import Link from 'next/link';
 import WalletConnectModal from './WalletConnectModal';
+import LogoIcon from './LogoIcon';
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isConnected, address } = useAccount();
 
   const shortAddress = React.useMemo(() => {
@@ -100,83 +99,62 @@ const Navbar = () => {
       >
         <Container maxWidth="lg">
           <Toolbar disableGutters>
-            {isMobile && (
-              <IconButton
-                color="inherit"
-                aria-label="open drawer"
-                edge="start"
-                onClick={handleDrawerToggle}
-                sx={{ mr: 2 }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 0, mt: 0, display: { xs: 'inline-flex', md: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
             
             <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Box
-                sx={{
-                  flexGrow: isMobile ? 1 : 0,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  mr: 4,
-                }}
-                aria-label="Go to homepage"
-              >
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
-                    boxShadow: '0 0 12px rgba(245, 158, 11, 0.5)',
-                  }}
-                />
+              <Box sx={{ flexGrow: 0, display: { xs: 'none', md: 'inline-flex' }, alignItems: 'center', justifyContent: 'center', mr: 2, lineHeight: 0, alignSelf: 'center' }} aria-label="Go to homepage">
+                <LogoIcon size={28} />
               </Box>
             </Link>
 
-            {!isMobile && (
-              <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
-                {menuItems.map((item) => (
-                  <Link key={item.text} href={item.href} passHref style={{ textDecoration: 'none' }}>
-                    <Button 
-                      sx={{ 
-                        color: 'white',
-                        '&:hover': {
-                          color: 'primary.main',
-                          bgcolor: 'rgba(245, 158, 11, 0.1)',
-                        },
-                      }}
-                    >
-                      {item.text}
-                    </Button>
-                  </Link>
-                ))}
-              </Box>
-            )}
+            <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+              {menuItems.map((item) => (
+                <Link key={item.text} href={item.href} passHref style={{ textDecoration: 'none' }}>
+                  <Button 
+                    sx={{ 
+                      color: 'white',
+                      '&:hover': {
+                        color: 'primary.main',
+                        bgcolor: 'rgba(245, 158, 11, 0.1)',
+                      },
+                    }}
+                  >
+                    {item.text}
+                  </Button>
+                </Link>
+              ))}
+            </Box>
 
-            {!isMobile && (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={isConnected && address ? (
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <Jazzicon diameter={20} seed={jsNumberForAddress(address)} />
-                  </Box>
-                ) : (
-                  <AccountBalanceWalletIcon />
-                )}
-                onClick={() => setWalletModalOpen(true)}
-                sx={{
-                  background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
-                  boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
-                  '&:hover': {
-                    boxShadow: '0 6px 20px rgba(245, 158, 11, 0.5)',
-                  },
-                }}
-              >
-                {isConnected ? shortAddress : 'Connect Wallet'}
-              </Button>
-            )}
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={isConnected && address ? (
+                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <Jazzicon diameter={20} seed={jsNumberForAddress(address)} />
+                </Box>
+              ) : (
+                <AccountBalanceWalletIcon />
+              )}
+              onClick={() => setWalletModalOpen(true)}
+              sx={{
+                display: { xs: 'none', md: 'inline-flex' },
+                background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
+                boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
+                '&:hover': {
+                  boxShadow: '0 6px 20px rgba(245, 158, 11, 0.5)',
+                },
+              }}
+            >
+              {isConnected ? shortAddress : 'Connect Wallet'}
+            </Button>
           </Toolbar>
         </Container>
       </AppBar>
