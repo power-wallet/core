@@ -2,16 +2,16 @@ import { loadBtcOnly } from '@/lib/strategies/sharedData';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 
 export interface Strategy {
-  id: 'simple-btc-dca';
+  id: 'btc-trend-following';
   name: string;
   run: (initialCapital: number, startDate: string, endDate: string) => Promise<SimulationResult>;
 }
 
-const DCA_AMOUNT = 100; // USDC per buy
-const DCA_INTERVAL_DAYS = 7; // weekly
+const EVAL_INTERVAL_DAYS = 7; // evaluate weekly
+const SMA_LENGTH = 50; // 50-day SMA
 
 async function run(initialCapital: number, startDate: string, endDate: string): Promise<SimulationResult> {
-  const btcData = await loadBtcOnly(startDate, endDate, 30);
+  const btcData = await loadBtcOnly(startDate, endDate, SMA_LENGTH + 30);
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
@@ -31,8 +31,8 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
   let maxBtcHodlValue = initialCapital;
 
   const toDate = (s: string) => new Date(s + 'T00:00:00Z');
-  let nextBuyDate = toDate(dates[startIdx]);
-  nextBuyDate.setDate(nextBuyDate.getDate() + DCA_INTERVAL_DAYS);
+  let nextEvalDate = toDate(dates[startIdx]);
+  nextEvalDate.setDate(nextEvalDate.getDate() + EVAL_INTERVAL_DAYS);
 
   // Initial day
   dailyPerformance.push({
@@ -50,19 +50,38 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
     ethPrice: 0,
   });
 
+  // SMA helper over prices
+  const smaAt = (i: number, length: number) => {
+    if (i + 1 < length) return null;
+    let sum = 0;
+    for (let k = i - length + 1; k <= i; k++) sum += prices[k];
+    return sum / length;
+  };
+
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
     const btcPrice = prices[i];
+    const sma = smaAt(i, SMA_LENGTH);
 
-    // DCA buy if due and cash available
+    // Evaluate weekly
     const currDate = toDate(date);
-    if (usdc >= DCA_AMOUNT && currDate >= nextBuyDate) {
-      const buyAmount = Math.min(DCA_AMOUNT, usdc);
-      const fee = buyAmount * 0.003;
-      const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;
-      btcQty += qty; usdc -= (buyAmount + fee);
-      trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: buyAmount, fee, portfolioValue: usdc + btcQty * btcPrice });
-      nextBuyDate.setDate(nextBuyDate.getDate() + DCA_INTERVAL_DAYS);
+    if (sma !== null && currDate >= nextEvalDate) {
+      const above = btcPrice > sma;
+      if (above && usdc > 1) {
+        // BUY 100% USDC into BTC
+        const fee = usdc * 0.003;
+        const qty = (usdc * (1.0 - 0.003)) / btcPrice;
+        btcQty += qty; usdc = 0;
+        trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: qty * btcPrice, fee, portfolioValue: usdc + btcQty * btcPrice });
+      } else if (!above && btcQty > 0) {
+        // SELL 100% BTC into USDC
+        const gross = btcQty * btcPrice;
+        const fee = gross * 0.003;
+        const value = gross * (1.0 - 0.003);
+        trades.push({ date, symbol: 'BTC', side: 'SELL', price: btcPrice, quantity: btcQty, value: gross, fee, portfolioValue: usdc + value });
+        usdc += value; btcQty = 0;
+      }
+      nextEvalDate.setDate(nextEvalDate.getDate() + EVAL_INTERVAL_DAYS);
     }
 
     const btcValue = btcQty * btcPrice;
@@ -91,7 +110,6 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
 
   const finalPerf = dailyPerformance[dailyPerformance.length - 1];
   const totalReturn = ((finalPerf.totalValue / initialCapital) - 1.0) * 100;
-  // CAGR utility copied from smartBtcDca
   const start = new Date(dates[startIdx]);
   const end = new Date(dates[dates.length - 1]);
   const days = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
@@ -105,7 +123,6 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
     : (Math.pow(finalPerf.btcHodlValue / initialCapital, 1 / years) - 1.0) * 100;
   const maxDrawdown = Math.min(...dailyPerformance.map(d => d.drawdown));
 
-  // Risk metrics (Sharpe/Sortino) same approach as smartBtcDca
   const dailyReturns: number[] = [];
   for (let i = 1; i < dailyPerformance.length; i++) {
     const prev = dailyPerformance[i - 1].totalValue;
@@ -121,7 +138,7 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
   const downDev = Math.sqrt(downside.reduce((acc, r) => acc + Math.pow(r - meanDown, 2), 0) / (downside.length > 1 ? (downside.length - 1) : 1));
   const sortinoRatio = downDev > 0 ? (meanDaily / downDev) * Math.sqrt(365) : 0;
 
-  // BTC HODL risk metrics (Sharpe/Sortino)
+  // BTC HODL risk metrics
   const btcDailyReturns: number[] = [];
   for (let i = 1; i < dailyPerformance.length; i++) {
     const prev = dailyPerformance[i - 1].btcHodlValue;
@@ -139,7 +156,7 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
   return {
     dailyPerformance,
     trades,
-    strategyId: 'simple-btc-dca',
+    strategyId: 'btc-trend-following',
     summary: {
       initialCapital,
       finalValue: finalPerf.totalValue,
@@ -163,8 +180,8 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
 }
 
 const strategy: Strategy = {
-  id: 'simple-btc-dca',
-  name: 'Simple BTC DCA',
+  id: 'btc-trend-following',
+  name: 'BTC Trend Following (50D SMA, weekly)',
   run,
 };
 

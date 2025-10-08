@@ -116,6 +116,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
               >
                 <MenuItem value="simple-btc-dca">Simple BTC DCA</MenuItem>
                 <MenuItem value="smart-btc-dca">Smart BTC DCA (Power Law)</MenuItem>
+                <MenuItem value="btc-trend-following">BTC Trend Following (50D SMA)</MenuItem>
                 <MenuItem value="btc-eth-momentum">BTC-ETH Momentum RSI</MenuItem>
               </TextField>
             </Grid>

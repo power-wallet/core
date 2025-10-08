@@ -147,6 +147,9 @@ export default function SimulatorPage() {
                   if (id === 'btc-eth-momentum') {
                     return 'A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.';
                   }
+                  if (id === 'btc-trend-following') {
+                    return 'A weekly 50‑day SMA trend strategy: fully in BTC when price > 50D SMA; otherwise in USDC.';
+                  }
                   return '';
                 })()}
               </Typography>
@@ -296,6 +299,35 @@ export default function SimulatorPage() {
                           <li>
                             <Typography variant="body2" color="text.secondary">
                               Only BTC eligible, ETH-BTC-RSI=40 → investable = $9,800. ETH weight = 0, BTC weight = 100% → target BTC $9,800.
+                            </Typography>
+                          </li>
+                        </ul>
+                      </>
+                    );
+                  }
+                  if (id === 'btc-trend-following') {
+                    return (
+                      <>
+                        <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mb: 1 }}>Core rules</Typography>
+                        <ul style={{ margin: 0, paddingLeft: 18 }}>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Signal: BTC close versus its 50‑day simple moving average (SMA50).
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              If close &gt; SMA50 → BUY: move 100% of USDC into BTC (after 0.30% fee).
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              If close &lt; SMA50 → SELL: move 100% of BTC into USDC (after 0.30% fee).
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Evaluation cadence: every 7 days; decisions only occur on evaluation dates.
                             </Typography>
                           </li>
                         </ul>
