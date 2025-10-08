@@ -50,7 +50,8 @@ export const addresses: Record<string, ChainAddresses> = {
     technicalIndicators: "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
     
     strategies: {
-      'simple-dca-v1': '0x316cc4fb12b1785aA38Cba5040AC2094B1d99709' // deployed SimpleDCA on Base Sepolia
+      'simple-btc-dca-v1': '0x97ee87073A5a430006020A60fC8F6190Fc9Fe082', // deployed SimpleDCA on Base Sepolia
+      'btc-dca-power-law-v1': '0xbf88275c8FAaE73C6c0be8291b9394fAc8aD9Df8' // deployed SimpleDCA on Base Sepolia
     }
   },
 

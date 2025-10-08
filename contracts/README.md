@@ -24,7 +24,7 @@ npm install
 ### Deploy TechnicalIndicators
 
 ```bash
-npx hardhat run scripts/deploy/deploy_indicators.ts --network base-sepolia
+npx hardhat run scripts/deploy/deploy-indicators.ts --network base-sepolia
 ```
 
 ### Verify TechnicalIndicators (Etherscan API v2)
@@ -43,7 +43,7 @@ npx hardhat run scripts/backfill-prices.ts --network base-sepolia
 ### Deploy StrategyRegistry, SimpleDCA, WalletFactory
 
 ```bash
-npx hardhat run scripts/deploy/base-sepolia-deploy.ts --network base-sepolia
+npx hardhat run scripts/deploy/deploy-base-sepolia.ts --network base-sepolia
 ```
 
 Example output:
@@ -96,7 +96,7 @@ npx hardhat run scripts/upgrade/upgrade_wallet_factory.ts --network base-sepolia
 PowerWallet is deployed/cloned by WalletFactory, but we deploy & verify once so new instances verify automatically.
 
 ```bash
-npx hardhat run scripts/deploy/deploy_power_wallet_impl.ts --network base-sepolia
+npx hardhat run scripts/deploy/deploy-powerwallet-impl.ts --network base-sepolia
 npx hardhat verify --network base-sepolia <powerWalletImpl>
 ```
 

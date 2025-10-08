@@ -9,18 +9,22 @@ import "./PowerWallet.sol";
 import "./StrategyRegistry.sol";
 
 contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+    event WalletCreated(address indexed user, address wallet, bytes32 indexed strategyId, address strategyImpl, address strategyInstance);
+    
     StrategyRegistry public registry;
 
     // user => list of wallets
     mapping(address => address[]) public userWallets;
+    address public swapRouter;
+    address public uniswapV3Factory;
 
+    // ---------------------------------------------
     // Track unique users who have created at least one wallet
     address[] private users;
     mapping(address => bool) public hasCreatedWallet;
 
-    event WalletCreated(address indexed user, address wallet, bytes32 indexed strategyId, address strategyImpl, address strategyInstance);
-    address public swapRouter;
-    address public uniswapV3Factory;
+    // Storage gap for future variable additions without shifting layout
+    uint256[50] private __gap;
 
     function initialize(address initialOwner, StrategyRegistry _registry, address _swapRouter, address _uniswapV3Factory) external initializer {
         __Ownable_init(initialOwner);

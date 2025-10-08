@@ -43,7 +43,18 @@ async function main() {
   // Register strategy id (updated canonical id)
   const strategyId = ethers.id('simple-btc-dca-v1');
   await (await registry.registerStrategy(strategyId, await dca.getAddress(), nextOverrides())).wait();
-  console.log('Registered strategy id:', strategyId);
+  console.log('Registered strategy id (SimpleDCA):', strategyId);
+
+  // Deploy SmartBtcDca implementation template (not proxy)
+  const SmartBtcDca = await ethers.getContractFactory('SmartBtcDca');
+  const smart = await SmartBtcDca.deploy(nextOverrides());
+  await smart.waitForDeployment();
+  console.log('SmartBtcDca (template):', await smart.getAddress());
+
+  // Register SmartBtcDca strategy id
+  const smartId = ethers.id('btc-dca-power-law-v1');
+  await (await registry.registerStrategy(smartId, await smart.getAddress(), nextOverrides())).wait();
+  console.log('Registered strategy id (SmartBtcDca):', smartId);
 
   // Deploy WalletFactory (UUPS)
   const WalletFactory = await ethers.getContractFactory('WalletFactory');
