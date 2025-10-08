@@ -1,4 +1,5 @@
 import { loadBtcOnly } from '@/lib/strategies/sharedData';
+import { calculateRSI } from '@/lib/indicators';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 
 export interface Strategy {
@@ -9,12 +10,17 @@ export interface Strategy {
 
 const EVAL_INTERVAL_DAYS = 7; // evaluate weekly
 const SMA_LENGTH = 50; // 50-day SMA
+const RSI_LENGTH = 14;
+const ENTRY_RSI = 60; // wider confirmation band: stronger RSI for entry
+const BUFFER_BPS = 50; // 0.5% price buffer around SMA
+const SLOPE_LOOKBACK_DAYS = 5; // SMA must be rising over this lookback
 
 async function run(initialCapital: number, startDate: string, endDate: string): Promise<SimulationResult> {
   const btcData = await loadBtcOnly(startDate, endDate, SMA_LENGTH + 30);
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
+  const rsi = calculateRSI(prices, RSI_LENGTH);
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in BTC data');
 
@@ -73,14 +79,23 @@ async function run(initialCapital: number, startDate: string, endDate: string): 
     // Evaluate weekly
     const currDate = toDate(date);
     if (sma !== null && currDate >= nextEvalDate) {
-      const above = btcPrice > sma;
-      if (above && usdc > 1) {
+      // Price buffer around SMA to avoid whipsaws
+      const entryThresh = sma * (1 + BUFFER_BPS / 10_000);
+      // RSI filters
+      const rsiNow = rsi[i];
+      const enterConfirmed = btcPrice > entryThresh && rsiNow > ENTRY_RSI;
+      // Aggressive exit: drop below SMA50 exits immediately
+      const exitConfirmed = btcPrice < sma;
+      // SMA slope filter
+      const slopeOk = i - SLOPE_LOOKBACK_DAYS >= 0 ? smaAt(i, SMA_LENGTH)! > smaAt(i - SLOPE_LOOKBACK_DAYS, SMA_LENGTH)! : true;
+
+      if (enterConfirmed && slopeOk && usdc > 1) {
         // BUY 100% USDC into BTC
         const fee = usdc * 0.003;
         const qty = (usdc * (1.0 - 0.003)) / btcPrice;
         btcQty += qty; usdc = 0;
         trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: qty * btcPrice, fee, portfolioValue: usdc + btcQty * btcPrice });
-      } else if (!above && btcQty > 0) {
+      } else if (exitConfirmed && btcQty > 0) {
         // SELL 100% BTC into USDC
         const gross = btcQty * btcPrice;
         const fee = gross * 0.003;

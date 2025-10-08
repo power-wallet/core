@@ -317,12 +317,12 @@ export default function SimulatorPage() {
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              If close &gt; SMA50 → BUY: move 100% of USDC into BTC (after 0.30% fee).
+                              Entry (weekly): close &gt; SMA50 × 1.005 AND RSI(14) &gt; 60 AND SMA50 rising over 5 days.
                             </Typography>
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              If close &lt; SMA50 → SELL: move 100% of BTC into USDC (after 0.30% fee).
+                              Exit (aggressive): close &lt; SMA50 → SELL 100% to USDC (after 0.30% fee).
                             </Typography>
                           </li>
                           <li>
