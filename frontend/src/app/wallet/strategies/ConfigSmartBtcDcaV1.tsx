@@ -167,7 +167,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
         </Box>
         <Box>
           <Typography variant="caption">Bands (relative to model)</Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <Stack sx={{paddingTop: 1}} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <TextField size="small" type="number" value={lower} onChange={(e) => setLower(Number(e.target.value))} label="Lower (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />
             <TextField size="small" type="number" value={upper} onChange={(e) => setUpper(Number(e.target.value))} label="Upper (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />
             <Button variant="outlined" size="small" onClick={updateBands} disabled={busy === 'bands'}>
@@ -180,7 +180,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
         </Box>
         <Box>
           <Typography variant="caption">Trade Percents</Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <Stack sx={{paddingTop: 1}} direction={{ xs: 'column', sm: 'column' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'left' }}>
             <FormControl size="small" sx={{ minWidth: 220 }}>
               <InputLabel id="buy-bps-label">Buy % (below lower band)</InputLabel>
               <Select labelId="buy-bps-label" label="Buy % (below lower band)" value={buy === '' ? '' : Number(buy)} onChange={(e) => setBuy(Number(e.target.value))}>

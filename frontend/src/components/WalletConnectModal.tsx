@@ -159,8 +159,22 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Choose how you want to connect:
             </Typography>
+
+            <Box 
+              sx={{ 
+                p: 2, 
+                bgcolor: 'rgba(245, 158, 11, 0.1)', 
+                borderRadius: 1,
+                border: '1px solid rgba(245, 158, 11, 0.2)',
+              }}
+            >
+              <Typography variant="caption" sx={{ color: '#FBB042' }}>
+                💡 <strong>New to crypto?</strong> Choose <b>Coinbase Smart Wallet</b> to create a wallet instantly with just your passkey - 
+                  no extensions or recovery phrases needed, and <b>no gas fees</b>!
+              </Typography>
+            </Box>
             
-            {connectors.map((connector) => (
+            {[...connectors].sort((a, b) => (a.id === 'coinbaseWalletSDK' ? -1 : b.id === 'coinbaseWalletSDK' ? 1 : 0)).map((connector) => (
               <Card 
                 key={connector.uid}
                 variant="outlined"
@@ -210,19 +224,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
               </Card>
             ))}
 
-            <Box 
-              sx={{ 
-                mt: 3, 
-                p: 2, 
-                bgcolor: 'rgba(245, 158, 11, 0.1)', 
-                borderRadius: 1,
-                border: '1px solid rgba(245, 158, 11, 0.2)',
-              }}
-            >
-              <Typography variant="caption" sx={{ color: '#FBB042' }}>
-                💡 <strong>New to crypto?</strong> Choose Coinbase Smart Wallet to create a wallet instantly with just your passkey - no extensions or recovery phrases needed!
-              </Typography>
-            </Box>
+            
           </Stack>
         )}
       </DialogContent>

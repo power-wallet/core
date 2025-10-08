@@ -288,54 +288,25 @@ export default function SmartContractsPage() {
         </Box>
 
         <Stack spacing={2}>
-          <Section title="WalletFactory"
+          <Section title="Wallet Factory"
             address={ADDR.walletFactory}
-            blurb="Creates PowerWallet instances and wires strategy instances; keeps track of user wallets." />
+            blurb="Creates PowerWallet instances and configures them with strategy instances." />
 
-          <Section title="StrategyRegistry"
+          <Section title="Strategy Registry"
             address={ADDR.strategyRegistry}
             blurb="Registry of investment strategies mapping strategy ids to implementation templates (for cloning)." />
 
-          <Section title="SimpleDCA"
+          <Section title="Simple BTC DCA"
               address={ADDR.strategies['simple-btc-dca-v1']}
-              blurb="Simple DCA Strategy that buys a fixed amount of risk asset at a fixed frequency." />
+              blurb="Simple DCA Strategy into BTC that invests a fixed amount of USDC at a fixed frequency." />
 
-          <Section title="SmartDCA"
+          <Section title="Smart BTC DCA"
               address={ADDR.strategies['btc-dca-power-law-v1']}
-              blurb="Smart DCA Strategy with optimized buy and sell amounts based on the power law model." />
+              blurb="Smart DCA Strategy into BTC with optimized buy and sell amounts based on the Bitcoin Power Law price model." />
 
-          <Section title="TechnicalIndicators"
+          <Section title="Technical Indicators"
             address={ADDR.technicalIndicators}
-            blurb="Calculates and stores daily indicators (e.g., SMA, RSI) using Chainlink price feeds." />
-
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink BTC/USD and ETH/USD Price Feeds</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Live reference prices from Chainlink aggregators on Base Sepolia.
-              </Typography>
-              <Stack spacing={1}>
-                <Typography variant="body2">
-                  BTC/USD: {btcUsd ? formatUSD(btcUsd.price) : 'Loading...'}
-                  {' '}<Ext href={BASESCAN + ADDR.btcUsdPriceFeed}>{isMobile ? shortAddr(ADDR.btcUsdPriceFeed) : ADDR.btcUsdPriceFeed}</Ext>
-                </Typography>
-                <Typography variant="body2">
-                  ETH/USD: {ethUsd ? formatUSD(ethUsd.price) : 'Loading...'}
-                  {' '}<Ext href={BASESCAN + ADDR.ethUsdPriceFeed}>{isMobile ? shortAddr(ADDR.ethUsdPriceFeed) : ADDR.ethUsdPriceFeed}</Ext>
-                </Typography>
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Divider sx={{ borderColor: '#2D2D2D' }} />
-
-          <Section title="Uniswap V3 Factory"
-            address={ADDR.uniswapV3Factory}
-            blurb="Core factory for Uniswap v3 pools. We query it to resolve pool addresses." />
-
-          <Section title="Uniswap V3 Router"
-            address={ADDR.uniswapV3Router}
-            blurb="Periphery router used by PowerWallet to execute swaps on Uniswap v3." />
+            blurb="Calculates and stores daily indicators (e.g. SMA, RSI) using Chainlink price feeds." />
 
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
             <CardContent sx={{ p: 3 }}>
@@ -375,9 +346,16 @@ export default function SmartContractsPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Stack>
 
-        <Box sx={{ mt: 4 }}>
+          <Section title="Uniswap V3 Factory"
+            address={ADDR.uniswapV3Factory}
+            blurb="Core factory for Uniswap v3 pools. We query it to resolve pool addresses." />
+
+          <Section title="Uniswap V3 Router"
+            address={ADDR.uniswapV3Router}
+            blurb="Periphery router used by PowerWallet to execute swaps on Uniswap v3." />
+
+
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink Automation</Typography>
@@ -389,7 +367,28 @@ export default function SmartContractsPage() {
               </Typography>
             </CardContent>
           </Card>
-        </Box>
+
+          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink BTC/USD and ETH/USD Price Feeds</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Live reference prices from Chainlink aggregators on Base Sepolia.
+              </Typography>
+             
+                <Typography variant="body2">
+                  BTC/USD: {btcUsd ? formatUSD(btcUsd.price) : 'Loading...'}
+                  {' '}<Ext href={BASESCAN + ADDR.btcUsdPriceFeed}>{isMobile ? shortAddr(ADDR.btcUsdPriceFeed) : ADDR.btcUsdPriceFeed}</Ext>
+                </Typography>
+                <Typography variant="body2">
+                  ETH/USD: {ethUsd ? formatUSD(ethUsd.price) : 'Loading...'}
+                  {' '}<Ext href={BASESCAN + ADDR.ethUsdPriceFeed}>{isMobile ? shortAddr(ADDR.ethUsdPriceFeed) : ADDR.ethUsdPriceFeed}</Ext>
+                </Typography>
+            
+            </CardContent>
+          </Card>
+
+        </Stack>
+
 
         {showTokens && (
         <Box sx={{ mt: 4 }}>

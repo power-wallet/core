@@ -90,13 +90,13 @@ export default function Home() {
               </Typography>
               <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0 }}>
                 <li>
-                  <Typography variant="body1">Power up your Bitcoin & crypto investments with proven investment strategies automated on-chain.</Typography>
+                  <Typography variant="body1"><strong>Power up</strong> your Bitcoin & crypto investments with proven investment strategies automated on-chain.</Typography>
                 </li>
                 <li>
-                  <Typography variant="body1">Enjoy the benefits of automated risk management.</Typography>
+                  <Typography variant="body1">Enjoy the benefits of <strong>automated risk management</strong>.</Typography>
                 </li>
                 <li>
-                  <Typography variant="body1">Maintain full custody with blockchain-based secure, transparent, verifiable execution. </Typography>
+                  <Typography variant="body1"><strong>Maintain full custody</strong> with blockchain-based secure, transparent, verifiable execution. </Typography>
                 </li>
               </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 5 }}>
@@ -241,7 +241,7 @@ export default function Home() {
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.9 }}>
               Create your first Power Wallet and begin your journey into 
-              self-sovereign, automated, on-chain investing.
+              self-sovereign, algorithmic, on-chain investing.
             </Typography>
             <Button
               variant="contained"

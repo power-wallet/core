@@ -341,6 +341,14 @@ export default function WalletDetails() {
     })();
   }, [depositOpen, stableTokenAddr, walletAddress, connected, client]);
 
+  // Show chart only if there is at least one transaction
+  const hasAnyTransactions = React.useMemo(() => {
+    const d = Array.isArray(depositsData) ? depositsData : [];
+    const w = Array.isArray(withdrawalsData) ? withdrawalsData : [];
+    const s = Array.isArray(swapsData) ? swapsData : [];
+    return d.length > 0 || w.length > 0 || s.length > 0;
+  }, [depositsData, withdrawalsData, swapsData]);
+
   // Initialize selected withdraw asset when modal opens
   React.useEffect(() => {
     if (!withdrawOpen) return;
@@ -447,7 +455,7 @@ export default function WalletDetails() {
         </a>
       </Typography>
 
-      {walletSeries && walletSeries.length ? (
+      {hasAnyTransactions && walletSeries && walletSeries.length ? (
         <Box sx={{ mb: 3 }}>
           <WalletHistoryChart data={walletSeries as any} />
         </Box>
@@ -541,7 +549,7 @@ export default function WalletDetails() {
                 <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
                 <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
               </Stack>
-              {chainKey === 'base-sepolia' && (sb === BigInt(0)) ? (
+              {chainKey === 'base-sepolia' && (userUsdcBalance !== undefined) && ((userUsdcBalance as bigint) === BigInt(0)) ? (
                 <Alert severity="info" sx={{ mt: 3 }}>
                   You can claim testnet USDC from the{' '}
                   <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Circle Faucet</a>.

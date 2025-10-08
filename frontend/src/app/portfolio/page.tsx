@@ -173,7 +173,7 @@ export default function PortfolioPage() {
         <Stack spacing={3} alignItems="center" textAlign="center">
           <Typography variant="h4" fontWeight="bold">Connect your wallet</Typography>
           <Typography variant="body1" color="text.secondary">
-            Connect your web3 wallet to view and manage your on-chain Power Wallets.
+            Connect a web3 wallet to view and manage your on-chain Power Wallets.
           </Typography>
           <Button variant="contained" onClick={() => setConnectOpen(true)}>Connect Wallet</Button>
         </Stack>
@@ -249,7 +249,7 @@ export default function PortfolioPage() {
         // Smart DCA initializer: (risk, stable, feed, frequency, lowerBps, upperBps, buyBps, smallBuyBps, sellBps, desc)
         const freqSec = BigInt(Math.max(1, Number(smartDays)) * 86400);
         const lowerBps = 5000; // 50% below model
-        const upperBps = 5000; // 50% above model
+        const upperBps = 10000; // 100% above model (2x)
         const feed = addressesForChain.btcUsdPriceFeed as `0x${string}`;
         return encodeFunctionData({
           abi: [
@@ -319,6 +319,13 @@ export default function PortfolioPage() {
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Stack spacing={3}>
           <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Create your first Power Wallet: an on-chain vault that can hold USDC and invest it into BTC according to a strategy you choose. 
+            Your connected account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means no one else can interact with your them, and mess with your funds. 
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Now, select the strategy that will manage the assets in your Power Wallet.
+          </Typography>
           {(showCreate || !needsFunding) ? (
             <Card variant="outlined">
               <CardContent>
