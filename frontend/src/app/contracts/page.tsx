@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Box, Typography, Card, CardContent, Stack, Link as MuiLink, Divider, useMediaQuery, Button } from '@mui/material';
+import { Container, Box, Typography, Card, CardContent, Stack, Link as MuiLink, Divider, useMediaQuery, Button, Tabs, Tab } from '@mui/material';
 import { useAccount, useChainId } from 'wagmi';
 import { createPublicClient, http } from 'viem';
 import appConfig from '@/config/appConfig.json';
@@ -118,6 +118,7 @@ export default function SmartContractsPage() {
   const [wethInfo, setWethInfo] = useState<PoolInfo | null>(null);
   const [btcUsd, setBtcUsd] = useState<{ price: number; updatedAt: number } | null>(null);
   const [ethUsd, setEthUsd] = useState<{ price: number; updatedAt: number } | null>(null);
+  const [tab, setTab] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -286,147 +287,162 @@ export default function SmartContractsPage() {
           <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">Smart Contracts</Typography>
           <Typography variant="body1" color="text.secondary">On-chain components powering Power Wallet on Base Sepolia</Typography>
         </Box>
+        <Box sx={{ mb: 2 }}>
+          <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons allowScrollButtonsMobile>
+            <Tab label="Power Wallet" />
+            <Tab label="Uniswap" />
+            <Tab label="Chainlink" />
+            <Tab label="Tokens" />
+          </Tabs>
+        </Box>
 
-        <Stack spacing={2}>
-          <Section title="Wallet Factory"
-            address={ADDR.walletFactory}
-            blurb="Creates PowerWallet instances and configures them with strategy instances." />
+        {tab === 0 && (
+          <Stack spacing={2}>
+            <Section title="Wallet Factory"
+              address={ADDR.walletFactory}
+              blurb="Creates PowerWallet instances and configures them with strategy instances." />
 
-          <Section title="Strategy Registry"
-            address={ADDR.strategyRegistry}
-            blurb="Registry of investment strategies mapping strategy ids to implementation templates (for cloning)." />
+            <Section title="Strategy Registry"
+              address={ADDR.strategyRegistry}
+              blurb="Registry of investment strategies mapping strategy ids to implementation templates (for cloning)." />
 
-          <Section title="Simple BTC DCA"
+            <Section title="Simple BTC DCA"
               address={ADDR.strategies['simple-btc-dca-v1']}
               blurb="Simple DCA Strategy into BTC that invests a fixed amount of USDC at a fixed frequency." />
 
-          <Section title="Smart BTC DCA"
+            <Section title="Smart BTC DCA"
               address={ADDR.strategies['btc-dca-power-law-v1']}
               blurb="Smart DCA Strategy into BTC with optimized buy and sell amounts based on the Bitcoin Power Law price model." />
 
-          <Section title="Technical Indicators"
-            address={ADDR.technicalIndicators}
-            blurb="Calculates and stores daily indicators (e.g. SMA, RSI) using Chainlink price feeds." />
+            <Section title="Technical Indicators"
+              address={ADDR.technicalIndicators}
+              blurb="Calculates and stores daily indicators (e.g. SMA, RSI) using Chainlink price feeds." />
+          </Stack>
+        )}
 
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>Uniswap V3 Pools (fee 0.01%)</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Uniswap V3 Pools to perform swaps between the risk assets (e.g., cbBTC and WETH) and stablecoin (e.g., USDC).
-              </Typography>
-              <Stack spacing={1}>
-                <Typography variant="body2">
-                  cbBTC / USDC: {cbBtcUsdcPool ? (<Ext href={BASESCAN + cbBtcUsdcPool}>{isMobile ? shortAddr(cbBtcUsdcPool) : cbBtcUsdcPool}</Ext>) : 'Resolving...'}{' '}
-                  {cbBtcUsdcPool ? (
-                    <Button size="small" variant="outlined" href={`/pools?address=${cbBtcUsdcPool}`} sx={{ ml: 1 }}>Manage</Button>
-                  ) : null}
+        {tab === 1 && (
+          <Stack spacing={2}>
+            <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>Uniswap V3 Pools</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Uniswap V3 Pools to perform swaps between the risk assets (e.g., cbBTC and WETH) and stablecoin (e.g., USDC).
                 </Typography>
-                {cbBtcInfo && (
-                  <Box sx={{ pl: 2 }}>
-                    <Typography variant="caption" color="text.secondary">Balances</Typography>
-                    <Typography variant="body2">{cbBtcInfo.bal0}</Typography>
-                    <Typography variant="body2">{cbBtcInfo.bal1}</Typography>
-                    <Typography variant="body2">Exchange Rate: {cbBtcInfo.unitPrice}</Typography>
-                  </Box>
-                )}
-                <Typography variant="body2">
-                  WETH / USDC: {wethUsdcPool ? (<Ext href={BASESCAN + wethUsdcPool}>{isMobile ? shortAddr(wethUsdcPool) : wethUsdcPool}</Ext>) : 'Resolving...'}{' '}
-                  {wethUsdcPool ? (
-                    <Button size="small" variant="outlined" href={`/pools?address=${wethUsdcPool}`} sx={{ ml: 1 }}>Manage</Button>
-                  ) : null}
-                </Typography>
-                {wethInfo && (
-                  <Box sx={{ pl: 2 }}>
-                    <Typography variant="caption" color="text.secondary">Balances</Typography>
-                    <Typography variant="body2">{wethInfo.bal0}</Typography>
-                    <Typography variant="body2">{wethInfo.bal1}</Typography>
-                    <Typography variant="body2">Exchange Rate: {wethInfo.unitPrice}</Typography>
-                  </Box>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Section title="Uniswap V3 Factory"
-            address={ADDR.uniswapV3Factory}
-            blurb="Core factory for Uniswap v3 pools. We query it to resolve pool addresses." />
-
-          <Section title="Uniswap V3 Router"
-            address={ADDR.uniswapV3Router}
-            blurb="Periphery router used by PowerWallet to execute swaps on Uniswap v3." />
-
-
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink Automation</Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                We use Chainlink Automation to keep price feeds and technical indicators up to date on-chain.
-              </Typography>
-              <Typography variant="body2">
-                Upkeep: <MuiLink href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>View on Chainlink Automation</MuiLink>
-              </Typography>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink BTC/USD and ETH/USD Price Feeds</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Live reference prices from Chainlink aggregators on Base Sepolia.
-              </Typography>
-             
-                <Typography variant="body2">
-                  BTC/USD: {btcUsd ? formatUSD(btcUsd.price) : 'Loading...'}
-                  {' '}<Ext href={BASESCAN + ADDR.btcUsdPriceFeed}>{isMobile ? shortAddr(ADDR.btcUsdPriceFeed) : ADDR.btcUsdPriceFeed}</Ext>
-                </Typography>
-                <Typography variant="body2">
-                  ETH/USD: {ethUsd ? formatUSD(ethUsd.price) : 'Loading...'}
-                  {' '}<Ext href={BASESCAN + ADDR.ethUsdPriceFeed}>{isMobile ? shortAddr(ADDR.ethUsdPriceFeed) : ADDR.ethUsdPriceFeed}</Ext>
-                </Typography>
-            
-            </CardContent>
-          </Card>
-
-        </Stack>
-
-
-        {showTokens && (
-        <Box sx={{ mt: 4 }}>
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>Tokens</Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                {isBaseMainnet ? 'Core tokens used by Power Wallet on Base chain.' : 'Core tokens used by Power Wallet on Base Sepolia network.'}
-              </Typography>
-              <Stack spacing={1}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    cbBTC: {ADDR.cbBTC ? (<MuiLink href={`${BASESCAN}${ADDR.cbBTC}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.cbBTC) : ADDR.cbBTC}</MuiLink>) : '—'}
+                <Stack spacing={1}>
+                  <Typography variant="body2">
+                    cbBTC / USDC: {cbBtcUsdcPool ? (<Ext href={BASESCAN + cbBtcUsdcPool}>{isMobile ? shortAddr(cbBtcUsdcPool) : cbBtcUsdcPool}</Ext>) : 'Resolving...'}{' '}
+                    {cbBtcUsdcPool ? (
+                      <Button size="small" variant="outlined" href={`/pools?address=${cbBtcUsdcPool}`} sx={{ ml: 1 }}>Manage</Button>
+                    ) : null}
                   </Typography>
-                  {isConnected && ADDR.cbBTC ? (
-                    <Button size="small" variant="outlined" onClick={() => addTokenToWallet('cbBTC')}>Add</Button>
-                  ) : null}
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    WETH: {ADDR.weth ? (<MuiLink href={`${BASESCAN}${ADDR.weth}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.weth) : ADDR.weth}</MuiLink>) : '—'}
+                  {cbBtcInfo && (
+                    <Box sx={{ pl: 2 }}>
+                      <Typography variant="caption" color="text.secondary">Balances</Typography>
+                      <Typography variant="body2">{cbBtcInfo.bal0}</Typography>
+                      <Typography variant="body2">{cbBtcInfo.bal1}</Typography>
+                      <Typography variant="body2">Exchange Rate: {cbBtcInfo.unitPrice}</Typography>
+                    </Box>
+                  )}
+                  <Typography variant="body2">
+                    WETH / USDC: {wethUsdcPool ? (<Ext href={BASESCAN + wethUsdcPool}>{isMobile ? shortAddr(wethUsdcPool) : wethUsdcPool}</Ext>) : 'Resolving...'}{' '}
+                    {wethUsdcPool ? (
+                      <Button size="small" variant="outlined" href={`/pools?address=${wethUsdcPool}`} sx={{ ml: 1 }}>Manage</Button>
+                    ) : null}
                   </Typography>
-                  {isConnected && ADDR.weth ? (
-                    <Button size="small" variant="outlined" onClick={() => addTokenToWallet('WETH')}>Add</Button>
-                  ) : null}
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    USDC: {ADDR.usdc ? (<MuiLink href={`${BASESCAN}${ADDR.usdc}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.usdc) : ADDR.usdc}</MuiLink>) : '—'}
+                  {wethInfo && (
+                    <Box sx={{ pl: 2 }}>
+                      <Typography variant="caption" color="text.secondary">Balances</Typography>
+                      <Typography variant="body2">{wethInfo.bal0}</Typography>
+                      <Typography variant="body2">{wethInfo.bal1}</Typography>
+                      <Typography variant="body2">Exchange Rate: {wethInfo.unitPrice}</Typography>
+                    </Box>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <Section title="Uniswap V3 Factory"
+              address={ADDR.uniswapV3Factory}
+              blurb="Core factory for Uniswap v3 pools. We query it to resolve pool addresses." />
+
+            <Section title="Uniswap V3 Router"
+              address={ADDR.uniswapV3Router}
+              blurb="Periphery router used by PowerWallet to execute swaps on Uniswap v3." />
+          </Stack>
+        )}
+
+        {tab === 2 && (
+          <Stack spacing={2}>
+            <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink Automation</Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  We use Chainlink Automation to keep price feeds and technical indicators up to date on-chain.
+                </Typography>
+                <Typography variant="body2">
+                  <MuiLink href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>Go to Chainlink Automation</MuiLink>
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink BTC/USD and ETH/USD Price Feeds</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Live reference prices from Chainlink aggregators on Base Sepolia.
+                </Typography>
+                <Typography variant="body2">
+                  BTC/USD: {btcUsd ? formatUSD(btcUsd.price) : 'Loading...'} {' '}<Ext href={BASESCAN + ADDR.btcUsdPriceFeed}>{isMobile ? shortAddr(ADDR.btcUsdPriceFeed) : ADDR.btcUsdPriceFeed}</Ext>
+                </Typography>
+                <Typography variant="body2">
+                  ETH/USD: {ethUsd ? formatUSD(ethUsd.price) : 'Loading...'} {' '}<Ext href={BASESCAN + ADDR.ethUsdPriceFeed}>{isMobile ? shortAddr(ADDR.ethUsdPriceFeed) : ADDR.ethUsdPriceFeed}</Ext>
+                </Typography>
+              </CardContent>
+            </Card>
+          </Stack>
+        )}
+
+        {tab === 3 && (
+          <Stack spacing={2}>
+            {showTokens ? (
+              <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>Tokens</Typography>
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    {isBaseMainnet ? 'Core tokens used by Power Wallet on Base chain.' : 'Core tokens used by Power Wallet on Base Sepolia network.'}
                   </Typography>
-                  {isConnected && ADDR.usdc ? (
-                    <Button size="small" variant="outlined" onClick={() => addTokenToWallet('USDC')}>Add</Button>
-                  ) : null}
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Box>
+                  <Stack spacing={1}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        cbBTC: {ADDR.cbBTC ? (<MuiLink href={`${BASESCAN}${ADDR.cbBTC}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.cbBTC) : ADDR.cbBTC}</MuiLink>) : '—'}
+                      </Typography>
+                      {isConnected && ADDR.cbBTC ? (
+                        <Button size="small" variant="outlined" onClick={() => addTokenToWallet('cbBTC')}>Add</Button>
+                      ) : null}
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        WETH: {ADDR.weth ? (<MuiLink href={`${BASESCAN}${ADDR.weth}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.weth) : ADDR.weth}</MuiLink>) : '—'}
+                      </Typography>
+                      {isConnected && ADDR.weth ? (
+                        <Button size="small" variant="outlined" onClick={() => addTokenToWallet('WETH')}>Add</Button>
+                      ) : null}
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        USDC: {ADDR.usdc ? (<MuiLink href={`${BASESCAN}${ADDR.usdc}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.usdc) : ADDR.usdc}</MuiLink>) : '—'}
+                      </Typography>
+                      {isConnected && ADDR.usdc ? (
+                        <Button size="small" variant="outlined" onClick={() => addTokenToWallet('USDC')}>Add</Button>
+                      ) : null}
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            ) : (
+              <Typography variant="body2" color="text.secondary">Connect on Base or Base Sepolia to view token helpers.</Typography>
+            )}
+          </Stack>
         )}
       </Container>
     </Box>
