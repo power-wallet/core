@@ -69,6 +69,7 @@ export default function WalletDetails() {
     if (!walletAddress || walletAddress.length < 10) return walletAddress || '';
     return `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`;
   }, [walletAddress]);
+  const [copied, setCopied] = React.useState(false);
 
   const { data: assets } = useReadContract({
     address: walletAddress || undefined,
@@ -454,7 +455,7 @@ export default function WalletDetails() {
         <span>{shortAddress}</span>
         <a
           href="#"
-          onClick={(e) => { e.preventDefault(); if (walletAddress) navigator.clipboard.writeText(walletAddress).catch(() => {}); }}
+          onClick={(e) => { e.preventDefault(); if (walletAddress) navigator.clipboard.writeText(walletAddress).then(() => setCopied(true)).catch(() => {}); }}
           style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
           aria-label="Copy wallet address"
           title="Copy address"
@@ -1064,6 +1065,18 @@ export default function WalletDetails() {
           ) : (
             toast.message
           )}
+        </Alert>
+      </Snackbar>
+
+      {/* Copied indicator */}
+      <Snackbar
+        open={copied}
+        autoHideDuration={1500}
+        onClose={() => setCopied(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setCopied(false)} severity="success" sx={{ width: '100%' }}>
+          Address copied to clipboard
         </Alert>
       </Snackbar>
 

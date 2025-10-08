@@ -42,7 +42,7 @@ const Navbar = () => {
   };
 
   const menuItems = [
-    { text: 'Home', href: '/portfolio' },
+    { text: 'My Wallets', href: '/portfolio' },
     { text: 'Simulator', href: '/simulator' },
     { text: 'Smart Contracts', href: '/contracts' },
     { text: 'About', href: '/about' },
@@ -113,20 +113,25 @@ const Navbar = () => {
             )}
             
             <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Typography
-                variant="h6"
-                component="div"
-                sx={{ 
+              <Box
+                sx={{
                   flexGrow: isMobile ? 1 : 0,
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   mr: 4,
                 }}
+                aria-label="Go to homepage"
               >
-                Power Wallet
-              </Typography>
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
+                    boxShadow: '0 0 12px rgba(245, 158, 11, 0.5)',
+                  }}
+                />
+              </Box>
             </Link>
 
             {!isMobile && (
