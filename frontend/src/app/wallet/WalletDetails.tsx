@@ -144,6 +144,12 @@ export default function WalletDetails() {
     functionName: 'name',
     query: { enabled: Boolean(strategyAddr) },
   });
+  const { data: strategyIdStr } = useReadContract({
+    address: strategyAddr as `0x${string}` | undefined,
+    abi: [ { type: 'function', name: 'id', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] } ] as const,
+    functionName: 'id',
+    query: { enabled: Boolean(strategyAddr) },
+  });
 
   // Transactions
   const { data: depositsData } = useReadContract({
@@ -1001,16 +1007,32 @@ export default function WalletDetails() {
         <DialogTitle>Configure Strategy</DialogTitle>
         <DialogContent>
           {(() => {
-            // Determine strategy id by matching description from appConfig
+            // Determine strategy id using on-chain strategy.id, fallback to description match
             const strategies = (appConfig as any)[chainKey]?.strategies || {};
             const descStr = String(desc || '').trim();
             let matchedId: string | null = null;
             let stableKey: string | null = null;
-            for (const [id, st] of Object.entries<any>(strategies)) {
-              if (String(st.description).trim() === descStr) {
-                matchedId = id;
-                stableKey = st.stable;
-                break;
+
+            const onChainId = String(strategyIdStr || '').trim();
+            if (onChainId && strategies[onChainId]) {
+              matchedId = onChainId;
+              stableKey = (strategies as any)[onChainId].stable;
+            } else if (onChainId) {
+              for (const [id, st] of Object.entries<any>(strategies)) {
+                if (String(st.id || '').trim() === onChainId) {
+                  matchedId = id;
+                  stableKey = st.stable;
+                  break;
+                }
+              }
+            }
+            if (!matchedId) {
+              for (const [id, st] of Object.entries<any>(strategies)) {
+                if (String(st.description).trim() === descStr) {
+                  matchedId = id;
+                  stableKey = st.stable;
+                  break;
+                }
               }
             }
             if (matchedId === 'simple-btc-dca-v1') {

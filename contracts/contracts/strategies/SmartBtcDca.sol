@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../interfaces/IStrategy.sol";
 import "../utils/ABDKMath64x64.sol";
 
@@ -23,6 +24,8 @@ contract SmartBtcDca is IStrategy {
     address public riskAsset;          // e.g., cbBTC (decimals riskDec)
     address public stableAsset;        // e.g., USDC  (decimals stableDec)
     address public btcUsdFeed;         // Chainlink BTC/USD (8 decimals typical)
+    uint8 public riskDecimals;         // cached risk token decimals
+    uint8 public stableDecimals;       // cached stable token decimals
 
     uint256 public frequency;          // seconds between evaluations
     uint256 public lastTimestamp;      // last executed timestamp, set in onRebalanceExecuted
@@ -84,6 +87,9 @@ contract SmartBtcDca is IStrategy {
         buyBpsOfStable = _buyBpsStable;
         smallBuyBpsOfStable = _smallBuyBpsStable;
         sellBpsOfRisk = _sellBpsRisk;
+        // Cache token decimals (best-effort)
+        riskDecimals = IERC20Metadata(_risk).decimals();
+        stableDecimals = IERC20Metadata(_stable).decimals();
         lastTimestamp = 0;
         _description = desc;
         _id = "btc-dca-power-law-v1";
@@ -124,7 +130,9 @@ contract SmartBtcDca is IStrategy {
         if (price < lowerThreshold && buyBpsOfStable > 0 && stableBalance > 0) {
             // Below lower band: use full buy percentage
             uint256 amountStable = (stableBalance * buyBpsOfStable) / 10000;
-            if (amountStable == 0) return (false, actions);
+            // Enforce minimum $1 worth of stable to avoid micro-swaps
+            uint256 minStableUnits = 10 ** stableDecimals;
+            if (amountStable < minStableUnits) return (false, actions);
             actions = new SwapAction[](1);
             actions[0] = SwapAction({ tokenIn: stableAsset, tokenOut: riskAsset, amountIn: amountStable });
             return (true, actions);
@@ -133,7 +141,9 @@ contract SmartBtcDca is IStrategy {
         if (price >= lowerThreshold && price <= model && smallBuyBpsOfStable > 0 && stableBalance > 0) {
             // Between lower band and model: use small buy percentage
             uint256 amountStable = (stableBalance * smallBuyBpsOfStable) / 10000;
-            if (amountStable == 0) return (false, actions);
+            // Enforce minimum $1 worth of stable to avoid micro-swaps
+            uint256 minStableUnits = 10 ** stableDecimals;
+            if (amountStable < minStableUnits) return (false, actions);
             actions = new SwapAction[](1);
             actions[0] = SwapAction({ tokenIn: stableAsset, tokenOut: riskAsset, amountIn: amountStable });
             return (true, actions);
@@ -142,7 +152,11 @@ contract SmartBtcDca is IStrategy {
         if (price > upperThreshold && sellBpsOfRisk > 0 && riskBalances.length > 0 && riskBalances[0] > 0) {
             // Above upper band: sell
             uint256 amountRisk = (riskBalances[0] * sellBpsOfRisk) / 10000;
-            if (amountRisk == 0) return (false, actions);
+            // Enforce minimum $1 worth of risk asset (using Chainlink price 1e8)
+            // riskValue1e8 = amountRisk * price / 10^riskDecimals
+            uint256 denom = 10 ** riskDecimals;
+            uint256 riskValue1e8 = (amountRisk * price) / denom;
+            if (riskValue1e8 < 1e8) return (false, actions);
             actions = new SwapAction[](1);
             actions[0] = SwapAction({ tokenIn: riskAsset, tokenOut: stableAsset, amountIn: amountRisk });
             return (true, actions);
