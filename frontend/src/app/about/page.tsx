@@ -104,7 +104,7 @@ export default function About() {
                     <li>
                       Smart DCA: Optimize BTC accumulation, guided by the &nbsp;
                       <Box component="a" 
-                        href="https://bitcoinpower.law/" target="_blank" 
+                        href="https://charts.bitbo.io/long-term-power-law/" target="_blank" 
                         rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
                           Bitcoin Power Law
                       </Box>

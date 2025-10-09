@@ -20,6 +20,9 @@ async function main() {
   // Website power-law parameters
   const A = Math.pow(10, -16.493);
   const n = 5.68;
+  // Alternative parameters to check
+  const A2 = 9.64e-18;
+  const n2 = 5.8451;
 
   const inputs = [
     { label: "2011-03-08", date: "2011-03-08" },
@@ -33,7 +36,7 @@ async function main() {
     { label: "2045-12-18", date: "2045-12-18" },
   ];
 
-  console.log("--- TypeScript reference ---");
+  console.log("--- TypeScript reference (A=10^-16.493, n=5.68) ---");
   console.log("Date, d, ts_1e8, ts_USD");
   for (const { label, date } of inputs) {
     const ts = toUnix(date);
@@ -55,6 +58,17 @@ async function main() {
     const model = await smart.modelPriceUSD_1e8.staticCall(d);
     const usd = Number(model) / 1e8;
     console.log(`${label}, ${d.toString()}, ${model.toString()}, ${usd.toFixed(2)}`);
+  }
+  console.log("");
+  console.log("--- TypeScript reference (A=9.64e-18, n=5.8451) ---");
+  console.log("Date, d, ts_1e8, ts_USD");
+  for (const { label, date } of inputs) {
+    const ts = toUnix(date);
+    const d = daysSinceGenesis(ts);
+    const tsModel = A2 * Math.pow(Number(d), n2);
+    const tsModel1e8 = Math.round(tsModel * 1e8);
+    const tsUsd = tsModel;
+    console.log(`${label}, ${d.toString()}, ${tsModel1e8}, ${tsUsd.toFixed(2)}`);
   }
 }
 

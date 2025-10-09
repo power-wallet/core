@@ -21,7 +21,7 @@ describe("SmartBtcDca model helpers", () => {
     expect(d).to.eq(6123n);
   });
 
-  it("modelPriceUSD_1e8 matches website A=10^-16.493, n=5.68 within tolerance for 2025-10-09 (d=6123)", async () => {
+  it("modelPriceUSD_1e8 matches A=9.64e-18, n=5.8451 within tolerance for 2025-10-09 (d=6123)", async () => {
     const [deployer] = await ethers.getSigners();
     const smart = await new SmartBtcDca__factory(deployer).deploy();
 
@@ -38,9 +38,9 @@ describe("SmartBtcDca model helpers", () => {
     expect(model).to.not.eq(10_000_000_000_000n);
 
     // Compare with double-precision CPU reference with reasonable tolerance
-    // Website params (https://bitcoinpower.law/)
-    const A = Math.pow(10, -16.493);
-    const n = 5.68;
+    // params matching https://charts.bitbo.io/long-term-power-law/
+    const A = 9.64e-18;
+    const n = 5.8451;
     const ref = BigInt(Math.round(A * Math.pow(Number(d), n) * 1e8));
 
     // Allow a tolerance of 25% because on-chain uses fixed-point with approximations
@@ -52,7 +52,7 @@ describe("SmartBtcDca model helpers", () => {
     expect(model).to.be.lte(max);
   });
 
-  it("modelPriceUSD_1e8 matches website model for a few other dates", async () => {
+  it("modelPriceUSD_1e8 matches model for a few other dates (A=9.64e-18, n=5.8451)", async () => {
     const [deployer] = await ethers.getSigners();
     const smart = await new SmartBtcDca__factory(deployer).deploy();
 
@@ -63,8 +63,8 @@ describe("SmartBtcDca model helpers", () => {
       { d: 3653n, label: "2019-01-03" },
       { d: 6123n, label: "2025-10-09" },
     ];
-    const A = Math.pow(10, -16.493);
-    const n = 5.68;
+    const A = 9.64e-18;
+    const n = 5.8451;
     const tolBps = 1n; // 0.01% tolerance across wide range
 
     for (const { d, label } of dates) {

@@ -43,12 +43,12 @@ contract SmartBtcDca is IStrategy {
     string private _name;
 
     // Power-law constants (from TypeScript model)
-    // Website model: P = A * d^n with A = 10^-16.493 and n = 5.68
+    // Model: P = A * d^n with A = 9.64e-18 and n = 5.8451
     // Precomputed 64.64 fixed-point constants for accuracy and gas efficiency.
     // N in 64.64:
-    int128 private constant N_64x64 = 104777506338670253179; // 5.68 in 64.64
-    // log2(A) in 64.64 (negative signed value)
-    int128 private constant LOG2_A_64x64 = -1010670545759486186292; // log2(10^-16.493)
+    int128 private constant N_64x64 = 107823063785239700151; // 5.8451 in 64.64
+    // log2(A) in 64.64 (negative signed value) for A=9.64e-18
+    int128 private constant LOG2_A_64x64 = -1042714615336615593515;
 
     event Initialized(address risk, address stable, address feed, uint256 frequency, uint16 lowerBps, uint16 upperBps, uint16 buyBps, uint16 smallBuyBps, uint16 sellBps);
     event Executed(uint256 when, int256 decision, uint256 amountIn);
