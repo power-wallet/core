@@ -44,17 +44,30 @@ library ABDKMath64x64 {
   }
 
   function log_2 (int128 x) internal pure returns (int128) {
-    require (x > 0);
-    int256 msb = 0;
-    int256 ux = int256 (x);
-    while (ux >= 0x20000000000000000) { ux >>= 1; msb++; }
-    int256 result = (msb - 64) << 64;
-    int128 y = int128 (ux);
-    for (uint8 bit = 0; bit < 64; bit++) {
-      y = mul (y, y);
-      if (y >= 0x20000000000000000) { y = int128 (int256 (y) >> 1); result += int256 (1) << (63 - bit); }
+    require (x > 0, "log");
+    uint256 ux = uint256(uint128(x));
+    int256 result = 0;
+
+    // Normalize ux to be in [1.0, 2.0) range (i.e., [2^64, 2^65) in 64.64)
+    if (ux < 0x10000000000000000) {
+      uint256 shift = 0;
+      while (ux < 0x10000000000000000) { ux <<= 1; shift++; }
+      result -= int256(shift) << 64;
+    } else if (ux >= 0x20000000000000000) {
+      uint256 shift = 0;
+      while (ux >= 0x20000000000000000) { ux >>= 1; shift++; }
+      result += int256(shift) << 64;
     }
-    return int128 (result);
+
+    // Fractional part via iterative squaring
+    for (uint8 bit = 0; bit < 64; bit++) {
+      ux = (ux * ux) >> 64;
+      if (ux >= 0x20000000000000000) {
+        ux >>= 1;
+        result += int256(1) << (63 - bit);
+      }
+    }
+    return int128(result);
   }
 
   function exp_2 (int128 x) internal pure returns (int128) {

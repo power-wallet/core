@@ -43,10 +43,12 @@ contract SmartBtcDca is IStrategy {
     string private _name;
 
     // Power-law constants (from TypeScript model)
-    // P = C * d^N, with C ~ 9.65e-18 and N ~ 5.845
-    // Implemented in 64.64 fixed-point via ABDK-style functions below.
-    int128 private constant N_64x64 = 0x00000000000000000000000000000000000000000000000000000000005C28F5; // ~5.845 (approx) in 64.64
-    int128 private constant C_64x64 = 0x00000000000000000000000000000000; // ~9.65e-18 ~ 0 in 64.64 (very small)
+    // P = C * d^N, with C ≈ 9.65e-18 and N ≈ 5.845
+    // Precomputed 64.64 fixed-point constants for accuracy and gas efficiency.
+    // N in 64.64:
+    int128 private constant N_64x64 = 107821219110832329196; // ~5.845 in 64.64
+    // log2(C) in 64.64 (negative signed value)
+    int128 private constant LOG2_C_64x64 = -1042687022771991745244; // ~-56.52417676559
 
     event Initialized(address risk, address stable, address feed, uint256 frequency, uint16 lowerBps, uint16 upperBps, uint16 buyBps, uint16 smallBuyBps, uint16 sellBps);
     event Executed(uint256 when, int256 decision, uint256 amountIn);
@@ -183,34 +185,34 @@ contract SmartBtcDca is IStrategy {
     function modelPriceUSD_1e8(uint256 d) public pure returns (uint256) {
         if (d < 1) d = 1;
         // Compute log2(price) = log2(C) + N * log2(d)
-        // N ≈ 5.845 -> represented as 5845/1000 in 64.64
         int128 d64 = ABDKMath64x64.fromUInt(d);
         int128 log2d = ABDKMath64x64.log_2(d64);
-        int128 N_ = ABDKMath64x64.div(ABDKMath64x64.fromUInt(5845), ABDKMath64x64.fromUInt(1000));
-
-        // log2(C) with C = 9.65e-18 = 965 / (100 * 10^18)
-        int128 log2_965 = ABDKMath64x64.log_2(ABDKMath64x64.fromUInt(965));
-        int128 log2_100 = ABDKMath64x64.log_2(ABDKMath64x64.fromUInt(100));
-        int128 log2_10 = ABDKMath64x64.log_2(ABDKMath64x64.fromUInt(10));
-        int128 log2C = ABDKMath64x64.sub(ABDKMath64x64.sub(log2_965, log2_100), ABDKMath64x64.mul(ABDKMath64x64.fromUInt(18), log2_10));
-
-        int128 log2price = ABDKMath64x64.add(log2C, ABDKMath64x64.mul(log2d, N_));
-        int128 price64 = _exp2_approx(log2price);
+        int128 log2price = ABDKMath64x64.add(LOG2_C_64x64, ABDKMath64x64.mul(log2d, N_64x64));
+        int128 price64 = _exp2_decomposed(log2price);
 
         // Convert 64.64 to 1e8
         uint256 scaled = (uint256(uint128(price64)) * 1e8) >> 64;
-        if (scaled == 0) {
-            // Fallback to a reasonable default to avoid underflow during early days or approximation error
-            // This keeps strategy functional on-chain; tests derive thresholds from this value.
-            return 10_000_000_000_000; // $100,000 * 1e8
-        }
+        if (scaled == 0) return 1; // clamp to 1 to avoid zero
         return scaled;
     }
 
-    function _exp2_approx(int128 x) internal pure returns (int128) {
-        // 2^x = 2^{k+f} = (2^k) * 2^f, where k = floor(x), f in [0,1)
+    // ---- Debug helpers (view, safe for tests) ----
+    function debugLog2d(uint256 d) external pure returns (int128) {
+        if (d < 1) d = 1;
+        int128 d64 = ABDKMath64x64.fromUInt(d);
+        return ABDKMath64x64.log_2(d64);
+    }
+
+    function debugLog2Price(uint256 d) external pure returns (int128) {
+        if (d < 1) d = 1;
+        int128 d64 = ABDKMath64x64.fromUInt(d);
+        int128 log2d = ABDKMath64x64.log_2(d64);
+        return ABDKMath64x64.add(LOG2_C_64x64, ABDKMath64x64.mul(log2d, N_64x64));
+    }
+
+    function _exp2_decomposed(int128 x) internal pure returns (int128) {
+        // Decompose x into integer and fractional parts: x = k + f, with f in [0,1)
         int128 one = 0x10000000000000000; // 1.0 in 64.64
-        // Integer part k and fractional part f
         int256 xi = int256(x);
         int256 k = xi >> 64; // integer part
         int128 f = int128(xi - (k << 64)); // fractional part in 64.64
@@ -229,7 +231,7 @@ contract SmartBtcDca is IStrategy {
         int128 t5 = ABDKMath64x64.mul(t4, t);
         term = ABDKMath64x64.add(term, ABDKMath64x64.div(t5, ABDKMath64x64.fromUInt(120))); // + t^5/120
 
-        // Multiply/divide by 2^k using loops (k magnitude is small in practice)
+        // Scale by 2^k using shifts (loop multiply/divide by two)
         int128 two = 0x20000000000000000; // 2.0 in 64.64
         if (k > 0) {
             uint256 times = uint256(int256(k));
@@ -244,6 +246,7 @@ contract SmartBtcDca is IStrategy {
         }
         return term;
     }
+
 
 }
 
