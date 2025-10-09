@@ -21,7 +21,7 @@ describe("SmartBtcDca model helpers", () => {
     expect(d).to.eq(6123n);
   });
 
-  it("modelPriceUSD_1e8 produces sensible value (close to CPU ref) for 2025-10-09 (d=6123)", async () => {
+  it("modelPriceUSD_1e8 matches website A=10^-16.493, n=5.68 within tolerance for 2025-10-09 (d=6123)", async () => {
     const [deployer] = await ethers.getSigners();
     const smart = await new SmartBtcDca__factory(deployer).deploy();
 
@@ -38,7 +38,10 @@ describe("SmartBtcDca model helpers", () => {
     expect(model).to.not.eq(10_000_000_000_000n);
 
     // Compare with double-precision CPU reference with reasonable tolerance
-    const ref = cpuReferencePrice1e8(Number(d)); // ~131,623 * 1e8
+    // Website params (https://bitcoinpower.law/)
+    const A = Math.pow(10, -16.493);
+    const n = 5.68;
+    const ref = BigInt(Math.round(A * Math.pow(Number(d), n) * 1e8));
 
     // Allow a tolerance of 25% because on-chain uses fixed-point with approximations
     const tolBps = 2500n; // 25%
@@ -47,6 +50,31 @@ describe("SmartBtcDca model helpers", () => {
 
     expect(model).to.be.gte(min);
     expect(model).to.be.lte(max);
+  });
+
+  it("modelPriceUSD_1e8 matches website model for a few other dates", async () => {
+    const [deployer] = await ethers.getSigners();
+    const smart = await new SmartBtcDca__factory(deployer).deploy();
+
+    const dates = [
+      // YYYY-MM-DD UTC → expected d
+      { d: 365n, label: "2010-01-03" },
+      { d: 1461n, label: "2013-01-03" },
+      { d: 3653n, label: "2019-01-03" },
+      { d: 6123n, label: "2025-10-09" },
+    ];
+    const A = Math.pow(10, -16.493);
+    const n = 5.68;
+    const tolBps = 1n; // 0.01% tolerance across wide range
+
+    for (const { d, label } of dates) {
+      const model = await smart.modelPriceUSD_1e8.staticCall(d);
+      const ref = BigInt(Math.round(A * Math.pow(Number(d), n) * 1e8));
+      const min = (ref * (10_000n - tolBps)) / 10_000n;
+      const max = (ref * (10_000n + tolBps)) / 10_000n;
+      expect(model, label + " model too low").to.be.gte(min);
+      expect(model, label + " model too high").to.be.lte(max);
+    }
   });
 });
 

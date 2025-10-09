@@ -43,12 +43,12 @@ contract SmartBtcDca is IStrategy {
     string private _name;
 
     // Power-law constants (from TypeScript model)
-    // P = C * d^N, with C ≈ 9.65e-18 and N ≈ 5.845
+    // Website model: P = A * d^n with A = 10^-16.493 and n = 5.68
     // Precomputed 64.64 fixed-point constants for accuracy and gas efficiency.
     // N in 64.64:
-    int128 private constant N_64x64 = 107821219110832329196; // ~5.845 in 64.64
-    // log2(C) in 64.64 (negative signed value)
-    int128 private constant LOG2_C_64x64 = -1042687022771991745244; // ~-56.52417676559
+    int128 private constant N_64x64 = 104777506338670253179; // 5.68 in 64.64
+    // log2(A) in 64.64 (negative signed value)
+    int128 private constant LOG2_A_64x64 = -1010670545759486186292; // log2(10^-16.493)
 
     event Initialized(address risk, address stable, address feed, uint256 frequency, uint16 lowerBps, uint16 upperBps, uint16 buyBps, uint16 smallBuyBps, uint16 sellBps);
     event Executed(uint256 when, int256 decision, uint256 amountIn);
@@ -187,7 +187,7 @@ contract SmartBtcDca is IStrategy {
         // Compute log2(price) = log2(C) + N * log2(d)
         int128 d64 = ABDKMath64x64.fromUInt(d);
         int128 log2d = ABDKMath64x64.log_2(d64);
-        int128 log2price = ABDKMath64x64.add(LOG2_C_64x64, ABDKMath64x64.mul(log2d, N_64x64));
+        int128 log2price = ABDKMath64x64.add(LOG2_A_64x64, ABDKMath64x64.mul(log2d, N_64x64));
         int128 price64 = _exp2_decomposed(log2price);
 
         // Convert 64.64 to 1e8
@@ -207,7 +207,7 @@ contract SmartBtcDca is IStrategy {
         if (d < 1) d = 1;
         int128 d64 = ABDKMath64x64.fromUInt(d);
         int128 log2d = ABDKMath64x64.log_2(d64);
-        return ABDKMath64x64.add(LOG2_C_64x64, ABDKMath64x64.mul(log2d, N_64x64));
+        return ABDKMath64x64.add(LOG2_A_64x64, ABDKMath64x64.mul(log2d, N_64x64));
     }
 
     function _exp2_decomposed(int128 x) internal pure returns (int128) {
