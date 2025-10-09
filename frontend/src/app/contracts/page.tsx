@@ -318,7 +318,7 @@ export default function SmartContractsPage() {
 
             <Section title="Smart BTC DCA"
               address={ADDR.strategies['btc-dca-power-law-v1']}
-              blurb="Smart DCA Strategy into BTC with optimized buy and sell amounts based on the Bitcoin Power Law price model." />
+              blurb="Advanced DCA Strategy into BTC with optimized buy and sell amounts, based on the Bitcoin Power Law price model." />
 
             <Section title="Technical Indicators"
               address={ADDR.technicalIndicators}
@@ -332,7 +332,7 @@ export default function SmartContractsPage() {
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>Uniswap V3 Pools</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Uniswap V3 Pools to perform swaps between the risk assets (e.g., cbBTC and WETH) and stablecoin (e.g., USDC).
+                  Uniswap V3 Pools to perform swaps between the risk assets (cbBTC and WETH) and stablecoin (USDC).
                 </Typography>
                 <Stack spacing={1}>
                   <Typography variant="body2">

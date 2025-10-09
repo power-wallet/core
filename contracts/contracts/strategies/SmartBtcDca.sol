@@ -9,8 +9,13 @@ import "../utils/ABDKMath64x64.sol";
 /**
  * @title SmartBtcDca
  * @notice Strategy that rebalances using a power-law BTC/USD price model with configurable bands and trade sizes.
- *         The model uses P(t) = C * d^N, where d is days since 2009-01-03, computed with fixed-point math on-chain.
- *         Buys when price is below the lower band; sells when price is above the upper band.
+ *         The model uses P(t) = C * d^N, computed with fixed-point math on-chain, where:
+ *                  C = 9.64e-18
+ *                  d is days since 2009-01-03
+ *                  N = 5.8451
+ *         Buys largeer amount when price is below the lower band
+ *         Buys smaller amount when price is between the lower and model bands
+ *         Sells when price is above the upper band
  */
 contract SmartBtcDca is IStrategy {
     // ---- Minimal Ownable (initializer-style for clones) ----
