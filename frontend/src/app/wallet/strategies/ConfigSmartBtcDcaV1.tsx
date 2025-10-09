@@ -19,6 +19,7 @@ const SMART_DCA_READ_ABI = [
   { type: 'function', name: 'buyBpsOfStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
   { type: 'function', name: 'smallBuyBpsOfStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
   { type: 'function', name: 'sellBpsOfRisk', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
+  { type: 'function', name: 'getModelAndBands', stateMutability: 'view', inputs: [], outputs: [ { type: 'uint256' }, { type: 'uint256' }, { type: 'uint256' } ] },
 ] as const;
 
 const SMART_DCA_WRITE_ABI = [
@@ -46,6 +47,17 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
   const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
   const explorerBase = (appConfig as any)[getViemChain(chainId).name as any]?.explorer || (appConfig as any)[(getViemChain(chainId).id === 84532 ? 'base-sepolia' : 'base')]?.explorer;
   const [toast, setToast] = React.useState<{ open: boolean; hash?: `0x${string}` }>(() => ({ open: false }));
+
+  const { data: modelAndBands } = useReadContract({
+    address: strategyAddr,
+    abi: SMART_DCA_READ_ABI as any,
+    functionName: 'getModelAndBands',
+  });
+
+  const formatUsd0 = (n: number | undefined) => {
+    if (n === undefined) return '-';
+    return `$${Math.round(n).toLocaleString('en-US')}`;
+  };
 
   React.useEffect(() => {
     if (freqSec !== undefined && (days === '' || Number(days) <= 0)) {
@@ -174,9 +186,33 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
               {busy === 'bands' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            Default: lower=5000 (50% below model price), upper=1000 (100% above model price)
-          </Typography>
+          {(() => {
+            try {
+              const arr = modelAndBands as unknown as [bigint, bigint, bigint] | undefined;
+              if (!arr) return null;
+              const model = Number(arr[0]) / 1e8;
+              const lowerTh = Number(arr[1]) / 1e8;
+              const upperTh = Number(arr[2]) / 1e8;
+              return (
+                <Box sx={{ mt: 0.75 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Power Law model: {formatUsd0(model)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Larger DCA-in below: {formatUsd0(lowerTh)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Smaller DCA-in between: {formatUsd0(lowerTh)} and {formatUsd0(model)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    DCA-out above: {formatUsd0(upperTh)}
+                  </Typography>
+                </Box>
+              );
+            } catch {
+              return null;
+            }
+          })()}
         </Box>
         <Box>
           <Typography variant="caption">Trade Percents</Typography>

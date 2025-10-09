@@ -51,7 +51,7 @@ export const addresses: Record<string, ChainAddresses> = {
     
     strategies: {
       'simple-btc-dca-v1': '0x97ee87073A5a430006020A60fC8F6190Fc9Fe082', // deployed SimpleDCA on Base Sepolia
-      'btc-dca-power-law-v1': '0xbf88275c8FAaE73C6c0be8291b9394fAc8aD9Df8' // deployed SimpleDCA on Base Sepolia
+      'btc-dca-power-law-v1': '0x508Fd840B7bDEF406585CC89b717D93B53996DA1' // deployed SimpleDCA on Base Sepolia
     }
   },
 

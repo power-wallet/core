@@ -26,7 +26,8 @@
       "USDC-cbBTC": {
         "stable": "usdc",
         "risk": "cbBTC",
-        "fee": 100
+        "fee": 100,
+        "rebalancer": "0xCbad841061ea2cFD74f0adF2F06488596138B4A9"
       }
     },
     "strategies": {
@@ -79,7 +80,8 @@
       "USDC-cbBTC": {
         "stable": "usdc",
         "risk": "cbBTC",
-        "fee": 100
+        "fee": 100,
+        "rebalancer": ""
       }
     },
     "strategies": {

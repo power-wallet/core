@@ -291,7 +291,7 @@ export default function SmartContractsPage() {
         </Box>
         <Box sx={{ mb: 2 }}>
           <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons allowScrollButtonsMobile>
-            <Tab label="Power Wallet" />
+            <Tab label="Core Contracts" />
             <Tab label="Uniswap" />
             <Tab label="Chainlink" />
             <Tab label="Tokens" />
@@ -307,6 +307,10 @@ export default function SmartContractsPage() {
             <Section title="Strategy Registry"
               address={ADDR.strategyRegistry}
               blurb="Registry of investment strategies mapping strategy ids to implementation templates (for cloning)." />
+
+            <Section title="Pool Rebalancer (cbBTC/USDC)"
+              address={(cfg.pools as any)['USDC-cbBTC']?.rebalancer || ''}
+              blurb="Periodically rebalances the assets in the cbBTC/USDC pool, and aligns the pool exchange rate to the Chainlink BTC/USD oracle price." />
 
             <Section title="Simple BTC DCA"
               address={ADDR.strategies['simple-btc-dca-v1']}
@@ -379,11 +383,20 @@ export default function SmartContractsPage() {
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink Automation</Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
-                  We use Chainlink Automation to keep price feeds and technical indicators up to date on-chain.
+                  We use Chainlink Automation to keep exchange rates for Uniswap pools, technical indicators, and wallet strategies up to date.
                 </Typography>
-                <Typography variant="body2">
-                  <MuiLink href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>Go to Chainlink Automation</MuiLink>
-                </Typography>
+                <Stack spacing={1}>
+                  <Typography variant="body2">
+                    <MuiLink href="https://automation.chain.link/base-sepolia/81895955134147226903487285099620719932342719579785627792036034521300599077639" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>
+                      Pool Rebalancer (cbBTC/USDC)
+                    </MuiLink>
+                  </Typography>
+                  <Typography variant="body2">
+                    <MuiLink href="https://automation.chain.link/base-sepolia/8004073430779205612692946193676807911407093530369256047496210613749968071145" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>
+                      Technical Indicators
+                    </MuiLink>
+                  </Typography>
+                </Stack>
               </CardContent>
             </Card>
 
