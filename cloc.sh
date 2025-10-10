@@ -10,4 +10,3 @@ echo
 echo
 echo "=========  scc  ==========="
 scc . --exclude-ext json,html,xml,js,csv,bash
-

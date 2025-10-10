@@ -39,6 +39,23 @@ const walletFactoryAbi = [
   },
 ];
 
+// Minimal read ABI for wallet summary aggregation
+const walletViewAbi = [
+  { type: 'function', name: 'getBalances', stateMutability: 'view', inputs: [], outputs: [ { name: 'stableBal', type: 'uint256' }, { name: 'riskBals', type: 'uint256[]' } ] },
+  { type: 'function', name: 'getRiskAssets', stateMutability: 'view', inputs: [], outputs: [ { name: 'assets', type: 'address[]' } ] },
+] as const;
+
+const FEED_ABI = [
+  { type: 'function', stateMutability: 'view', name: 'decimals', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
+  { type: 'function', stateMutability: 'view', name: 'latestRoundData', inputs: [], outputs: [
+    { name: 'roundId', type: 'uint80' },
+    { name: 'answer', type: 'int256' },
+    { name: 'startedAt', type: 'uint256' },
+    { name: 'updatedAt', type: 'uint256' },
+    { name: 'answeredInRound', type: 'uint80' },
+  ] },
+] as const;
+
 export default function PortfolioPage() {
   const { isConnected, address, connector } = useAccount();
   const chainId = useChainId();
@@ -84,6 +101,7 @@ export default function PortfolioPage() {
 
   const factoryAddress = contractAddresses[chainKey]?.walletFactory;
   const usdcAddress = contractAddresses[chainKey]?.usdc as `0x${string}` | undefined;
+  const assetCfg = (appConfig as any)[chainKey]?.assets as Record<string, { address: string; symbol: string; decimals: number; feed?: `0x${string}` }>;
 
   // Balances for onboarding funding check
   const { data: nativeBal } = useBalance({ address: address as `0x${string}` | undefined, chainId });
@@ -110,6 +128,10 @@ export default function PortfolioPage() {
   const wallets = useMemo(() => (userWallets as string[] | undefined) || [], [userWallets]);
   const [sortedWallets, setSortedWallets] = useState<string[]>([]);
   const [walletsReady, setWalletsReady] = useState(false);
+
+  // Prices and aggregated totals across all wallets
+  const [prices, setPrices] = useState<Record<string, { price: number; decimals: number }>>({});
+  const [portfolioTotals, setPortfolioTotals] = useState<{ totalUsd: number; perAsset: Record<string, { amount: number; usd: number }> }>({ totalUsd: 0, perAsset: {} });
 
   // Filter out closed wallets, then fetch createdAt and sort newest-first
   useEffect(() => {
@@ -178,6 +200,79 @@ export default function PortfolioPage() {
       } catch {}
     })();
   }, [isConfirmed, txHash, refetchWallets]);
+
+  // Load prices for cbBTC, WETH, USDC when chain or config changes
+  useEffect(() => {
+    (async () => {
+      try {
+        const metas = ['cbBTC', 'WETH', 'USDC']
+          .map((k) => (assetCfg as any)[k])
+          .filter(Boolean) as { symbol: string; feed?: `0x${string}`; decimals: number }[];
+        const next: Record<string, { price: number; decimals: number }> = {};
+        for (const m of metas) {
+          if (m.symbol === 'USDC') {
+            next['USDC'] = { price: 1, decimals: 6 };
+            continue;
+          }
+          const feed = m.feed as `0x${string}` | undefined;
+          if (!feed) continue;
+          const dec = await feeClient.readContract({ address: feed, abi: FEED_ABI as any, functionName: 'decimals', args: [] }) as number;
+          const round = await feeClient.readContract({ address: feed, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as any;
+          const price = Number(round[1]) / 10 ** dec;
+          next[m.symbol] = { price, decimals: dec };
+        }
+        setPrices(next);
+      } catch {
+        setPrices({});
+      }
+    })();
+  }, [assetCfg, feeClient, chainKey]);
+
+  // Aggregate portfolio across all open wallets
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!walletsReady) return;
+        const open = sortedWallets.length ? sortedWallets : wallets;
+        if (!open.length) { setPortfolioTotals({ totalUsd: 0, perAsset: {} }); return; }
+        const per: Record<string, { amount: number; usd: number }> = { cbBTC: { amount: 0, usd: 0 }, WETH: { amount: 0, usd: 0 }, USDC: { amount: 0, usd: 0 } };
+        // Resolve symbols by address
+        const byAddr: Record<string, string> = {};
+        for (const key of Object.keys(assetCfg)) {
+          byAddr[(assetCfg as any)[key].address.toLowerCase()] = key;
+        }
+        for (const w of open) {
+          try {
+            const [assets, balances] = await Promise.all([
+              feeClient.readContract({ address: w as `0x${string}`, abi: walletViewAbi as any, functionName: 'getRiskAssets', args: [] }) as Promise<string[]>,
+              feeClient.readContract({ address: w as `0x${string}`, abi: walletViewAbi as any, functionName: 'getBalances', args: [] }) as Promise<any>,
+            ]);
+            const stableBal: bigint = balances[0];
+            const riskBals: bigint[] = balances[1];
+            // USDC
+            per.USDC.amount += Number(stableBal) / 1e6;
+            per.USDC.usd += Number(stableBal) / 1e6;
+            // Risks
+            assets.forEach((addr: string, i: number) => {
+              const sym = byAddr[addr.toLowerCase()];
+              const amt = Number(riskBals[i] || BigInt(0));
+              if (sym === 'cbBTC') {
+                per.cbBTC.amount += amt / 1e8;
+                per.cbBTC.usd += (amt / 1e8) * (prices.cbBTC?.price || 0);
+              } else if (sym === 'WETH') {
+                per.WETH.amount += amt / 1e18;
+                per.WETH.usd += (amt / 1e18) * (prices.WETH?.price || 0);
+              }
+            });
+          } catch {}
+        }
+        const totalUsd = per.cbBTC.usd + per.WETH.usd + per.USDC.usd;
+        setPortfolioTotals({ totalUsd, perAsset: per });
+      } catch {
+        setPortfolioTotals({ totalUsd: 0, perAsset: {} });
+      }
+    })();
+  }, [walletsReady, sortedWallets, wallets, prices, assetCfg, feeClient]);
 
   useEffect(() => {
     setMounted(true);
@@ -613,6 +708,39 @@ export default function PortfolioPage() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
+      {/* Portfolio Summary */}
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
+          <Typography variant="h5" sx={{ mb: 1 }}>
+            {`Total Value: $${portfolioTotals.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          </Typography>
+          {/* Treemap-like bar */}
+          <Box sx={{ display: 'flex', height: 28, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', mb: 1 }}>
+            {Object.entries(portfolioTotals.perAsset)
+              .filter(([, v]) => v.usd > 0)
+              .sort((a, b) => b[1].usd - a[1].usd)
+              .map(([sym, v]) => {
+                const pct = portfolioTotals.totalUsd > 0 ? (v.usd / portfolioTotals.totalUsd) : 0;
+                const bg = sym === 'cbBTC' ? '#F59E0B' : (sym === 'WETH' ? '#9CA3AF' : '#10B981');
+                return (
+                  <Box key={sym} sx={{ flex: pct, bgcolor: bg, minWidth: pct > 0 ? 2 : 0 }} title={`${sym}: $${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                );
+              })}
+          </Box>
+          {/* Breakdown list */}
+          <Stack spacing={0.5}>
+            {Object.entries(portfolioTotals.perAsset)
+              .filter(([, v]) => v.usd > 0)
+              .sort((a, b) => b[1].usd - a[1].usd)
+              .map(([sym, v]) => (
+                <Typography key={sym} variant="body2">
+                  {sym}: {v.amount.toLocaleString('en-US', { maximumFractionDigits: sym === 'USDC' ? 2 : 8 })} — ${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+              ))}
+          </Stack>
+        </CardContent>
+      </Card>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallets</Typography>
         <Button variant="contained" size="small" onClick={() => setShowCreate(true)}>Create New Wallet</Button>
