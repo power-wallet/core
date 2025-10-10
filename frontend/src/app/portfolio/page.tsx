@@ -709,8 +709,10 @@ export default function PortfolioPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Portfolio Summary */}
-      <Typography variant="h4" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
-      <Card variant="outlined" sx={{ mb: 3 }}>
+      {portfolioTotals.totalUsd > 0 ? (
+        <>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
+          <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'stretch' }}>
             {/* Treemap-like rectangle */}
@@ -748,7 +750,9 @@ export default function PortfolioPage() {
             </Box>
           </Box>
         </CardContent>
-      </Card>
+        </Card>
+        </>
+      ) : null}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallets</Typography>
         <Button variant="contained" size="small" onClick={() => setShowCreate(true)}>Create New Wallet</Button>
