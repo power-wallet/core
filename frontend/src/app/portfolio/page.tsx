@@ -707,38 +707,46 @@ export default function PortfolioPage() {
   const shortAddr =  address ? `${address?.slice(0, 6)}..${address?.slice(-4)}` : '';
 
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
+    <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Portfolio Summary */}
+      <Typography variant="h4" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
-          <Typography variant="h5" sx={{ mb: 1 }}>
-            {`Total Value: $${portfolioTotals.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          </Typography>
-          {/* Treemap-like bar */}
-          <Box sx={{ display: 'flex', height: 28, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', mb: 1 }}>
-            {Object.entries(portfolioTotals.perAsset)
-              .filter(([, v]) => v.usd > 0)
-              .sort((a, b) => b[1].usd - a[1].usd)
-              .map(([sym, v]) => {
-                const pct = portfolioTotals.totalUsd > 0 ? (v.usd / portfolioTotals.totalUsd) : 0;
-                const bg = sym === 'cbBTC' ? '#F59E0B' : (sym === 'WETH' ? '#9CA3AF' : '#10B981');
-                return (
-                  <Box key={sym} sx={{ flex: pct, bgcolor: bg, minWidth: pct > 0 ? 2 : 0 }} title={`${sym}: $${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-                );
-              })}
-          </Box>
-          {/* Breakdown list */}
-          <Stack spacing={0.5}>
-            {Object.entries(portfolioTotals.perAsset)
-              .filter(([, v]) => v.usd > 0)
-              .sort((a, b) => b[1].usd - a[1].usd)
-              .map(([sym, v]) => (
-                <Typography key={sym} variant="body2">
-                  {sym}: {v.amount.toLocaleString('en-US', { maximumFractionDigits: sym === 'USDC' ? 2 : 8 })} — ${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'stretch' }}>
+            {/* Treemap-like rectangle */}
+            <Box sx={{ flex: 1, minHeight: { xs: 60, sm: 120 }, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', display: 'flex' }}>
+              {Object.entries(portfolioTotals.perAsset)
+                .filter(([, v]) => v.usd > 0)
+                .sort((a, b) => b[1].usd - a[1].usd)
+                .map(([sym, v]) => {
+                  const pct = portfolioTotals.totalUsd > 0 ? (v.usd / portfolioTotals.totalUsd) : 0;
+                  const bg = sym === 'cbBTC' ? '#F59E0B' : (sym === 'WETH' ? '#9CA3AF' : '#10B981');
+                  return (
+                    <Box
+                      key={sym}
+                      sx={{ flex: pct, bgcolor: bg, minWidth: pct > 0 ? 2 : 0 }}
+                      title={`${sym}: $${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    />
+                  );
+                })}
+            </Box>
+            {/* Breakdown list */}
+            <Box sx={{ flex: { xs: '1 1 auto', sm: '0 0 340px' }, display: 'flex', alignItems: 'stretch', mt: { xs: 0, sm: 0 } }}>
+              <Stack spacing={0.75} sx={{ my: 0, alignSelf: 'stretch', justifyContent: 'flex-start' }}>
+                <Typography variant="h5" sx={{ mb: 2 }}>
+                  {`Total Value: $${portfolioTotals.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </Typography>
-              ))}
-          </Stack>
+                {Object.entries(portfolioTotals.perAsset)
+                  .filter(([, v]) => v.usd > 0)
+                  .sort((a, b) => b[1].usd - a[1].usd)
+                  .map(([sym, v]) => (
+                    <Typography key={sym} variant="body2">
+                       {v.amount.toLocaleString('en-US', { maximumFractionDigits: sym === 'USDC' ? 2 : 8 })} {sym} — ${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Typography>
+                  ))}
+              </Stack>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
