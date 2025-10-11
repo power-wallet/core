@@ -28,6 +28,7 @@ const ADDR = {
   strategyRegistry: String(addrChain.strategyRegistry || ''),
   technicalIndicators: String(addrChain.technicalIndicators || ''),
     automator: String(addrChain.automator || ''),
+  faucet: String(addrChain.faucet || ''),
   strategies: {
     'simple-btc-dca-v1': String(addrChain.strategies['simple-btc-dca-v1'] || ''),
     'btc-dca-power-law-v1': String(addrChain.strategies['btc-dca-power-law-v1'] || ''),
@@ -312,6 +313,10 @@ export default function SmartContractsPage() {
             <Section title="Wallet Automator"
               address={ADDR.automator}
               blurb="Automation contract coordinating periodic upkeep for wallets and related strategies." />
+
+            <Section title="Faucet"
+              address={ADDR.faucet}
+              blurb="For Power Wallet users to claim testnet USDC on Base Sepolia." />
 
             <Section title="Pool Rebalancer (cbBTC/USDC)"
               address={(cfg.pools as any)['USDC-cbBTC']?.rebalancer || ''}

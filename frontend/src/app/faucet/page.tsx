@@ -1,0 +1,235 @@
+'use client';
+
+import React from 'react';
+import { Container, Box, Typography, Card, CardContent, Stack, TextField, Button, Alert, Snackbar, CircularProgress } from '@mui/material';
+import { useAccount, useChainId, useReadContract, useWriteContract } from 'wagmi';
+import { createPublicClient, http, parseUnits } from 'viem';
+import { getChainKey, getViemChain } from '@/config/networks';
+import appConfig from '@/config/appConfig.json';
+import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
+
+const FAUCET_ABI = [
+  { type: 'function', name: 'claim', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
+  { type: 'function', name: 'totalClaimed', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
+  { type: 'function', name: 'totalClaimedBy', stateMutability: 'view', inputs: [ { name: '', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+  { type: 'function', name: 'usdc', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
+  { type: 'function', name: 'maxClaim', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
+  { type: 'function', name: 'claimCooldown', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
+  { type: 'function', name: 'lastClaimAt', stateMutability: 'view', inputs: [ { name: '', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+] as const;
+
+const ERC20_READ_ABI = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+  { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint8' } ] },
+] as const;
+
+function formatToken(amount?: bigint, decimals?: number) {
+  if (amount === undefined || decimals === undefined) return '0';
+  if (amount === BigInt(0)) return '0';
+  const s = amount.toString();
+  if (decimals === 0) return s;
+  if (s.length > decimals) {
+    const whole = s.slice(0, s.length - decimals);
+    const frac = s.slice(s.length - decimals).replace(/0+$/, '');
+    return frac ? `${whole}.${frac}` : whole;
+  } else {
+    const zeros = '0'.repeat(decimals - s.length);
+    const frac = `${zeros}${s}`.replace(/0+$/, '');
+    return frac ? `0.${frac}` : '0';
+  }
+}
+
+export default function FaucetPage() {
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const chainKey = getChainKey(chainId);
+  const addr = contractAddresses[chainKey];
+  const FAUCET = String(addr?.faucet || '');
+  const explorerBase = (appConfig as any)[chainKey]?.explorer as string | undefined;
+  const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
+  const { writeContractAsync } = useWriteContract();
+
+  const { data: totalClaimed } = useReadContract({
+    address: FAUCET as `0x${string}`,
+    abi: FAUCET_ABI as any,
+    functionName: 'totalClaimed',
+    query: { enabled: Boolean(FAUCET), refetchInterval: 30000 },
+  });
+  const { data: totalClaimedBy } = useReadContract({
+    address: FAUCET as `0x${string}`,
+    abi: FAUCET_ABI as any,
+    functionName: 'totalClaimedBy',
+    args: address ? [address as `0x${string}`] : undefined,
+    query: { enabled: Boolean(FAUCET && address), refetchInterval: 30000 },
+  });
+  const { data: usdcAddr } = useReadContract({
+    address: FAUCET as `0x${string}`,
+    abi: FAUCET_ABI as any,
+    functionName: 'usdc',
+    query: { enabled: Boolean(FAUCET), refetchInterval: 60000 },
+  });
+  const { data: maxClaim } = useReadContract({
+    address: FAUCET as `0x${string}`,
+    abi: FAUCET_ABI as any,
+    functionName: 'maxClaim',
+    query: { enabled: Boolean(FAUCET), refetchInterval: 60000 },
+  });
+  const { data: cooldownSec } = useReadContract({
+    address: FAUCET as `0x${string}`,
+    abi: FAUCET_ABI as any,
+    functionName: 'claimCooldown',
+    query: { enabled: Boolean(FAUCET), refetchInterval: 60000 },
+  });
+  const { data: lastClaimAt } = useReadContract({
+    address: FAUCET as `0x${string}`,
+    abi: FAUCET_ABI as any,
+    functionName: 'lastClaimAt',
+    args: address ? [address as `0x${string}`] : undefined,
+    query: { enabled: Boolean(FAUCET && address), refetchInterval: 60000 },
+  });
+
+  const [usdcBalance, setUsdcBalance] = React.useState<bigint | undefined>(undefined);
+  const [usdcDecimals, setUsdcDecimals] = React.useState<number>(6);
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!usdcAddr) return;
+      try {
+        const [bal, dec] = await Promise.all([
+          client.readContract({ address: usdcAddr as `0x${string}`, abi: ERC20_READ_ABI as any, functionName: 'balanceOf', args: [FAUCET as `0x${string}`] }) as Promise<bigint>,
+          client.readContract({ address: usdcAddr as `0x${string}`, abi: ERC20_READ_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
+        ]);
+        if (!cancelled) { setUsdcBalance(bal); setUsdcDecimals(Number(dec)); }
+      } catch {}
+    })();
+    const id = setInterval(async () => {
+      if (!usdcAddr) return;
+      try {
+        const bal = await client.readContract({ address: usdcAddr as `0x${string}`, abi: ERC20_READ_ABI as any, functionName: 'balanceOf', args: [FAUCET as `0x${string}`] }) as bigint;
+        if (!cancelled) setUsdcBalance(bal);
+      } catch {}
+    }, 30000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [client, usdcAddr, FAUCET]);
+
+  const [amount, setAmount] = React.useState<string>('');
+  const [busy, setBusy] = React.useState(false);
+  const [toast, setToast] = React.useState<{ open: boolean; message: string; severity: 'info' | 'success' | 'error' }>({ open: false, message: '', severity: 'info' });
+
+  const canUse = isConnected && chainId === 84532 && FAUCET;
+
+  const onClaim = async () => {
+    if (!canUse) return;
+    const v = Math.max(0, Number(amount || '0'));
+    if (!isFinite(v) || v <= 0) { setToast({ open: true, message: 'Enter a valid amount', severity: 'error' }); return; }
+    const scaled = parseUnits(String(v), usdcDecimals);
+    // Optional: enforce maxClaim on the client for UX, but final check is on-chain
+    if (typeof maxClaim === 'bigint' && scaled > maxClaim) {
+      setToast({ open: true, message: 'Amount exceeds faucet max', severity: 'error' });
+      return;
+    }
+    setBusy(true);
+    try {
+      let maxFeePerGas: bigint | undefined;
+      let maxPriorityFeePerGas: bigint | undefined;
+      try {
+        const fees = await client.estimateFeesPerGas();
+        maxFeePerGas = fees.maxFeePerGas;
+        maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
+      } catch {}
+      const hash = await writeContractAsync({
+        address: FAUCET as `0x${string}`,
+        abi: FAUCET_ABI as any,
+        functionName: 'claim',
+        args: [scaled],
+        ...(maxFeePerGas ? { maxFeePerGas } : {}),
+        ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
+      });
+      await client.waitForTransactionReceipt({ hash });
+      setToast({ open: true, message: 'Claim confirmed', severity: 'success' });
+      setAmount('');
+    } catch (e: any) {
+      setToast({ open: true, message: e?.shortMessage || e?.message || 'Claim failed', severity: 'error' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const nextClaimIn = React.useMemo(() => {
+    try {
+      const last = Number(lastClaimAt || 0);
+      const cd = Number(cooldownSec || 0);
+      if (!last || !cd) return 0;
+      const now = Math.floor(Date.now() / 1000);
+      const remain = last + cd - now;
+      return Math.max(0, remain);
+    } catch { return 0; }
+  }, [lastClaimAt, cooldownSec]);
+
+  return (
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+      <Container maxWidth="sm">
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" component="h1" fontWeight="bold">USDC Faucet</Typography>
+          <Typography variant="body1" color="text.secondary">Claim testnet USDC on Base Sepolia - For Power Wallet users only.</Typography>
+        </Box>
+
+        {!canUse ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Connect your wallet on Base Sepolia to use the faucet.
+          </Alert>
+        ) : null}
+
+        <Stack spacing={2}>
+          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>Faucet Status</Typography>
+              <Stack spacing={0.5}>
+                <Typography variant="body2">Faucet Balance: {formatToken(usdcBalance, usdcDecimals)} USDC</Typography>
+                <Typography variant="body2">Total Claimed: {formatToken(totalClaimed as bigint | undefined, usdcDecimals)} USDC</Typography>
+                <Typography variant="body2">My Total Claimed: {formatToken(totalClaimedBy as bigint | undefined, usdcDecimals)} USDC</Typography>
+                {nextClaimIn > 0 ? (
+                  <Typography variant="body2" color="text.secondary">Next claim available in ~{Math.ceil(nextClaimIn/60)} min</Typography>
+                ) : null}
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>Claim</Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Amount (USDC)"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  inputProps={{ min: 0, step: '0.01' }}
+                  sx={{  }}
+                />
+                <Button variant="contained" onClick={onClaim} disabled={!canUse || busy || nextClaimIn > 0}>
+                  {busy ? (<><CircularProgress size={16} sx={{ mr: 1 }} /> Claiming…</>) : 'Claim'}
+                </Button>
+
+              </Stack>
+              {typeof maxClaim === 'bigint' ? (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  Max per claim: {formatToken(maxClaim as bigint, usdcDecimals)} USDC - Be kind to others.
+                </Typography>
+              ) : null}
+            </CardContent>
+          </Card>
+        </Stack>
+
+        <Snackbar open={toast.open} autoHideDuration={6000} onClose={() => setToast((t) => ({ ...t, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+          <Alert onClose={() => setToast((t) => ({ ...t, open: false }))} severity={toast.severity} sx={{ width: '100%' }}>
+            {toast.message}
+          </Alert>
+        </Snackbar>
+      </Container>
+    </Box>
+  );
+}
+
+

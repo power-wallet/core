@@ -18,7 +18,8 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
+import { getChainKey } from '@/config/networks';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import WalletConnectModal from './WalletConnectModal';
@@ -36,6 +37,8 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+  const isBaseSepolia = chainId === 84532;
 
   const shortAddress = React.useMemo(() => {
     if (!address) return '';
@@ -73,6 +76,16 @@ const Navbar = () => {
             </Link>
           </ListItem>
         ))}
+        {isConnected && isBaseSepolia ? (
+          <ListItem disablePadding>
+            <Link href="/faucet" passHref style={{ width: '100%', textDecoration: 'none', color: 'inherit' }}>
+              <ListItemText 
+                primary="Faucet" 
+                sx={{ textAlign: 'center', py: 1 }}
+              />
+            </Link>
+          </ListItem>
+        ) : null}
         <ListItem disablePadding>
           <Button
             fullWidth
@@ -139,6 +152,21 @@ const Navbar = () => {
                   </Button>
                 </Link>
               ))}
+              {isConnected && isBaseSepolia ? (
+                <Link href="/faucet" passHref style={{ textDecoration: 'none' }}>
+                  <Button 
+                    sx={{ 
+                      color: 'white',
+                      '&:hover': {
+                        color: 'primary.main',
+                        bgcolor: 'rgba(245, 158, 11, 0.1)',
+                      },
+                    }}
+                  >
+                    Faucet
+                  </Button>
+                </Link>
+              ) : null}
             </Box>
 
             <Button

@@ -21,6 +21,7 @@ export interface ChainAddresses {
   strategyRegistry?: string; // optional, deployed addresses
   technicalIndicators?: string; // optional, deployed addresses
   automator?: string; // optional, deployed addresses
+  faucet?: string; // optional, deployed addresses
 
   // strategy map
   strategies: {
@@ -50,6 +51,7 @@ export const addresses: Record<string, ChainAddresses> = {
     strategyRegistry: "0x53B4C7F51904b888f61859971B11ff51a8e43F80",
     technicalIndicators: "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
     automator: "0x79cec041e963526122ffC7C04F427595a132331B",
+    faucet: "0x2718B8da434e4De40B05f85bf33B47B1fCa192C0",
     
     strategies: {
       'simple-btc-dca-v1': '0x97ee87073A5a430006020A60fC8F6190Fc9Fe082', // deployed SimpleDCA on Base Sepolia
