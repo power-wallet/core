@@ -1099,7 +1099,19 @@ export default function WalletDetails() {
         fullScreen={isMobile}
         PaperProps={{ sx: { borderRadius: { xs: 0, sm: 1 } } }}
       >
-        <DialogTitle sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 }, position: 'relative' }}>
+        <DialogTitle sx={{
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          bgcolor: { xs: 'background.default', sm: 'background.paper' },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          boxShadow: { xs: '0 2px 8px rgba(0,0,0,0.35)', sm: '0 1px 2px rgba(0,0,0,0.18)' },
+          borderTopLeftRadius: { sm: 8 },
+          borderTopRightRadius: { sm: 8 },
+        }}>
           Configure Strategy
           {isMobile ? (
             <IconButton

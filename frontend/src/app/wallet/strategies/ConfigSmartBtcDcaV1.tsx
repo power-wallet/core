@@ -193,7 +193,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
           const upperTh = model * (1 + ubps / 10000);
           const pct = (bps: number) => `${(bps / 100).toFixed(2)}%`;
           return (
-            <Box sx={{ mb: 1 }}>
+            <Box sx={{ mb: 1, pt: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ display: 'block' }}>
                 Current Power Law model price: {formatUsd0(model)}
               </Typography>
@@ -217,7 +217,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
           <Typography variant="caption">DCA Frequency (days)</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <TextField size="small" type="number" value={days} onChange={(e) => setDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ maxWidth: 200 }} />
-            <Button variant="outlined" size="small" onClick={updateFrequency} disabled={busy === 'freq'}>
+            <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={updateFrequency} disabled={busy === 'freq'}>
               {busy === 'freq' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
@@ -227,7 +227,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
           <Stack sx={{paddingTop: 1}} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <TextField size="small" type="number" value={lower} onChange={(e) => setLower(Number(e.target.value))} label="Lower (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />
             <TextField size="small" type="number" value={upper} onChange={(e) => setUpper(Number(e.target.value))} label="Upper (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />
-            <Button variant="outlined" size="small" onClick={updateBands} disabled={busy === 'bands'}>
+            <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={updateBands} disabled={busy === 'bands'}>
               {busy === 'bands' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
@@ -235,31 +235,32 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
         <Box>
           <Typography variant="caption">Trade Percents</Typography>
           <Stack sx={{paddingTop: 1}} direction={{ xs: 'column', sm: 'column' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'left' }}>
-            <FormControl size="small" sx={{ minWidth: 220 }}>
+            <FormControl  size="small" sx={{ minWidth: 220, py: 1 }}>
               <InputLabel id="buy-bps-label">Buy % (below lower band)</InputLabel>
               <Select labelId="buy-bps-label" label="Buy % (below lower band)" value={buy === '' ? '' : Number(buy)} onChange={(e) => setBuy(Number(e.target.value))}>
                 {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 260 }}>
+            <FormControl size="small" sx={{ minWidth: 260, py: 1 }}>
               <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
               <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smallBuy === '' ? '' : Number(smallBuy)} onChange={(e) => setSmallBuy(Number(e.target.value))}>
                 {[50, 100, 150, 200, 300, 400, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 220 }}>
+            <FormControl size="small" sx={{ minWidth: 220, pt: 1 }}>
               <InputLabel id="sell-bps-label">Sell % (above upper band)</InputLabel>
               <Select labelId="sell-bps-label" label="Sell % (above upper band)" value={sell === '' ? '' : Number(sell)} onChange={(e) => setSell(Number(e.target.value))}>
                 {[100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
               </Select>
             </FormControl>
-            <Button variant="outlined" size="small" onClick={updatePercents} disabled={busy === 'percents'}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              Defaults: Buy 5%, Small Buy 1%, Sell 5%
+            </Typography>
+
+            <Button sx={{ my: 5, p: 1 }} variant="outlined" size="small" onClick={updatePercents} disabled={busy === 'percents'}>
               {busy === 'percents' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            Defaults: Buy 5%, Small Buy 1%, Sell 5%
-          </Typography>
         </Box>
       </Stack>
       <Snackbar

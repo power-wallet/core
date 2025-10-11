@@ -458,10 +458,12 @@ export default function PortfolioPage() {
           position: 'sticky',
           top: 0,
           zIndex: 1,
-          bgcolor: 'background.default',
+          bgcolor: { xs: 'background.default', sm: 'background.paper' },
           borderBottom: '1px solid',
           borderColor: 'divider',
-          boxShadow: { xs: '0 2px 8px rgba(0,0,0,0.35)', sm: 'none' },
+          boxShadow: { xs: '0 2px 8px rgba(0,0,0,0.35)', sm: '0 1px 2px rgba(0,0,0,0.18)' },
+          borderTopLeftRadius: { sm: 8 },
+          borderTopRightRadius: { sm: 8 },
         }}>
           Create a New Power Wallet
           {isMobile ? (
