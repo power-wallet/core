@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import Providers from './providers';
+import Script from 'next/script';
+import GATracking from './ga-tracking';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -31,8 +34,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-6CNY1706RJ" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">{
+          `window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-6CNY1706RJ');`
+        }</Script>
         <Providers>
           {children}
+          <Suspense fallback={null}>
+            <GATracking />
+          </Suspense>
         </Providers>
       </body>
     </html>
