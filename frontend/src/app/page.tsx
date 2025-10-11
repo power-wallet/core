@@ -29,7 +29,7 @@ export default function Home() {
     {
       icon: <AutoGraphIcon sx={{ fontSize: 48 }} />,
       title: 'Automated Strategies',
-      description: 'Deploy proven, long-term investment strategies that rebalance your assets for you 24/7.',
+      description: 'Deploy proven, long-term investment strategies that manage your assets for you 24/7.',
     },
     {
       icon: <SecurityIcon sx={{ fontSize: 48 }} />,
@@ -91,7 +91,7 @@ export default function Home() {
                   <Typography variant="body1"><strong>Power up</strong> your Bitcoin & crypto investments with proven investment strategies automated on-chain.</Typography>
                 </li>
                 <li>
-                  <Typography variant="body1">Enjoy the benefits of <strong>automated risk management</strong>.</Typography>
+                  <Typography variant="body1"><strong>DCA into Bitcoin</strong> with the benefits of <strong>automated risk management</strong>.</Typography>
                 </li>
                 <li>
                   <Typography variant="body1">Maintain <strong>full custody</strong> with blockchain-based secure, transparent, verifiable execution. </Typography>
@@ -171,7 +171,7 @@ export default function Home() {
           color="text.secondary"
           sx={{ mb: 6, maxWidth: 600, mx: 'auto' }}
         >
-          Experience the future of Bitcoin digital asset investing with smart on-chain wallets that can manage your assets for you.
+          Experience the future of Bitcoin digital asset investing with smart on-chain wallets that rebalance your portfolio for you.
         </Typography>
 
         <Grid container spacing={4}>
