@@ -75,7 +75,7 @@ export default function WalletDetails() {
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getRiskAssets',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
   const { data: isClosed } = useReadContract({
     address: walletAddress || undefined,
@@ -83,17 +83,17 @@ export default function WalletDetails() {
     functionName: 'isClosed',
     query: { enabled: Boolean(walletAddress) },
   });
-  const { data: balances } = useReadContract({
+  const { data: balances, refetch: refetchBalances } = useReadContract({
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getBalances',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
-  const { data: valueUsd } = useReadContract({
+  const { data: valueUsd, refetch: refetchValueUsd } = useReadContract({
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getPortfolioValueUSD',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
   const { data: strategyAddr } = useReadContract({
     address: walletAddress || undefined,
@@ -111,13 +111,13 @@ export default function WalletDetails() {
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'slippageBps',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
   const { data: stableTokenAddr } = useReadContract({
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'stableAsset',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
 
   const { data: dcaAmount } = useReadContract({
@@ -152,23 +152,23 @@ export default function WalletDetails() {
   });
 
   // Transactions
-  const { data: depositsData } = useReadContract({
+  const { data: depositsData, refetch: refetchDeposits } = useReadContract({
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getDeposits',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
-  const { data: withdrawalsData } = useReadContract({
+  const { data: withdrawalsData, refetch: refetchWithdrawals } = useReadContract({
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getWithdrawals',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
-  const { data: swapsData } = useReadContract({
+  const { data: swapsData, refetch: refetchSwaps } = useReadContract({
     address: walletAddress || undefined,
     abi: powerWalletAbi as any,
     functionName: 'getSwaps',
-    query: { enabled: Boolean(walletAddress) },
+    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
   });
 
   const riskAssets = React.useMemo(() => (assets as string[] | undefined) || [], [assets]);
@@ -225,14 +225,14 @@ export default function WalletDetails() {
   };
 
   // Also read user USDC balance via wagmi to avoid any race in the effect
-  const { data: userUsdcBalance } = useReadContract({
+  const { data: userUsdcBalance, refetch: refetchUserUsdc } = useReadContract({
     address: (stableTokenAddr as `0x${string}`) || undefined,
     abi: [
       { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
     ] as const,
     functionName: 'balanceOf',
     args: connected ? [connected as `0x${string}`] : undefined,
-    query: { enabled: Boolean(stableTokenAddr && connected) },
+    query: { enabled: Boolean(stableTokenAddr && connected), refetchInterval: 60000 },
   });
 
   const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
@@ -320,12 +320,23 @@ export default function WalletDetails() {
   React.useEffect(() => {
     if (isConfirmed && txHash) {
       setToast({ open: true, message: `Transaction confirmed: ${txHash}`, severity: 'success' });
+      // After confirmation, refetch key wallet data (with a brief delay to allow RPC/state propagation)
+      setTimeout(() => {
+        try { refetchBalances?.(); } catch {}
+        try { refetchValueUsd?.(); } catch {}
+        try { refetchDeposits?.(); } catch {}
+        try { refetchWithdrawals?.(); } catch {}
+        try { refetchSwaps?.(); } catch {}
+        try { refetchUserUsdc?.(); } catch {}
+      }, 1200);
     }
   }, [isConfirmed, txHash]);
 
   React.useEffect(() => {
+    let cancelled = false;
     const metas = [addressToMeta(chainAssets.cbBTC.address), addressToMeta(chainAssets.WETH.address), addressToMeta(chainAssets.USDC.address)].filter(Boolean) as { address: string; symbol: string; decimals: number; feed: `0x${string}` }[];
-    (async () => {
+
+    const load = async () => {
       const next: Record<string, { price: number; decimals: number }> = {};
       for (const m of metas) {
         try {
@@ -337,8 +348,12 @@ export default function WalletDetails() {
           next[m.symbol] = { price: p, decimals: dec };
         } catch (e) {}
       }
-      setPrices(next);
-    })();
+      if (!cancelled) setPrices(next);
+    };
+
+    load();
+    const id = setInterval(load, 60000);
+    return () => { cancelled = true; clearInterval(id); };
   }, [client, addressToMeta, aggregatorAbi, chainAssets.cbBTC.address, chainAssets.WETH.address, chainAssets.USDC.address]);
 
   React.useEffect(() => {

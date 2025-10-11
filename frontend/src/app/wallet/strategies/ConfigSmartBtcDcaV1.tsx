@@ -199,13 +199,13 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
                     Power Law model: {formatUsd0(model)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Larger DCA-in below: {formatUsd0(lowerTh)}
+                    Larger Buy below {formatUsd0(lowerTh)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Smaller DCA-in between: {formatUsd0(lowerTh)} and {formatUsd0(model)}
+                    Smaller Buy between {formatUsd0(lowerTh)} and {formatUsd0(model)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    DCA-out above: {formatUsd0(upperTh)}
+                    Sell above {formatUsd0(upperTh)}
                   </Typography>
                 </Box>
               );
