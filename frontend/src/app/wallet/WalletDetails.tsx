@@ -2,60 +2,35 @@
 
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert, CircularProgress, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Divider, TableContainer, Tooltip } from '@mui/material';
+import { Box, Button, Container, Grid, Typography, Snackbar, Alert, useMediaQuery, useTheme } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import SettingsIcon from '@mui/icons-material/Settings';
-import CloseIcon from '@mui/icons-material/Close';
-import ConfigSimpleDcaV1 from './strategies/ConfigSimpleDcaV1';
-import ConfigSmartBtcDcaV1 from './strategies/ConfigSmartBtcDcaV1';
+ 
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import WalletHistoryChart from './charts/WalletHistoryChart';
 import { buildWalletHistorySeries } from '@/lib/walletHistory';
+import { powerWalletAbi, FEED_ABI } from '@/lib/abi';
+import { useWalletReads, useStrategyReads } from '@/lib/walletReads';
+import { formatTokenAmountBigint } from '@/lib/format';
+import AssetsCard from './components/AssetsCard';
+import StrategyCard from './components/StrategyCard';
+import WalletConfigCard from './components/WalletConfigCard';
+import DepositsWithdrawalsCard from './components/DepositsWithdrawalsCard';
+import SwapsCard from './components/SwapsCard';
+import DepositDialog from './components/DepositDialog';
+import WithdrawDialog from './components/WithdrawDialog';
+import SlippageDialog from './components/SlippageDialog';
+import CloseWalletDialog from './components/CloseWalletDialog';
+import StrategyConfigDialog from './components/StrategyConfigDialog';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import { getChainKey } from '@/config/networks';
-import { ensureOnPrimaryChain, getFriendlyChainName } from '@/lib/web3';
+import { ensureOnPrimaryChain } from '@/lib/web3';
 import { createPublicClient, http, parseUnits } from 'viem';
+import { writeWithFees } from '@/lib/tx';
 import { getViemChain } from '@/config/networks';
-import { findUpkeepIdForTarget } from '@/lib/chainlink/automation';
 
-const powerWalletAbi = [
-  { type: 'function', name: 'getBalances', stateMutability: 'view', inputs: [], outputs: [
-    { name: 'stableBal', type: 'uint256' },
-    { name: 'riskBals', type: 'uint256[]' },
-  ] },
-  { type: 'function', name: 'getRiskAssets', stateMutability: 'view', inputs: [], outputs: [ { name: 'assets', type: 'address[]' } ] },
-  { type: 'function', name: 'getPortfolioValueUSD', stateMutability: 'view', inputs: [], outputs: [ { name: 'usd6', type: 'uint256' } ] },
-  { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
-  { type: 'function', name: 'stableAsset', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
-  { type: 'function', name: 'isClosed', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'bool' } ] },
-  { type: 'function', name: 'automationPaused', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'bool' } ] },
-  { type: 'function', name: 'pauseAutomation', stateMutability: 'nonpayable', inputs: [], outputs: [] },
-  { type: 'function', name: 'unpauseAutomation', stateMutability: 'nonpayable', inputs: [], outputs: [] },
-  { type: 'function', name: 'slippageBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'setSlippageBps', stateMutability: 'nonpayable', inputs: [ { name: 'newSlippageBps', type: 'uint16' } ], outputs: [] },
-  { type: 'function', name: 'closeWallet', stateMutability: 'nonpayable', inputs: [], outputs: [] },
-  { type: 'function', name: 'deposit', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'withdrawAsset', stateMutability: 'nonpayable', inputs: [ { name: 'asset', type: 'address' }, { name: 'amount', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'getDeposits', stateMutability: 'view', inputs: [], outputs: [ { type: 'tuple[]', components: [ { name: 'timestamp', type: 'uint256' }, { name: 'user', type: 'address' }, { name: 'amount', type: 'uint256' }, { name: 'balanceAfter', type: 'uint256' } ] } ] },
-  { type: 'function', name: 'getWithdrawals', stateMutability: 'view', inputs: [], outputs: [ { type: 'tuple[]', components: [ { name: 'timestamp', type: 'uint256' }, { name: 'user', type: 'address' }, { name: 'asset', type: 'address' }, { name: 'amount', type: 'uint256' }, { name: 'balanceAfter', type: 'uint256' } ] } ] },
-  { type: 'function', name: 'getSwaps', stateMutability: 'view', inputs: [], outputs: [ { type: 'tuple[]', components: [ { name: 'timestamp', type: 'uint256' }, { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' }, { name: 'amountIn', type: 'uint256' }, { name: 'amountOut', type: 'uint256' }, { name: 'balanceInAfter', type: 'uint256' }, { name: 'balanceOutAfter', type: 'uint256' } ] } ] },
-] as const;
-
-const simpleDcaAbi = [
-  { type: 'function', name: 'description', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
-  { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'dcaAmountStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-] as const;
-
-function formatUsd6(v?: bigint) {
-  if (!v) return '$0.00';
-  const num = Number(v) / 1_000_000;
-  return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 export default function WalletDetails() {
   const sp = useSearchParams();
@@ -72,105 +47,30 @@ export default function WalletDetails() {
   }, [walletAddress]);
   const [copied, setCopied] = React.useState(false);
 
-  const { data: assets } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'getRiskAssets',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
-  const { data: isClosed } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'isClosed',
-    query: { enabled: Boolean(walletAddress) },
-  });
-  const { data: balances, refetch: refetchBalances } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'getBalances',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
-  const { data: valueUsd, refetch: refetchValueUsd } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'getPortfolioValueUSD',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
-  const { data: strategyAddr } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'strategy',
-    query: { enabled: Boolean(walletAddress) },
-  });
-  const { data: automationPaused } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'automationPaused',
-    query: { enabled: Boolean(walletAddress) },
-  });
-  const { data: slippage, refetch: refetchSlippage } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'slippageBps',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
-  const { data: stableTokenAddr } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'stableAsset',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
+  const {
+    assets,
+    isClosed,
+    balances,
+    refetchBalances,
+    valueUsd,
+    refetchValueUsd,
+    strategyAddr,
+    createdAtTs,
+    automationPaused,
+    slippage,
+    refetchSlippage,
+    stableTokenAddr,
+    depositsData,
+    refetchDeposits,
+    withdrawalsData,
+    refetchWithdrawals,
+    swapsData,
+    refetchSwaps,
+  } = useWalletReads(walletAddress);
 
-  const { data: dcaAmount } = useReadContract({
-    address: strategyAddr as `0x${string}` | undefined,
-    abi: simpleDcaAbi as any,
-    functionName: 'dcaAmountStable',
-    query: { enabled: Boolean(strategyAddr) },
-  });
-  const { data: freq } = useReadContract({
-    address: strategyAddr as `0x${string}` | undefined,
-    abi: simpleDcaAbi as any,
-    functionName: 'frequency',
-    query: { enabled: Boolean(strategyAddr) },
-  });
-  const { data: desc } = useReadContract({
-    address: strategyAddr as `0x${string}` | undefined,
-    abi: simpleDcaAbi as any,
-    functionName: 'description',
-    query: { enabled: Boolean(strategyAddr) },
-  });
-  const { data: strategyName } = useReadContract({
-    address: strategyAddr as `0x${string}` | undefined,
-    abi: [ { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] } ] as const,
-    functionName: 'name',
-    query: { enabled: Boolean(strategyAddr) },
-  });
-  const { data: strategyIdStr } = useReadContract({
-    address: strategyAddr as `0x${string}` | undefined,
-    abi: [ { type: 'function', name: 'id', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] } ] as const,
-    functionName: 'id',
-    query: { enabled: Boolean(strategyAddr) },
-  });
+  const { dcaAmount, freq, desc, strategyName, strategyIdStr } = useStrategyReads(strategyAddr as any);
 
-  // Transactions
-  const { data: depositsData, refetch: refetchDeposits } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'getDeposits',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
-  const { data: withdrawalsData, refetch: refetchWithdrawals } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'getWithdrawals',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
-  const { data: swapsData, refetch: refetchSwaps } = useReadContract({
-    address: walletAddress || undefined,
-    abi: powerWalletAbi as any,
-    functionName: 'getSwaps',
-    query: { enabled: Boolean(walletAddress), refetchInterval: 60000 },
-  });
+  // Transactions moved into useWalletReads
 
   const riskAssets = React.useMemo(() => (assets as string[] | undefined) || [], [assets]);
   const stableBal = (balances as any)?.[0] as bigint | undefined;
@@ -187,27 +87,9 @@ export default function WalletDetails() {
     return entries.find(a => a.address.toLowerCase() === lower);
   }, [chainAssets]);
 
-  const formatTokenAmount = (amount?: bigint, decimals?: number) => {
-    if (amount === undefined || decimals === undefined) return '0';
-    if (amount === BigInt(0)) return '0';
-    const s = amount.toString();
-    if (decimals === 0) return s;
-    if (s.length > decimals) {
-      const whole = s.slice(0, s.length - decimals);
-      const frac = s.slice(s.length - decimals).replace(/0+$/, '');
-      return frac ? `${whole}.${frac}` : whole;
-    } else {
-      const zeros = '0'.repeat(decimals - s.length);
-      const frac = `${zeros}${s}`.replace(/0+$/, '');
-      return frac ? `0.${frac}` : '0';
-    }
-  };
+  const formatTokenAmount = formatTokenAmountBigint;
 
-  const formatAllowance = (amount?: bigint) => {
-    if (amount === undefined) return '0';
-    if (amount === BigInt(0)) return '0';
-    return formatTokenAmount(amount, 6);
-  };
+  const formatAllowance = (amount?: bigint) => formatTokenAmount(amount, 6);
 
   const formatDate = (ts?: bigint | number) => {
     if (ts === undefined) return '';
@@ -238,16 +120,7 @@ export default function WalletDetails() {
 
   const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
 
-  const aggregatorAbi = useMemo(() => ([
-    { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
-    { type: 'function', name: 'latestRoundData', stateMutability: 'view', inputs: [], outputs: [
-      { name: 'roundId', type: 'uint80' },
-      { name: 'answer', type: 'int256' },
-      { name: 'startedAt', type: 'uint256' },
-      { name: 'updatedAt', type: 'uint256' },
-      { name: 'answeredInRound', type: 'uint80' },
-    ] },
-  ] as const), []);
+  // Use shared Chainlink feed ABI
 
   const [prices, setPrices] = React.useState<Record<string, { price: number; decimals: number }>>({});
   const { writeContractAsync } = useWriteContract();
@@ -264,21 +137,12 @@ export default function WalletDetails() {
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [allowance, setAllowance] = React.useState<bigint | undefined>(undefined);
   const [userStableBalance, setUserStableBalance] = React.useState<bigint | undefined>(undefined);
-  const [upkeepId, setUpkeepId] = React.useState<bigint | null | undefined>(undefined);
-  const [upkeepError, setUpkeepError] = React.useState(false);
-  const [upkeepRefresh, setUpkeepRefresh] = React.useState(0);
   const [slippageOpen, setSlippageOpen] = React.useState(false);
   const [slippageInput, setSlippageInput] = React.useState<string>('');
   const [closeOpen, setCloseOpen] = React.useState(false);
   const [strategyConfigOpen, setStrategyConfigOpen] = React.useState(false);
 
-  // createdAt for history chart
-  const { data: createdAtTs } = useReadContract({
-    address: walletAddress || undefined,
-    abi: [ { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint64' } ] } ] as const,
-    functionName: 'createdAt',
-    query: { enabled: Boolean(walletAddress) },
-  });
+  // createdAt now provided by useWalletReads
 
   // Build wallet value time series for chart
   const [walletSeries, setWalletSeries] = React.useState<any[] | null>(null);
@@ -342,8 +206,8 @@ export default function WalletDetails() {
       for (const m of metas) {
         try {
           const [dec, round] = await Promise.all([
-            client.readContract({ address: m.feed, abi: aggregatorAbi as any, functionName: 'decimals', args: [] }) as Promise<number>,
-            client.readContract({ address: m.feed, abi: aggregatorAbi as any, functionName: 'latestRoundData', args: [] }) as Promise<any>,
+            client.readContract({ address: m.feed, abi: FEED_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
+            client.readContract({ address: m.feed, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as Promise<any>,
           ]);
           const p = Number(round[1]);
           next[m.symbol] = { price: p, decimals: dec };
@@ -355,7 +219,7 @@ export default function WalletDetails() {
     load();
     const id = setInterval(load, 60000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [client, addressToMeta, aggregatorAbi, chainAssets.cbBTC.address, chainAssets.WETH.address, chainAssets.USDC.address]);
+  }, [client, addressToMeta, chainAssets.cbBTC.address, chainAssets.WETH.address, chainAssets.USDC.address]);
 
   React.useEffect(() => {
     (async () => {
@@ -388,43 +252,7 @@ export default function WalletDetails() {
   }, [withdrawOpen, stableTokenAddr, riskAssets]);
 
   // Temporary feature flag: disable Chainlink Automation detection
-  const ENABLE_UPKEEP_DETECTION = false;
-
-  // Discover Chainlink Automation Upkeep ID on Base Sepolia only (robust with retries and timeout)
-  React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!ENABLE_UPKEEP_DETECTION) {
-        if (!cancelled) { setUpkeepError(false); setUpkeepId(null); }
-        return;
-      }
-      setUpkeepError(false);
-      if (!walletAddress) { if (!cancelled) setUpkeepId(undefined); return; }
-      if (chainId !== 84532) { if (!cancelled) setUpkeepId(null); return; }
-      const rpcFallbacks = [
-        // 'https://base-sepolia.g.alchemy.com/v2/demo',
-        'https://sepolia.base.org',
-        // 'https://base-sepolia.blockpi.network/v1/rpc/public',
-      ];
-      const MAX_ATTEMPTS = 10;
-      for (let attempt = 0; attempt < MAX_ATTEMPTS && !cancelled; attempt++) {
-        try {
-          const p = findUpkeepIdForTarget(walletAddress as `0x${string}`, { chainId, pageSize: 1000, rpcUrls: rpcFallbacks, errorLimit: 10, lastBlocks: 1_000_000, maxActiveScan: 1000 });
-          const res = await Promise.race<bigint | null>([
-            p,
-            new Promise<bigint | null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-          ]);
-          if (cancelled) return;
-          setUpkeepId(res);
-          return;
-        } catch {
-          // continue
-        }
-      }
-      if (!cancelled) { setUpkeepError(true); setUpkeepId(null); }
-    })();
-    return () => { cancelled = true; };
-  }, [walletAddress, chainId, upkeepRefresh, ENABLE_UPKEEP_DETECTION]);
+  // Removed Chainlink Automation Upkeep discovery effect
 
   if (!walletAddress) return null;
 
@@ -513,102 +341,27 @@ export default function WalletDetails() {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', px: 1 }}>
-              <Typography variant="subtitle1" fontWeight="bold">My Assets</Typography>
-              {isMobile ? (
-                <Stack spacing={0.75} sx={{ mt: 1, minWidth: 0 }}>
-                  {(['cbBTC', 'USDC', 'WETH'] as const).map((sym) => {
-                    const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
-                    if (!m) return null;
-                    let amt: bigint | undefined = sym === 'USDC'
-                      ? stableBal
-                      : (() => {
-                          const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
-                          return idx === -1 ? undefined : riskBals[idx];
-                        })();
-                    if (amt === undefined) return null;
-                    const p = prices[m.symbol];
-                    const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
-                    return (
-                      <Box key={sym} sx={{ display: 'flex', flexDirection: 'column', gap: 0.15, minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                          {formatTokenAmount(amt, m.decimals)} {m.symbol}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'right' }}>
-                          {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                        </Typography>
-                      </Box>
-                    );
-                  })}
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Total Value</Typography>
-                    <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-                      {formatUsd6(valueUsd as bigint)}
-                    </Typography>
-                  </Box>
-                  </Stack>
-              ) : (
-                <Grid container spacing={0.5} sx={{ mt: 1, pr: 0.5 }} textAlign={'center'}>
-                {(['cbBTC', 'WETH', 'USDC'] as const).map((sym) => {
-                  const m = (chainAssets as any)[sym] as { address: string; symbol: string; decimals: number; feed?: `0x${string}` } | undefined;
-                  if (!m) return null;
-                  let amt: bigint | undefined = sym === 'USDC'
-                    ? stableBal
-                    : (() => {
-                        const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
-                        return idx === -1 ? undefined : riskBals[idx];
-                      })();
-                  if (amt === undefined) return null;
-                  const p = prices[m.symbol];
-                  const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
-                  return (
-                    <Grid key={sym} item xs={12} sm={6} md={4}>
-                      <Stack>
-                          <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem', pr: 0.1}}>
-                          {formatTokenAmount(amt, m.decimals)} {m.symbol}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
-                          {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                        </Typography>
-                      </Stack>
-                    </Grid>
-                  );
-                })}
-                  <Grid item xs={12} sm={6} md={4}>
-                    <Stack>
-                      <Typography variant="caption">Total Value</Typography>
-                      <Typography variant="h5">{formatUsd6(valueUsd as bigint)}</Typography>
-                    </Stack>
-                  </Grid>
-              </Grid>
-              )}
-
-              
-              <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                <Button variant="outlined" size="small" onClick={() => setDepositOpen(true)}>Deposit</Button>
-                <Button variant="outlined" size="small" onClick={() => setWithdrawOpen(true)}>Withdraw</Button>
-              </Stack>
+          <AssetsCard
+            chainAssets={chainAssets as any}
+            riskAssets={riskAssets as any}
+            stableBal={stableBal}
+            riskBals={riskBals}
+            prices={prices}
+            valueUsd={valueUsd as bigint}
+            onDeposit={() => setDepositOpen(true)}
+            onWithdraw={() => setWithdrawOpen(true)}
+          />
               {chainKey === 'base-sepolia' && (userUsdcBalance !== undefined) && ((userUsdcBalance as bigint) === BigInt(0)) ? (
                 <Alert severity="info" sx={{ mt: 3 }}>
                   You can claim testnet USDC from the{' '}
                   <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Circle Faucet</a>.
                 </Alert>
               ) : null}
-            </CardContent>
-          </Card>
         </Grid>
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ flex: 1 }}>Strategy</Typography>
-                <IconButton size="small" aria-label="Configure strategy" onClick={() => setStrategyConfigOpen(true)}>
-                  <SettingsIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {(() => {
+          <StrategyCard
+            strategyName={strategyName as any}
+            description={(() => {
                 const strategies = (appConfig as any)[chainKey]?.strategies || {};
                 const onChainId = String(strategyIdStr || '').trim();
                 let mappedDesc: string | null = null;
@@ -616,273 +369,68 @@ export default function WalletDetails() {
                   mappedDesc = (strategies as any)[onChainId].description as string;
                 } else if (onChainId) {
                   for (const st of Object.values<any>(strategies)) {
-                    if (String(st.id || '').trim() === onChainId) { mappedDesc = st.description as string; break; }
+                  if (String(st.id || '').trim() === onChainId) { mappedDesc = (st as any).description as string; break; }
                   }
                 }
                 const finalDesc = mappedDesc || String(desc || '');
-                return strategyName ? `${String(strategyName)} - ${finalDesc}` : finalDesc;
+              return finalDesc;
               })()}
-            </Typography>
-              {strategyAddr ? (
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', mt: 1 }}>
-                  <span>{`${String(strategyAddr).slice(0, 6)}…${String(strategyAddr).slice(-4)}`}</span>
-                  <a
-                    href={`${explorerBase}/address/${strategyAddr}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
-                    aria-label="Open strategy on block explorer"
-                  >
-                    <LaunchIcon sx={{ fontSize: 14 }} />
-                  </a>
-                </Typography>
-              ) : null}
-              <Stack direction="row" spacing={3} sx={{ mt: 2, flexWrap: 'wrap' }}>
-                <Box>
-                  <Typography variant="caption">DCA Amount</Typography>
-                  <Typography variant="body1">
-                    {(() => {
-                      const strategyId = String(strategyIdStr || '').trim();
-                      if (strategyId === 'btc-dca-power-law-v1') return 'Dynamic %';
-                      return formatUsd6(dcaAmount as bigint);
-                    })()}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption">Frequency</Typography>
-                  <Typography variant="body1">{freq ? `${Number(freq) / 86400} d` : '-'}</Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
+            strategyAddr={strategyAddr as any}
+            explorerBase={explorerBase}
+            dcaAmount={dcaAmount as any}
+            frequency={freq as any}
+            strategyIdStr={strategyIdStr as any}
+            onOpenConfig={() => setStrategyConfigOpen(true)}
+          />
         </Grid>
       </Grid>
 
       {/* Wallet Config + Automate Your Wallet side by side on desktop */}
       <Grid container spacing={3} sx={{ mt: 0 }}>
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Wallet Config</Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 1 }} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Automation</Typography>
-                  <Typography variant="body2">{automationPaused ? 'Paused' : 'Active'}</Typography>
-                </Box>
-                  <Box>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={async () => {
+          <WalletConfigCard
+            automationPaused={automationPaused as any}
+            slippage={slippage as any}
+            onOpenSlippage={() => { setSlippageInput(slippage ? String(Number(slippage)) : ''); setSlippageOpen(true); }}
+            onToggleAutomation={async () => {
                       const ok = await ensureOnPrimaryChain(chainId as number, (args: any) => (window as any));
-                      // ensureOnPrimaryChain here does not switch; we rely on global guard and Portfolio actions. Skip switching in nested actions.
                       if (!walletAddress) return;
                       try {
-                        let maxFeePerGas: bigint | undefined;
-                        let maxPriorityFeePerGas: bigint | undefined;
-                        try {
-                          const fees = await client.estimateFeesPerGas();
-                          maxFeePerGas = fees.maxFeePerGas;
-                          maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-                        } catch {}
                         const fn = automationPaused ? 'unpauseAutomation' : 'pauseAutomation';
-                        const hash = await writeContractAsync({
-                          address: walletAddress,
-                          abi: powerWalletAbi as any,
-                          functionName: fn as any,
-                          args: [],
-                          ...(maxFeePerGas ? { maxFeePerGas } : {}),
-                          ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-                        });
+                        const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: fn as any, args: [] });
                         setTxHash(hash as `0x${string}`);
                       } catch (e: any) {
                         setToast({ open: true, message: e?.shortMessage || e?.message || 'Transaction failed', severity: 'error' });
                       }
                     }}
-                  >
-                    {automationPaused ? 'Activate Automation' : 'Pause Automation'}
-                  </Button>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Slippage</Typography>
-                  <Typography variant="body2">{slippage ? `${Number(slippage)} bps (${(Number(slippage)/100).toFixed(2)}%)` : '-'}</Typography>
-                </Box>
-                <Box>
-                  <Button size="small" variant="outlined" onClick={() => {
-                    setSlippageInput(slippage ? String(Number(slippage)) : '');
-                    setSlippageOpen(true);
-                  }}>Update Slippage</Button>
-                  </Box>
-              </Stack>
-            </CardContent>
-          </Card>
+          />
         </Grid>
 
-        {/* We now rely on the Wallet Automator Contract for Automation */}
-        {/* <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
-        {upkeepId === undefined && !upkeepError ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Checking Chainlink Automation status…
-          </Typography>
-        ) : upkeepId ? (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-              Upkeep registered for this wallet: ID {upkeepId.toString()}.
-            </Typography>
-            <Button
-              variant="outlined"
-              href={`https://automation.chain.link/base-sepolia/upkeeps/${upkeepId.toString()}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View Upkeep
-            </Button>
-          </>
-        ) : upkeepError ? (
-          <>
-            <Alert severity="warning" sx={{ mt: 1, mb: 2 }}>
-              Unable to reach Chainlink Automation right now. Please try again later or open Automation.
-            </Alert>
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                size="small"
-                href="https://automation.chain.link/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open Automation
-              </Button>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => setUpkeepRefresh((x) => x + 1)}
-              >
-                Retry
-              </Button>
-            </Stack>
-          </>
-        ) : (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-                  To automate the execution of your wallet strategy, register an Upkeep for the address of this wallet with Chainlink Automation.
-            </Typography>
-            <Button
-              variant="outlined"
-                    size="small"
-              href="https://automation.chain.link/base-sepolia"
-              target="_blank"
-              rel="noopener noreferrer"
-                    sx={{ alignSelf: 'flex-start' }}
-            >
-              Open Chainlink Automation
-            </Button>
-          </>
-        )}
-            </CardContent>
-          </Card>
-        </Grid> */}
-
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Deposits & Withdrawals</Typography>
-              <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 520, whiteSpace: 'nowrap' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Asset</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {((Array.isArray(depositsData) ? depositsData : []).length === 0 && (Array.isArray(withdrawalsData) ? withdrawalsData : []).length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={4}>
-                          <Typography variant="body2" color="text.secondary">No deposits or withdrawals yet.</Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {[...(Array.isArray(depositsData) ? depositsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((d: any, idx: number) => (
-                      <TableRow key={`dep-${idx}`}>
-                        <TableCell>
-                          <Tooltip title={formatDateTime(d.timestamp)} placement="top" disableFocusListener disableTouchListener>
-                            <span>{formatDateOnly(d.timestamp)}</span>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>Deposit</TableCell>
-                        <TableCell>USDC</TableCell>
-                        <TableCell align="right">{formatTokenAmount(d.amount as bigint, 6)}</TableCell>
-                      </TableRow>
-                    ))}
-                    {[...(Array.isArray(withdrawalsData) ? withdrawalsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((w: any, idx: number) => {
-                      const meta = addressToMeta(w.asset as string);
-                      const sym = meta?.symbol || `${String(w.asset).slice(0, 6)}…${String(w.asset).slice(-4)}`;
-                      return (
-                        <TableRow key={`wd-${idx}`}>
-                          <TableCell>
-                            <Tooltip title={formatDateTime(w.timestamp)} placement="top" disableFocusListener disableTouchListener>
-                              <span>{formatDateOnly(w.timestamp)}</span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell>Withdrawal</TableCell>
-                          <TableCell>{sym}</TableCell>
-                          <TableCell align="right">{formatTokenAmount(w.amount as bigint, meta?.decimals)}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
+          <DepositsWithdrawalsCard
+            deposits={(Array.isArray(depositsData) ? depositsData : []) as any}
+            withdrawals={(Array.isArray(withdrawalsData) ? withdrawalsData : []) as any}
+            addressToMeta={addressToMeta as any}
+          />
         </Grid>
       </Grid>
 
       {/* Deposit Modal */}
-      <Dialog open={depositOpen} onClose={() => setDepositOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Deposit USDC</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Amount (USDC)"
-            type="number"
-            fullWidth
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            inputProps={{ min: 0, step: '0.01' }}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            Your balance: {formatTokenAmount((userUsdcBalance as bigint) ?? userStableBalance, 6)} USDC
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            Allowance: {formatAllowance(allowance)} USDC
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDepositOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={async () => {
+      <DepositDialog
+        open={depositOpen}
+        onClose={() => setDepositOpen(false)}
+        amount={depositAmount}
+        onChangeAmount={setDepositAmount}
+        userUsdcBalance={(userUsdcBalance as bigint) ?? userStableBalance}
+        allowance={allowance}
+        isSubmitting={isDepositing}
+        onSubmit={async () => {
               if (!stableTokenAddr || !walletAddress) return;
               const amount = Math.max(0, Number(depositAmount || '0'));
               if (amount <= 0) return;
               const amt = BigInt(Math.round(amount * 1_000_000));
               setIsDepositing(true);
               try {
-                let maxFeePerGas: bigint | undefined;
-                let maxPriorityFeePerGas: bigint | undefined;
-                try {
-                  const fees = await client.estimateFeesPerGas();
-                  maxFeePerGas = fees.maxFeePerGas;
-                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-                } catch {}
                 const erc20ReadAbi = [
                   { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [ { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
                   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
@@ -899,25 +447,11 @@ export default function WalletDetails() {
                   const erc20WriteAbi = [
                     { type: 'function', name: 'approve', stateMutability: 'nonpayable', inputs: [ { name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' } ], outputs: [ { name: '', type: 'bool' } ] },
                   ] as const;
-                  const approveHash = await writeContractAsync({
-                    address: stableTokenAddr as `0x${string}`,
-                    abi: erc20WriteAbi as any,
-                    functionName: 'approve',
-                    args: [walletAddress, amt],
-                    ...(maxFeePerGas ? { maxFeePerGas } : {}),
-                    ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-                  });
+                  const approveHash = await writeWithFees({ write: writeContractAsync as any, client, address: stableTokenAddr as `0x${string}`, abi: erc20WriteAbi as any, functionName: 'approve', args: [walletAddress, amt] });
                   setTxHash(approveHash as `0x${string}`);
                   await client.waitForTransactionReceipt({ hash: approveHash as `0x${string}` });
                 }
-                const depositHash = await writeContractAsync({
-                  address: walletAddress,
-                  abi: powerWalletAbi as any,
-                  functionName: 'deposit',
-                  args: [amt],
-                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
-                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-                });
+                const depositHash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'deposit', args: [amt] });
                 setTxHash(depositHash as `0x${string}`);
                 setDepositOpen(false);
                 setDepositAmount('');
@@ -928,34 +462,15 @@ export default function WalletDetails() {
                 setIsDepositing(false);
               }
             }}
-            disabled={isDepositing}
-          >
-            {isDepositing ? (<><CircularProgress size={16} sx={{ mr: 1 }} /> Depositing…</>) : 'Deposit'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
 
       {/* Update Slippage Modal */}
-      <Dialog open={slippageOpen} onClose={() => setSlippageOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Update Slippage</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label={`Slippage (bps) — ${(Number(slippage ?? 0)/100).toFixed(2)}%`}
-            type="number"
-            fullWidth
-            value={slippageInput}
-            onChange={(e) => setSlippageInput(e.target.value)}
-            inputProps={{ min: 0, max: 4999, step: 1, placeholder: String(Number(slippage ?? 0)) }}
-            helperText="Max 5000 bps (50%)"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSlippageOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={async () => {
+      <SlippageDialog
+        open={slippageOpen}
+        onClose={() => setSlippageOpen(false)}
+        slippage={Number(slippage ?? 0)}
+        onChange={setSlippageInput}
+        onSubmit={async () => {
               if (!walletAddress) return;
               const val = Math.max(0, Math.floor(Number(slippageInput || '0')));
               if (Number.isNaN(val) || val >= 5000) {
@@ -963,21 +478,7 @@ export default function WalletDetails() {
                 return;
               }
               try {
-                let maxFeePerGas: bigint | undefined;
-                let maxPriorityFeePerGas: bigint | undefined;
-                try {
-                  const fees = await client.estimateFeesPerGas();
-                  maxFeePerGas = fees.maxFeePerGas;
-                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-                } catch {}
-                const hash = await writeContractAsync({
-                  address: walletAddress,
-                  abi: powerWalletAbi as any,
-                  functionName: 'setSlippageBps',
-                  args: [val],
-                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
-                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-                });
+                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'setSlippageBps', args: [val] });
                 setTxHash(hash as `0x${string}`);
                 await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
                 await refetchSlippage();
@@ -986,70 +487,23 @@ export default function WalletDetails() {
                 setToast({ open: true, message: e?.shortMessage || e?.message || 'Update failed', severity: 'error' });
               }
             }}
-          >
-            Update Slippage
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
 
-      {/* Withdraw Modal (supports stable and risk assets) */}
-      <Dialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Withdraw Asset</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 1 }}>
-            <InputLabel id="withdraw-asset-label">Asset</InputLabel>
-            <Select
-              labelId="withdraw-asset-label"
-              label="Asset"
-              value={withdrawAssetAddr || ''}
-              onChange={(e) => setWithdrawAssetAddr(e.target.value as `0x${string}`)}
-            >
-              {stableTokenAddr ? (
-                <MenuItem value={stableTokenAddr as `0x${string}`}>USDC</MenuItem>
-              ) : null}
-              {riskAssets.map((ra) => {
-                const key = String(ra);
-                const m = addressToMeta(key);
-                const sym = m?.symbol || `${key.slice(0, 6)}…${key.slice(-4)}`;
-                return <MenuItem key={key} value={key as `0x${string}`}>{sym}</MenuItem>;
-              })}
-            </Select>
-          </FormControl>
-          <TextField
-            autoFocus
-            margin="dense"
-            label={(() => {
-              const m = addressToMeta(withdrawAssetAddr);
-              return `Amount (${m?.symbol || 'token'})`;
-            })()}
-            type="number"
-            fullWidth
-            value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
-            inputProps={{ min: 0, step: '0.000001' }}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            {(() => {
-              const addr = withdrawAssetAddr?.toLowerCase();
-              const isStable = addr && stableTokenAddr && addr === String(stableTokenAddr).toLowerCase();
-              let bal: bigint | undefined = undefined;
-              if (isStable) {
-                bal = stableBal;
-              } else if (addr) {
-                const idx = riskAssets.findIndex(x => x.toLowerCase() === addr);
-                bal = idx === -1 ? undefined : riskBals[idx];
-              }
-              const dec = addressToMeta(withdrawAssetAddr || '')?.decimals;
-              const sym = addressToMeta(withdrawAssetAddr || '')?.symbol || 'token';
-              return bal !== undefined && dec !== undefined ? `Available: ${formatTokenAmount(bal, dec)} ${sym}` : '';
-            })()}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setWithdrawOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={async () => {
+      {/* Withdraw Modal */}
+      <WithdrawDialog
+        open={withdrawOpen}
+        onClose={() => setWithdrawOpen(false)}
+        withdrawAssetAddr={withdrawAssetAddr}
+        onChangeAsset={(addr) => setWithdrawAssetAddr(addr)}
+        withdrawAmount={withdrawAmount}
+        onChangeAmount={setWithdrawAmount}
+        stableTokenAddr={stableTokenAddr as any}
+        riskAssets={riskAssets as any}
+        stableBal={stableBal}
+        riskBals={riskBals}
+        addressToMeta={addressToMeta as any}
+        isSubmitting={isWithdrawing}
+        onSubmit={async () => {
               if (!walletAddress || !withdrawAssetAddr) return;
               const amount = Math.max(0, Number(withdrawAmount || '0'));
               if (amount <= 0) return;
@@ -1059,21 +513,7 @@ export default function WalletDetails() {
               const amt = BigInt(Math.round(amount * scale));
               setIsWithdrawing(true);
               try {
-                let maxFeePerGas: bigint | undefined;
-                let maxPriorityFeePerGas: bigint | undefined;
-                try {
-                  const fees = await client.estimateFeesPerGas();
-                  maxFeePerGas = fees.maxFeePerGas;
-                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-                } catch {}
-                const hash = await writeContractAsync({
-                  address: walletAddress,
-                  abi: powerWalletAbi as any,
-                  functionName: 'withdrawAsset',
-                  args: [withdrawAssetAddr, amt],
-                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
-                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-                });
+                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'withdrawAsset', args: [withdrawAssetAddr, amt] });
                 setTxHash(hash as `0x${string}`);
                 setWithdrawOpen(false);
                 setWithdrawAmount('');
@@ -1083,110 +523,45 @@ export default function WalletDetails() {
                 setIsWithdrawing(false);
               }
             }}
-            disabled={isWithdrawing}
-          >
-            {isWithdrawing ? (<><CircularProgress size={16} sx={{ mr: 1 }} /> Withdrawing…</>) : 'Withdraw'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
 
       {/* Strategy Config Modal */}
-      <Dialog
-        open={strategyConfigOpen}
-        onClose={() => setStrategyConfigOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{ sx: { borderRadius: { xs: 0, sm: 1 } } }}
-      >
-        <DialogTitle sx={{
-          px: { xs: 2, sm: 3 },
-          py: { xs: 1.5, sm: 2 },
-          position: 'sticky',
-          top: 0,
-          zIndex: 1,
-          bgcolor: { xs: 'background.default', sm: 'background.paper' },
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          boxShadow: { xs: '0 2px 8px rgba(0,0,0,0.35)', sm: '0 1px 2px rgba(0,0,0,0.18)' },
-          borderTopLeftRadius: { sm: 8 },
-          borderTopRightRadius: { sm: 8 },
-        }}>
-          Configure Strategy
-          {isMobile ? (
-            <IconButton
-              aria-label="close"
-              onClick={() => setStrategyConfigOpen(false)}
-              sx={{ position: 'absolute', right: 8, top: 8, color: 'text.secondary' }}
-            >
-              <CloseIcon />
-            </IconButton>
-          ) : null}
-        </DialogTitle>
-        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
           {(() => {
-            // Determine strategy id using on-chain strategy.id, fallback to description match
             const strategies = (appConfig as any)[chainKey]?.strategies || {};
             const descStr = String(desc || '').trim();
             let matchedId: string | null = null;
             let stableKey: string | null = null;
-
             const onChainId = String(strategyIdStr || '').trim();
             if (onChainId && strategies[onChainId]) {
               matchedId = onChainId;
               stableKey = (strategies as any)[onChainId].stable;
             } else if (onChainId) {
               for (const [id, st] of Object.entries<any>(strategies)) {
-                if (String(st.id || '').trim() === onChainId) {
-                  matchedId = id;
-                  stableKey = st.stable;
-                  break;
-                }
+            if (String((st as any).id || '').trim() === onChainId) { matchedId = id; stableKey = (st as any).stable; break; }
               }
             }
             if (!matchedId) {
               for (const [id, st] of Object.entries<any>(strategies)) {
-                if (String(st.description).trim() === descStr) {
-                  matchedId = id;
-                  stableKey = st.stable;
-                  break;
+            if (String((st as any).description).trim() === descStr) { matchedId = id; stableKey = (st as any).stable; break; }
                 }
               }
-            }
-            if (matchedId === 'simple-btc-dca-v1') {
+        const content = matchedId === 'simple-btc-dca-v1' ? 'simple' : matchedId === 'btc-dca-power-law-v1' ? 'smart' : 'unknown';
               const stableMeta = stableKey ? (appConfig as any)[chainKey].assets[Object.keys((appConfig as any)[chainKey].assets).find(k => k.toLowerCase() === String(stableKey).toLowerCase()) as string] : null;
-              const stableSymbol = stableMeta?.symbol || 'USDC';
-              const stableDecimals = stableMeta?.decimals ?? 6;
               return (
-                <ConfigSimpleDcaV1
-                  strategyAddr={String(strategyAddr) as `0x${string}`}
+          <StrategyConfigDialog
+            open={strategyConfigOpen}
+            onClose={() => setStrategyConfigOpen(false)}
+            isMobile={isMobile}
                   chainId={chainId}
-                  stableSymbol={stableSymbol}
-                  stableDecimals={stableDecimals}
-                  initialAmountStable={dcaAmount as bigint}
-                  initialFrequency={freq as bigint}
-                />
-              );
-            }
-            if (matchedId === 'btc-dca-power-law-v1') {
-              return (
-                <ConfigSmartBtcDcaV1
-                  strategyAddr={String(strategyAddr) as `0x${string}`}
-                  chainId={chainId}
-                />
-              );
-            }
-            return (
-              <Typography variant="body2" color="text.secondary">This strategy is not yet configurable in the app.</Typography>
+            content={content as any}
+            strategyAddr={String(strategyAddr || '') as `0x${string}`}
+            dcaAmount={dcaAmount as any}
+            freq={freq as any}
+            stableSymbol={stableMeta?.symbol || 'USDC'}
+            stableDecimals={stableMeta?.decimals ?? 6}
+          />
             );
           })()}
-        </DialogContent>
-        {!isMobile ? (
-          <DialogActions>
-            <Button onClick={() => setStrategyConfigOpen(false)}>Close</Button>
-          </DialogActions>
-        ) : null}
-      </Dialog>
 
       <Snackbar
         open={toast.open}
@@ -1223,45 +598,14 @@ export default function WalletDetails() {
       </Snackbar>
 
       {/* Close Wallet Modal */}
-      <Dialog open={closeOpen} onClose={() => setCloseOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Close Wallet</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            This will pause automation and permanently delete this wallet.
-          </Typography>
-          {hasAnyFunds ? (
-            <Alert severity="warning">Your wallet has funds. Withdraw all your funds before closing your wallet.</Alert>
-          ) : (
-            <Typography variant="caption" color="text.secondary">
-              No funds detected. You can close the wallet safely. <br />
-              This will require 2 transactions to complete, one to pause automation and one to unregister your wallet.
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCloseOpen(false)}>Cancel</Button>
-          <Button
-            color="error"
-            variant="contained"
-            disabled={hasAnyFunds}
-            onClick={async () => {
+      <CloseWalletDialog
+        open={closeOpen}
+        onClose={() => setCloseOpen(false)}
+        hasAnyFunds={hasAnyFunds}
+        onConfirm={async () => {
               if (!walletAddress) return;
               try {
-                let maxFeePerGas: bigint | undefined;
-                let maxPriorityFeePerGas: bigint | undefined;
-                try {
-                  const fees = await client.estimateFeesPerGas();
-                  maxFeePerGas = fees.maxFeePerGas;
-                  maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-                } catch {}
-                const hash = await writeContractAsync({
-                  address: walletAddress,
-                  abi: powerWalletAbi as any,
-                  functionName: 'closeWallet',
-                  args: [],
-                  ...(maxFeePerGas ? { maxFeePerGas } : {}),
-                  ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-                });
+                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'closeWallet', args: [] });
                 setTxHash(hash as `0x${string}`);
                 await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
                 // After closing, request factory to delete the wallet reference
@@ -1271,14 +615,7 @@ export default function WalletDetails() {
                     const factoryAbi = [
                       { type: 'function', name: 'deleteWallet', stateMutability: 'nonpayable', inputs: [ { name: 'walletAddr', type: 'address' } ], outputs: [] },
                     ] as const;
-                    const delHash = await writeContractAsync({
-                      address: factory,
-                      abi: factoryAbi as any,
-                      functionName: 'deleteWallet',
-                      args: [walletAddress],
-                      ...(maxFeePerGas ? { maxFeePerGas } : {}),
-                      ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-                    });
+                    const delHash = await writeWithFees({ write: writeContractAsync as any, client, address: factory, abi: factoryAbi as any, functionName: 'deleteWallet', args: [walletAddress] });
                     setTxHash(delHash as `0x${string}`);
                   }
                 } catch (e) {}
@@ -1287,87 +624,21 @@ export default function WalletDetails() {
                 setToast({ open: true, message: e?.shortMessage || e?.message || 'Close failed', severity: 'error' });
               }
             }}
-          >
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
       
 
       {/* Transactions - Deposits & Withdrawals */}
       <Grid container spacing={3} sx={{ mt: 0 }}>
-        {/* Transactions - Swaps */}
         <Grid item xs={12} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Swaps</Typography>
-              <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 680, whiteSpace: 'nowrap' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Side</TableCell>
-                      <TableCell>Asset</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                      <TableCell align="right">Price (USDC)</TableCell>
-                      <TableCell align="right">Value (USDC)</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {((Array.isArray(swapsData) ? swapsData : []).length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={6}>
-                          <Typography variant="body2" color="text.secondary">No swaps yet.</Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {[...(Array.isArray(swapsData) ? swapsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((s: any, idx: number) => {
-                      const tokenIn = String(s.tokenIn);
-                      const tokenOut = String(s.tokenOut);
-                      const amountIn = s.amountIn as bigint;
-                      const amountOut = s.amountOut as bigint;
-                      const tokenInMeta = addressToMeta(tokenIn);
-                      const tokenOutMeta = addressToMeta(tokenOut);
-                      const isBuy = tokenInMeta?.symbol === 'USDC';
-                      const riskMeta = isBuy ? tokenOutMeta : tokenInMeta;
-                      const stableDec = (chainAssets as any)['USDC']?.decimals ?? 6;
-                      const riskDec = riskMeta?.decimals ?? 18;
-                      let priceNum: number | null = null;
-                      if (isBuy && riskMeta) {
-                        const usdcSold = Number(amountIn) / 10 ** stableDec;
-                        const riskBought = Number(amountOut) / 10 ** riskDec;
-                        if (riskBought > 0) priceNum = usdcSold / riskBought;
-                      } else if (!isBuy && riskMeta) {
-                        const usdcBought = Number(amountOut) / 10 ** stableDec;
-                        const riskSold = Number(amountIn) / 10 ** riskDec;
-                        if (riskSold > 0) priceNum = usdcBought / riskSold;
-                      }
-                      const amountRisk = isBuy ? (Number(amountOut) / 10 ** riskDec) : (Number(amountIn) / 10 ** riskDec);
-                      const valueUsdc = priceNum !== null ? amountRisk * priceNum : null;
-                      return (
-                        <TableRow key={`sw-${idx}`}>
-                          <TableCell>
-                            <Tooltip title={formatDateTime(s.timestamp)} placement="top" disableFocusListener disableTouchListener>
-                              <span>{formatDateOnly(s.timestamp)}</span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell>{isBuy ? 'BUY' : 'SELL'}</TableCell>
-                          <TableCell>{riskMeta?.symbol || '-'}</TableCell>
-                          <TableCell align="right">{Number.isFinite(amountRisk) ? amountRisk.toLocaleString('en-US', { maximumFractionDigits: 8 }) : '-'}</TableCell>
-                          <TableCell align="right">{priceNum !== null ? `$${priceNum.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-'}</TableCell>
-                          <TableCell align="right">{valueUsdc !== null ? `$${valueUsdc.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
+          <SwapsCard
+            swaps={(Array.isArray(swapsData) ? swapsData : []) as any}
+            addressToMeta={addressToMeta as any}
+            chainAssets={chainAssets as any}
+          />
         </Grid>
       </Grid>
 
-      {/* Close Wallet Section (below Automation card) */}
+      {/* Close Wallet Section */}
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-start' }}>
         <Button color="error" variant="outlined" onClick={() => setCloseOpen(true)}>Close Wallet</Button>
       </Box>

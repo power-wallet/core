@@ -7,6 +7,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
+import { writeWithFees } from '@/lib/tx';
 import { getViemChain, getChainKey } from '@/config/networks';
 import { getFriendlyChainName, ensureOnPrimaryChain } from '@/lib/web3';
 import WalletConnectModal from '@/components/WalletConnectModal';
@@ -351,20 +352,13 @@ export default function PortfolioPage() {
     if (!factoryAddress || !cbBTC || !strategyIdBytes32 || !initCalldata) return;
       setCreating(true);
       try {
-        let maxFeePerGas: bigint | undefined;
-        let maxPriorityFeePerGas: bigint | undefined;
-        try {
-          const fees = await feeClient.estimateFeesPerGas();
-          maxFeePerGas = fees.maxFeePerGas;
-          maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-        } catch {}
-        const hash = await writeContractAsync({
+        const hash = await writeWithFees({
+          write: writeContractAsync as any,
+          client: feeClient as any,
           address: factoryAddress as `0x${string}`,
           abi: walletFactoryAbi as any,
           functionName: 'createWallet',
-        args: [strategyIdBytes32, initCalldata, usdc as `0x${string}`, [cbBTC as `0x${string}`], priceFeeds as [`0x${string}`], poolFees],
-          ...(maxFeePerGas ? { maxFeePerGas } : {}),
-          ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
+          args: [strategyIdBytes32, initCalldata, usdc as `0x${string}`, [cbBTC as `0x${string}`], priceFeeds as [`0x${string}`], poolFees],
         });
         setTxHash(hash as `0x${string}`);
       } finally {

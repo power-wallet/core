@@ -4,31 +4,14 @@ import React from 'react';
 import { Card, CardContent, Stack, Box, Typography, Button } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { useReadContract } from 'wagmi';
+import { useWalletReads, useStrategyReads } from '@/lib/walletReads';
 
 type Props = { walletAddress: `0x${string}`; explorerBase: string; feeClient: any };
 
 export default function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: Props) {
-  const powerWalletAbi = [
-    { type: 'function', name: 'getPortfolioValueUSD', stateMutability: 'view', inputs: [], outputs: [ { name: 'usd6', type: 'uint256' } ] },
-    { type: 'function', name: 'strategy', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
-    { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint64' } ] },
-  ] as const;
-  const strategyCommonAbi = [
-    { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
-    { type: 'function', name: 'description', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'string' } ] },
-    { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  ] as const;
-  const simpleDcaOnlyAbi = [
-    { type: 'function', name: 'dcaAmountStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  ] as const;
-
-  const { data: valueUsd } = useReadContract({ address: walletAddress, abi: powerWalletAbi as any, functionName: 'getPortfolioValueUSD' });
-  const { data: strategyAddr } = useReadContract({ address: walletAddress, abi: powerWalletAbi as any, functionName: 'strategy' });
-  const { data: createdAtTs } = useReadContract({ address: walletAddress, abi: powerWalletAbi as any, functionName: 'createdAt' });
-  const { data: strategyName } = useReadContract({ address: strategyAddr as `0x${string}` | undefined, abi: strategyCommonAbi as any, functionName: 'name', query: { enabled: Boolean(strategyAddr) } });
-  const { data: freq } = useReadContract({ address: strategyAddr as `0x${string}` | undefined, abi: strategyCommonAbi as any, functionName: 'frequency', query: { enabled: Boolean(strategyAddr) } });
+  const { valueUsd, strategyAddr, createdAtTs } = useWalletReads(walletAddress);
+  const { strategyName, freq, dcaAmount } = useStrategyReads(strategyAddr as any);
   const isSimple = String(strategyName || '').trim() === 'Simple BTC DCA';
-  const { data: dcaAmount } = useReadContract({ address: strategyAddr as `0x${string}` | undefined, abi: simpleDcaOnlyAbi as any, functionName: 'dcaAmountStable', query: { enabled: Boolean(strategyAddr && isSimple) } });
 
   const formatUsd6 = (v?: bigint) => {
     if (!v) return '$0.00';

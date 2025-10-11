@@ -5,6 +5,7 @@ import { Container, Box, Typography, Card, CardContent, Stack, TextField, Button
 import BaseSepoliaFaucets from '@/components/BaseSepoliaFaucets';
 import { useAccount, useChainId, useReadContract, useWriteContract } from 'wagmi';
 import { createPublicClient, http, parseUnits } from 'viem';
+import { writeWithFees } from '@/lib/tx';
 import { getChainKey, getViemChain } from '@/config/networks';
 import { FAUCET_ABI, ERC20_READ_ABI } from '@/lib/abi';
 import appConfig from '@/config/appConfig.json';
@@ -119,20 +120,13 @@ export default function FaucetPage() {
     }
     setBusy(true);
     try {
-      let maxFeePerGas: bigint | undefined;
-      let maxPriorityFeePerGas: bigint | undefined;
-      try {
-        const fees = await client.estimateFeesPerGas();
-        maxFeePerGas = fees.maxFeePerGas;
-        maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-      } catch {}
-      const hash = await writeContractAsync({
+      const hash = await writeWithFees({
+        write: writeContractAsync as any,
+        client,
         address: FAUCET as `0x${string}`,
         abi: FAUCET_ABI as any,
         functionName: 'claim',
         args: [scaled],
-        ...(maxFeePerGas ? { maxFeePerGas } : {}),
-        ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
       });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, message: 'Claim confirmed', severity: 'success' });

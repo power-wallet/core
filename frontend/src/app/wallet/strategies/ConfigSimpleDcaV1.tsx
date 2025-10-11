@@ -4,6 +4,7 @@ import React from 'react';
 import { Box, Stack, TextField, Button, Typography, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { useWriteContract } from 'wagmi';
 import { createPublicClient, http, parseUnits } from 'viem';
+import { writeWithFees } from '@/lib/tx';
 import { getViemChain, getChainKey } from '@/config/networks';
 import { ensureOnPrimaryChain } from '@/lib/web3';
 import appConfig from '@/config/appConfig.json';
@@ -52,21 +53,7 @@ export default function ConfigSimpleDcaV1({ strategyAddr, chainId, stableSymbol,
     const scaled = parseUnits(String(v), stableDecimals);
     setBusy('amount');
     try {
-      let maxFeePerGas: bigint | undefined;
-      let maxPriorityFeePerGas: bigint | undefined;
-      try {
-        const fees = await client.estimateFeesPerGas();
-        maxFeePerGas = fees.maxFeePerGas;
-        maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-      } catch {}
-      const hash = await writeContractAsync({
-        address: strategyAddr,
-        abi: SIMPLE_DCA_ABI as any,
-        functionName: 'setDcaAmountStable',
-        args: [scaled],
-        ...(maxFeePerGas ? { maxFeePerGas } : {}),
-        ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-      });
+      const hash = await writeWithFees({ write: writeContractAsync as any, client, address: strategyAddr, abi: SIMPLE_DCA_ABI as any, functionName: 'setDcaAmountStable', args: [scaled] });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
     } finally {
@@ -81,21 +68,7 @@ export default function ConfigSimpleDcaV1({ strategyAddr, chainId, stableSymbol,
     const seconds = BigInt(d * 86400);
     setBusy('freq');
     try {
-      let maxFeePerGas: bigint | undefined;
-      let maxPriorityFeePerGas: bigint | undefined;
-      try {
-        const fees = await client.estimateFeesPerGas();
-        maxFeePerGas = fees.maxFeePerGas;
-        maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? parseUnits('1', 9);
-      } catch {}
-      const hash = await writeContractAsync({
-        address: strategyAddr,
-        abi: SIMPLE_DCA_ABI as any,
-        functionName: 'setFrequency',
-        args: [seconds],
-        ...(maxFeePerGas ? { maxFeePerGas } : {}),
-        ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-      });
+      const hash = await writeWithFees({ write: writeContractAsync as any, client, address: strategyAddr, abi: SIMPLE_DCA_ABI as any, functionName: 'setFrequency', args: [seconds] });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
     } finally {

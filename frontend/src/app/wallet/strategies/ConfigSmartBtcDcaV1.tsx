@@ -4,6 +4,7 @@ import React from 'react';
 import { Box, Stack, TextField, Button, Typography, CircularProgress, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { useWriteContract, useReadContract, useChainId } from 'wagmi';
 import { createPublicClient, http } from 'viem';
+import { writeWithFees } from '@/lib/tx';
 import { getViemChain } from '@/config/networks';
 import appConfig from '@/config/appConfig.json';
 
@@ -87,21 +88,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
     if (!Number.isInteger(d) || d < 1 || d > 60) return;
     setBusy('freq');
     try {
-      let maxFeePerGas: bigint | undefined;
-      let maxPriorityFeePerGas: bigint | undefined;
-      try {
-        const fees = await client.estimateFeesPerGas();
-        maxFeePerGas = fees.maxFeePerGas;
-        maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? BigInt(1_000_000_000);
-      } catch {}
-      const hash = await writeContractAsync({
-        address: strategyAddr,
-        abi: SMART_DCA_WRITE_ABI as any,
-        functionName: 'setFrequency',
-        args: [BigInt(d * 86400)],
-        ...(maxFeePerGas ? { maxFeePerGas } : {}),
-        ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-      });
+      const hash = await writeWithFees({ write: writeContractAsync as any, client, address: strategyAddr, abi: SMART_DCA_WRITE_ABI as any, functionName: 'setFrequency', args: [BigInt(d * 86400)] });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
       setTimeout(() => { try { refetchFreq?.(); } catch {} }, 1000);
@@ -116,21 +103,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
     if (![lb, ub].every((v) => Number.isFinite(v) && v >= 0 && v <= 20000)) return;
     setBusy('bands');
     try {
-      let maxFeePerGas: bigint | undefined;
-      let maxPriorityFeePerGas: bigint | undefined;
-      try {
-        const fees = await client.estimateFeesPerGas();
-        maxFeePerGas = fees.maxFeePerGas;
-        maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? BigInt(1_000_000_000);
-      } catch {}
-      const hash = await writeContractAsync({
-        address: strategyAddr,
-        abi: SMART_DCA_WRITE_ABI as any,
-        functionName: 'setBands',
-        args: [lb, ub],
-        ...(maxFeePerGas ? { maxFeePerGas } : {}),
-        ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-      });
+      const hash = await writeWithFees({ write: writeContractAsync as any, client, address: strategyAddr, abi: SMART_DCA_WRITE_ABI as any, functionName: 'setBands', args: [lb, ub] });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
       setTimeout(() => {
@@ -150,21 +123,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
     if (![b, sb, s].every((v) => Number.isFinite(v) && v >= 0 && v <= 10000)) return;
     setBusy('percents');
     try {
-      let maxFeePerGas: bigint | undefined;
-      let maxPriorityFeePerGas: bigint | undefined;
-      try {
-        const fees = await client.estimateFeesPerGas();
-        maxFeePerGas = fees.maxFeePerGas;
-        maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? BigInt(1_000_000_000);
-      } catch {}
-      const hash = await writeContractAsync({
-        address: strategyAddr,
-        abi: SMART_DCA_WRITE_ABI as any,
-        functionName: 'setTradePercents',
-        args: [b, sb, s],
-        ...(maxFeePerGas ? { maxFeePerGas } : {}),
-        ...(maxPriorityFeePerGas ? { maxPriorityFeePerGas } : {}),
-      });
+      const hash = await writeWithFees({ write: writeContractAsync as any, client, address: strategyAddr, abi: SMART_DCA_WRITE_ABI as any, functionName: 'setTradePercents', args: [b, sb, s] });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
       setTimeout(() => {
