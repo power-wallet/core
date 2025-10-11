@@ -64,7 +64,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
       const d = Math.max(1, Math.round(Number(freqSec as bigint) / 86400));
       setDays(String(d));
     }
-  }, [freqSec]);
+  }, [freqSec, days]);
   React.useEffect(() => {
     if (lowerBps !== undefined && lower === '') setLower(Number(lowerBps));
   }, [lowerBps, lower]);
@@ -226,13 +226,13 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
             <FormControl size="small" sx={{ minWidth: 260 }}>
               <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
               <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smallBuy === '' ? '' : Number(smallBuy)} onChange={(e) => setSmallBuy(Number(e.target.value))}>
-                {[50, 100, 150, 200, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                {[50, 100, 150, 200, 300, 400, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 220 }}>
               <InputLabel id="sell-bps-label">Sell % (above upper band)</InputLabel>
               <Select labelId="sell-bps-label" label="Sell % (above upper band)" value={sell === '' ? '' : Number(sell)} onChange={(e) => setSell(Number(e.target.value))}>
-                {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                {[100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
               </Select>
             </FormControl>
             <Button variant="outlined" size="small" onClick={updatePercents} disabled={busy === 'percents'}>

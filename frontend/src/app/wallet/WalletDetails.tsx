@@ -592,7 +592,20 @@ export default function WalletDetails() {
                 </IconButton>
               </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {strategyName ? `${String(strategyName)} - ${String(desc || '')}` : String(desc || '')}
+              {(() => {
+                const strategies = (appConfig as any)[chainKey]?.strategies || {};
+                const onChainId = String(strategyIdStr || '').trim();
+                let mappedDesc: string | null = null;
+                if (onChainId && (strategies as any)[onChainId]?.description) {
+                  mappedDesc = (strategies as any)[onChainId].description as string;
+                } else if (onChainId) {
+                  for (const st of Object.values<any>(strategies)) {
+                    if (String(st.id || '').trim() === onChainId) { mappedDesc = st.description as string; break; }
+                  }
+                }
+                const finalDesc = mappedDesc || String(desc || '');
+                return strategyName ? `${String(strategyName)} - ${finalDesc}` : finalDesc;
+              })()}
             </Typography>
               {strategyAddr ? (
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', mt: 1 }}>
@@ -613,8 +626,8 @@ export default function WalletDetails() {
                   <Typography variant="caption">DCA Amount</Typography>
                   <Typography variant="body1">
                     {(() => {
-                      const nm = String(strategyName || '').trim();
-                      if (nm === 'Smart BTC DCA (Power Law)') return 'Dynamic USDC %';
+                      const strategyId = String(strategyIdStr || '').trim();
+                      if (strategyId === 'btc-dca-power-law-v1') return 'Dynamic %';
                       return formatUsd6(dcaAmount as bigint);
                     })()}
                   </Typography>
@@ -688,7 +701,9 @@ export default function WalletDetails() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+
+        {/* We now rely on the Wallet Automator Contract for Automation */}
+        {/* <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Typography variant="subtitle1" fontWeight="bold">Automate Your Wallet</Typography>
@@ -751,6 +766,63 @@ export default function WalletDetails() {
             </Button>
           </>
         )}
+            </CardContent>
+          </Card>
+        </Grid> */}
+
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="subtitle1" fontWeight="bold">Deposits & Withdrawals</Typography>
+              <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 520, whiteSpace: 'nowrap' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Asset</TableCell>
+                      <TableCell align="right">Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {((Array.isArray(depositsData) ? depositsData : []).length === 0 && (Array.isArray(withdrawalsData) ? withdrawalsData : []).length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={4}>
+                          <Typography variant="body2" color="text.secondary">No deposits or withdrawals yet.</Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {[...(Array.isArray(depositsData) ? depositsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((d: any, idx: number) => (
+                      <TableRow key={`dep-${idx}`}>
+                        <TableCell>
+                          <Tooltip title={formatDateTime(d.timestamp)} placement="top" disableFocusListener disableTouchListener>
+                            <span>{formatDateOnly(d.timestamp)}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>Deposit</TableCell>
+                        <TableCell>USDC</TableCell>
+                        <TableCell align="right">{formatTokenAmount(d.amount as bigint, 6)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {[...(Array.isArray(withdrawalsData) ? withdrawalsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((w: any, idx: number) => {
+                      const meta = addressToMeta(w.asset as string);
+                      const sym = meta?.symbol || `${String(w.asset).slice(0, 6)}…${String(w.asset).slice(-4)}`;
+                      return (
+                        <TableRow key={`wd-${idx}`}>
+                          <TableCell>
+                            <Tooltip title={formatDateTime(w.timestamp)} placement="top" disableFocusListener disableTouchListener>
+                              <span>{formatDateOnly(w.timestamp)}</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell>Withdrawal</TableCell>
+                          <TableCell>{sym}</TableCell>
+                          <TableCell align="right">{formatTokenAmount(w.amount as bigint, meta?.decimals)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         </Grid>
@@ -1176,64 +1248,8 @@ export default function WalletDetails() {
 
       {/* Transactions - Deposits & Withdrawals */}
       <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" fontWeight="bold">Deposits & Withdrawals</Typography>
-              <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 520, whiteSpace: 'nowrap' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Asset</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {((Array.isArray(depositsData) ? depositsData : []).length === 0 && (Array.isArray(withdrawalsData) ? withdrawalsData : []).length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={4}>
-                          <Typography variant="body2" color="text.secondary">No deposits or withdrawals yet.</Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {[...(Array.isArray(depositsData) ? depositsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((d: any, idx: number) => (
-                      <TableRow key={`dep-${idx}`}>
-                        <TableCell>
-                          <Tooltip title={formatDateTime(d.timestamp)} placement="top" disableFocusListener disableTouchListener>
-                            <span>{formatDateOnly(d.timestamp)}</span>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>Deposit</TableCell>
-                        <TableCell>USDC</TableCell>
-                        <TableCell align="right">{formatTokenAmount(d.amount as bigint, 6)}</TableCell>
-                      </TableRow>
-                    ))}
-                    {[...(Array.isArray(withdrawalsData) ? withdrawalsData : [])].sort((a: any, b: any) => Number(b.timestamp) - Number(a.timestamp)).map((w: any, idx: number) => {
-                      const meta = addressToMeta(w.asset as string);
-                      const sym = meta?.symbol || `${String(w.asset).slice(0, 6)}…${String(w.asset).slice(-4)}`;
-                      return (
-                        <TableRow key={`wd-${idx}`}>
-                          <TableCell>
-                            <Tooltip title={formatDateTime(w.timestamp)} placement="top" disableFocusListener disableTouchListener>
-                              <span>{formatDateOnly(w.timestamp)}</span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell>Withdrawal</TableCell>
-                          <TableCell>{sym}</TableCell>
-                          <TableCell align="right">{formatTokenAmount(w.amount as bigint, meta?.decimals)}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
         {/* Transactions - Swaps */}
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+        <Grid item xs={12} sx={{ display: 'flex' }}>
           <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight="bold">Swaps</Typography>

@@ -1,20 +1,21 @@
 ───────────────────────────────────────────────────────────────────────────────
 Language                 Files     Lines   Blanks  Comments     Code Complexity
 ───────────────────────────────────────────────────────────────────────────────
-TypeScript                  66     11981     1203       518    10260       2369
-Solidity                    11      1716      261       268     1187        210
-Markdown                     8       747      197         0      550          0
-Shell                        4        19        5         0       14          1
+TypeScript                  72     12547     1259       637    10651       2460
+Solidity                    11      1762      265       281     1216        213
+Markdown                     9       864      217         0      647          0
+Shell                        4        18        4         0       14          1
 Python                       3      1213      135       172      906         88
 JavaScript                   2       159       15         5      139         18
 Plain Text                   1        20        0         0       20          0
+SVG                          1         1        0         0        1          0
 TOML                         1         9        2         0        7          0
 ───────────────────────────────────────────────────────────────────────────────
-Total                       96     15864     1818       963    13083       2686
+Total                      104     16593     1897      1095    13601       2780
 ───────────────────────────────────────────────────────────────────────────────
-Estimated Cost to Develop (organic) $401,918
-Estimated Schedule Effort (organic) 9.73 months
-Estimated People Required (organic) 3.67
+Estimated Cost to Develop (organic) $418,643
+Estimated Schedule Effort (organic) 9.88 months
+Estimated People Required (organic) 3.76
 ───────────────────────────────────────────────────────────────────────────────
-Processed 652716 bytes, 0.653 megabytes (SI)
+Processed 689761 bytes, 0.690 megabytes (SI)
 ───────────────────────────────────────────────────────────────────────────────

@@ -29,7 +29,7 @@ export default function Home() {
     {
       icon: <AutoGraphIcon sx={{ fontSize: 48 }} />,
       title: 'Automated Strategies',
-      description: 'Deploy proven, long-term investment strategies that manage your assets for you 24/7.',
+      description: 'Deploy proven, long-term investment strategies that rebalance your assets for you 24/7.',
     },
     {
       icon: <SecurityIcon sx={{ fontSize: 48 }} />,
@@ -94,7 +94,7 @@ export default function Home() {
                   <Typography variant="body1">Enjoy the benefits of <strong>automated risk management</strong>.</Typography>
                 </li>
                 <li>
-                  <Typography variant="body1"><strong>Maintain full custody</strong> with blockchain-based secure, transparent, verifiable execution. </Typography>
+                  <Typography variant="body1">Maintain <strong>full custody</strong> with blockchain-based secure, transparent, verifiable execution. </Typography>
                 </li>
               </Box>
               <Stack direction={{ xs: 'row', sm: 'row' }} spacing={2} sx={{ mt: 5, flexWrap: 'nowrap' }}>

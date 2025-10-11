@@ -20,6 +20,7 @@ export interface ChainAddresses {
   walletFactory?: string;  // optional, deployed addresses
   strategyRegistry?: string; // optional, deployed addresses
   technicalIndicators?: string; // optional, deployed addresses
+  automator?: string; // optional, deployed addresses
 
   // strategy map
   strategies: {
@@ -48,6 +49,7 @@ export const addresses: Record<string, ChainAddresses> = {
     walletFactory: "0x6e6A4C1094a064030c30607549BF8d87311cB219",
     strategyRegistry: "0x53B4C7F51904b888f61859971B11ff51a8e43F80",
     technicalIndicators: "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
+    automator: "0x79cec041e963526122ffC7C04F427595a132331B",
     
     strategies: {
       'simple-btc-dca-v1': '0x97ee87073A5a430006020A60fC8F6190Fc9Fe082', // deployed SimpleDCA on Base Sepolia
@@ -72,26 +74,12 @@ export const addresses: Record<string, ChainAddresses> = {
     btcUsdPriceFeed: "0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D",
     ethUsdPriceFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
     usdcUsdPriceFeed: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
+    
+    walletFactory: "",
+    strategyRegistry: "",
+    technicalIndicators: "",
+    automator: "",
 
     strategies: {}
   },
-  
-  // Ethereum Sepolia (Testnet)
-  "sepolia": {
-    // Uniswap V3
-    uniswapV3Factory: "0x0227628f3F023bb0B980b67D528571c95c6DaC1c",
-    uniswapV3Router: "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E",
-    
-    // Tokens
-    usdc: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",  // Mock USDC
-    weth: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",  // WETH
-    wbtc: "0x29f2D40B0605204364af54EC677bD022dA425d03",  // Mock WBTC
-    
-    // Chainlink Price Feeds
-    btcUsdPriceFeed: "",
-    ethUsdPriceFeed: "",
-    usdcUsdPriceFeed: "",
-
-    strategies: { }
-  }
 }

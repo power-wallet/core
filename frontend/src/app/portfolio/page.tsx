@@ -56,6 +56,13 @@ const FEED_ABI = [
   ] },
 ] as const;
 
+// Minimal Smart DCA read ABI
+const SMART_DCA_READ_ABI = [
+  { type: 'function', name: 'lowerBandBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
+  { type: 'function', name: 'upperBandBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
+  { type: 'function', name: 'getModelAndBands', stateMutability: 'view', inputs: [], outputs: [ { type: 'uint256' }, { type: 'uint256' }, { type: 'uint256' } ] },
+] as const;
+
 export default function PortfolioPage() {
   const { isConnected, address, connector } = useAccount();
   const chainId = useChainId();
@@ -102,6 +109,28 @@ export default function PortfolioPage() {
   const factoryAddress = contractAddresses[chainKey]?.walletFactory;
   const usdcAddress = contractAddresses[chainKey]?.usdc as `0x${string}` | undefined;
   const assetCfg = (appConfig as any)[chainKey]?.assets as Record<string, { address: string; symbol: string; decimals: number; feed?: `0x${string}` }>;
+  const addressesForChain = contractAddresses[chainKey];
+  const smartDcaTemplateAddr = addressesForChain?.strategies?.['btc-dca-power-law-v1'] as `0x${string}` | undefined;
+
+  // Read Smart DCA model and bands (declare hooks before any early returns)
+  const { data: smartModelAndBands } = useReadContract({
+    address: smartDcaTemplateAddr as `0x${string}` | undefined,
+    abi: SMART_DCA_READ_ABI as any,
+    functionName: 'getModelAndBands',
+    query: { enabled: Boolean(smartDcaTemplateAddr) },
+  });
+  const { data: smartLowerBps } = useReadContract({
+    address: smartDcaTemplateAddr as `0x${string}` | undefined,
+    abi: SMART_DCA_READ_ABI as any,
+    functionName: 'lowerBandBps',
+    query: { enabled: Boolean(smartDcaTemplateAddr) },
+  });
+  const { data: smartUpperBps } = useReadContract({
+    address: smartDcaTemplateAddr as `0x${string}` | undefined,
+    abi: SMART_DCA_READ_ABI as any,
+    functionName: 'upperBandBps',
+    query: { enabled: Boolean(smartDcaTemplateAddr) },
+  });
 
   // Balances for onboarding funding check
   const { data: nativeBal } = useBalance({ address: address as `0x${string}` | undefined, chainId });
@@ -329,12 +358,13 @@ export default function PortfolioPage() {
   // Common strategy/config values for create flow
   const strategiesMap = (appConfig as any)[chainKey]?.strategies || {};
   const strategyPreset = strategiesMap[selectedStrategyId] || (appConfig as any)[chainKey]?.strategies?.['simple-btc-dca-v1'];
-    const addressesForChain = contractAddresses[chainKey];
     const usdc = addressesForChain.usdc;
     const cbBTC = addressesForChain.cbBTC || addressesForChain.wbtc || addressesForChain.weth; // risk asset preference
     const priceFeeds = [addressesForChain.btcUsdPriceFeed];
     const fee = (appConfig as any)[chainKey]?.pools?.["USDC-cbBTC"]?.fee ?? 100;
     const poolFees = [fee];
+
+  const formatUsd0 = (n: number | undefined) => (n === undefined ? '-' : `$${Math.round(n).toLocaleString('en-US')}`);
   const strategyIdBytes32 = strategyPreset?.idBytes32 as `0x${string}`;
   const initCalldata: `0x${string}` | null = (() => {
     if (selectedStrategyId === 'simple-btc-dca-v1') {
@@ -459,13 +489,13 @@ export default function PortfolioPage() {
                       <FormControl size="small" sx={{ minWidth: 260 }}>
                         <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
                         <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smartSmallBuyBps} onChange={(e) => setSmartSmallBuyBps(Number(e.target.value))}>
-                          {[50, 100, 150, 200, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                          {[50, 100, 150, 200, 300, 400, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
                         </Select>
                       </FormControl>
                     </Stack>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
                       <FormControl size="small" sx={{ minWidth: 260 }}>
-                        <InputLabel id="buy-bps-label">Larger Buy % (below lower band)</InputLabel>
+                        <InputLabel id="buy-bps-label">Buy % (below lower band)</InputLabel>
                         <Select labelId="buy-bps-label" label="Buy % (below lower band)" value={smartBuyBps} onChange={(e) => setSmartBuyBps(Number(e.target.value))}>
                           {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
                         </Select>
@@ -473,11 +503,39 @@ export default function PortfolioPage() {
                       <FormControl size="small" sx={{ minWidth: 260 }}>
                         <InputLabel id="sell-bps-label">Sell % (above upper band)</InputLabel>
                         <Select labelId="sell-bps-label" label="Sell % (above upper band)" value={smartSellBps} onChange={(e) => setSmartSellBps(Number(e.target.value))}>
-                          {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                          {[100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
                         </Select>
                       </FormControl>
                     </Stack>
-                    <Typography variant="caption" color="text.secondary">Below lower band uses Buy %; between lower band and model uses Small Buy %; above upper band uses Sell %.</Typography>
+                    {(() => {
+                      try {
+                        const arr = smartModelAndBands as unknown as [bigint, bigint, bigint] | undefined;
+                        if (!arr) return null;
+                        const model = Number(arr[0]) / 1e8;
+                        const lowerPrice = Number(arr[1]) / 1e8;
+                        const upperPrice = Number(arr[2]) / 1e8;
+                        const upperPct = smartUpperBps !== undefined ? (Number(smartUpperBps) / 100).toFixed(2) : undefined;
+                        const lowerPct = smartLowerBps !== undefined ? (Number(smartLowerBps) / 100).toFixed(2) : undefined;
+                        return (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                              Model price: {formatUsd0(model)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                              Upper band: model price{upperPct ? ` + ${upperPct}%` : ''} — currently {formatUsd0(upperPrice)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                              Lower band: model price{lowerPct ? ` - ${lowerPct}%` : ''} — currently {formatUsd0(lowerPrice)}
+                            </Typography>
+                          </Box>
+                        );
+                      } catch {
+                        return null;
+                      }
+                    })()}
+                    <Typography variant="caption" color="text.secondary">
+                      Uses: Sell % above upper band, Small Buy % between lower band and model, Buy % below lower band.
+                    </Typography>
                   </Stack>
                 )}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
@@ -566,14 +624,13 @@ export default function PortfolioPage() {
                         <FormControl size="small" sx={{ minWidth: 260 }}>
                           <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
                           <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smartSmallBuyBps} onChange={(e) => setSmartSmallBuyBps(Number(e.target.value))}>
-                            {[50, 100, 150, 200, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                            {[50, 100, 150, 200, 300, 400, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
                           </Select>
                         </FormControl>
-
                       </Stack>
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
                         <FormControl size="small" sx={{ minWidth: 260 }}>
-                          <InputLabel id="buy-bps-label">Larger Buy % (below lower band)</InputLabel>
+                          <InputLabel id="buy-bps-label">Buy % (below lower band)</InputLabel>
                           <Select labelId="buy-bps-label" label="Buy % (below lower band)" value={smartBuyBps} onChange={(e) => setSmartBuyBps(Number(e.target.value))}>
                             {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
                           </Select>
@@ -581,16 +638,41 @@ export default function PortfolioPage() {
                         <FormControl size="small" sx={{ minWidth: 260 }}>
                           <InputLabel id="sell-bps-label">Sell % (above upper band)</InputLabel>
                           <Select labelId="sell-bps-label" label="Sell % (above upper band)" value={smartSellBps} onChange={(e) => setSmartSellBps(Number(e.target.value))}>
-                            {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
+                            {[100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
                           </Select>
                         </FormControl>
                       </Stack>
+                      {(() => {
+                        try {
+                          const arr = smartModelAndBands as unknown as [bigint, bigint, bigint] | undefined;
+                          if (!arr) return null;
+                          const model = Number(arr[0]) / 1e8;
+                          const lowerPrice = Number(arr[1]) / 1e8;
+                          const upperPrice = Number(arr[2]) / 1e8;
+                          const upperPct = smartUpperBps !== undefined ? (Number(smartUpperBps) / 100).toFixed(2) : undefined;
+                          const lowerPct = smartLowerBps !== undefined ? (Number(smartLowerBps) / 100).toFixed(2) : undefined;
+                          return (
+                            <Box>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                Model price: {formatUsd0(model)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                Upper band: model price{upperPct ? ` + ${upperPct}%` : ''} — currently {formatUsd0(upperPrice)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                Lower band: model price{lowerPct ? ` - ${lowerPct}%` : ''} — currently {formatUsd0(lowerPrice)}
+                              </Typography>
+                            </Box>
+                          );
+                        } catch {
+                          return null;
+                        }
+                      })()}
                       <Typography variant="caption" color="text.secondary">
-                        Below lower band uses Buy %; between lower band and model uses Small Buy %; above upper band uses Sell %.
+                        Uses: Sell % above upper band, Small Buy % between lower band and model, Buy % below lower band.
                       </Typography>
                     </Stack>
                   )}
-
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
                     <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>
                       {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}

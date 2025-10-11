@@ -19,12 +19,20 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useAccount } from 'wagmi';
-import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import WalletConnectModal from './WalletConnectModal';
 import LogoIcon from './LogoIcon';
 
 const Navbar = () => {
+  const Jazzicon = dynamic(() => import('react-jazzicon'), { ssr: false });
+  const jsNumberForAddress = (address: string) => {
+    try {
+      return parseInt(address.slice(2, 10), 16);
+    } catch {
+      return 0;
+    }
+  };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const { isConnected, address } = useAccount();

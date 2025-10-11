@@ -27,6 +27,7 @@ const ADDR = {
   walletFactory: String(addrChain.walletFactory || ''),
   strategyRegistry: String(addrChain.strategyRegistry || ''),
   technicalIndicators: String(addrChain.technicalIndicators || ''),
+    automator: String(addrChain.automator || ''),
   strategies: {
     'simple-btc-dca-v1': String(addrChain.strategies['simple-btc-dca-v1'] || ''),
     'btc-dca-power-law-v1': String(addrChain.strategies['btc-dca-power-law-v1'] || ''),
@@ -308,6 +309,10 @@ export default function SmartContractsPage() {
               address={ADDR.strategyRegistry}
               blurb="Registry of investment strategies mapping strategy ids to implementation templates (for cloning)." />
 
+            <Section title="Wallet Automator"
+              address={ADDR.automator}
+              blurb="Automation contract coordinating periodic upkeep for wallets and related strategies." />
+
             <Section title="Pool Rebalancer (cbBTC/USDC)"
               address={(cfg.pools as any)['USDC-cbBTC']?.rebalancer || ''}
               blurb="Periodically rebalances the assets in the cbBTC/USDC pool, and aligns the pool exchange rate to the Chainlink BTC/USD oracle price." />
@@ -381,11 +386,16 @@ export default function SmartContractsPage() {
           <Stack spacing={2}>
             <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink Automation</Typography>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>Automation</Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
                   We use Chainlink Automation to keep exchange rates for Uniswap pools, technical indicators, and wallet strategies up to date.
                 </Typography>
                 <Stack spacing={1}>
+                  <Typography variant="body2">
+                    <MuiLink href="https://automation.chain.link/base-sepolia/94249346813794909568170050542273685425709953412783663123746110309804194850178" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>
+                      Wallet Automator
+                    </MuiLink>
+                  </Typography>
                   <Typography variant="body2">
                     <MuiLink href="https://automation.chain.link/base-sepolia/81895955134147226903487285099620719932342719579785627792036034521300599077639" target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>
                       Pool Rebalancer (cbBTC/USDC)
@@ -402,15 +412,17 @@ export default function SmartContractsPage() {
 
             <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>Chainlink BTC/USD and ETH/USD Price Feeds</Typography>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>Oracle Price Feeds</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Live reference prices from Chainlink aggregators on Base Sepolia.
                 </Typography>
                 <Typography variant="body2">
-                  BTC/USD: {btcUsd ? formatUSD(btcUsd.price) : 'Loading...'} {' '}<Ext href={BASESCAN + ADDR.btcUsdPriceFeed}>{isMobile ? shortAddr(ADDR.btcUsdPriceFeed) : ADDR.btcUsdPriceFeed}</Ext>
+                  BTC/USD: {btcUsd ? formatUSD(btcUsd.price) : 'Loading...'} {' '} <br />
+                  <Ext href={BASESCAN + ADDR.btcUsdPriceFeed}>{isMobile ? shortAddr(ADDR.btcUsdPriceFeed) : ADDR.btcUsdPriceFeed}</Ext>
                 </Typography>
-                <Typography variant="body2">
-                  ETH/USD: {ethUsd ? formatUSD(ethUsd.price) : 'Loading...'} {' '}<Ext href={BASESCAN + ADDR.ethUsdPriceFeed}>{isMobile ? shortAddr(ADDR.ethUsdPriceFeed) : ADDR.ethUsdPriceFeed}</Ext>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  ETH/USD: {ethUsd ? formatUSD(ethUsd.price) : 'Loading...'} {' '} <br />
+                  <Ext href={BASESCAN + ADDR.ethUsdPriceFeed}>{isMobile ? shortAddr(ADDR.ethUsdPriceFeed) : ADDR.ethUsdPriceFeed}</Ext>
                 </Typography>
               </CardContent>
             </Card>
