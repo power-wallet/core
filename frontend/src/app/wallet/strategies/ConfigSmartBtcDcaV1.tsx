@@ -29,12 +29,12 @@ const SMART_DCA_WRITE_ABI = [
 ] as const;
 
 export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
-  const { data: freqSec } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'frequency' });
-  const { data: lowerBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'lowerBandBps' });
-  const { data: upperBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'upperBandBps' });
-  const { data: buyBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'buyBpsOfStable' });
-  const { data: smallBuyBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'smallBuyBpsOfStable' });
-  const { data: sellBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'sellBpsOfRisk' });
+  const { data: freqSec, refetch: refetchFreq } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'frequency', query: { refetchInterval: 60000 } });
+  const { data: lowerBps, refetch: refetchLowerBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'lowerBandBps', query: { refetchInterval: 60000 } });
+  const { data: upperBps, refetch: refetchUpperBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'upperBandBps', query: { refetchInterval: 60000 } });
+  const { data: buyBps, refetch: refetchBuyBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'buyBpsOfStable', query: { refetchInterval: 60000 } });
+  const { data: smallBuyBps, refetch: refetchSmallBuyBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'smallBuyBpsOfStable', query: { refetchInterval: 60000 } });
+  const { data: sellBps, refetch: refetchSellBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'sellBpsOfRisk', query: { refetchInterval: 60000 } });
 
   const [days, setDays] = React.useState<string>('');
   const [lower, setLower] = React.useState<number | ''>('');
@@ -48,10 +48,11 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
   const explorerBase = (appConfig as any)[getViemChain(chainId).name as any]?.explorer || (appConfig as any)[(getViemChain(chainId).id === 84532 ? 'base-sepolia' : 'base')]?.explorer;
   const [toast, setToast] = React.useState<{ open: boolean; hash?: `0x${string}` }>(() => ({ open: false }));
 
-  const { data: modelAndBands } = useReadContract({
+  const { data: modelAndBands, refetch: refetchModelAndBands } = useReadContract({
     address: strategyAddr,
     abi: SMART_DCA_READ_ABI as any,
     functionName: 'getModelAndBands',
+    query: { refetchInterval: 60000 },
   });
 
   const formatUsd0 = (n: number | undefined) => {
@@ -103,6 +104,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
       });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
+      setTimeout(() => { try { refetchFreq?.(); } catch {} }, 1000);
     } finally {
       setBusy(null);
     }
@@ -131,6 +133,11 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
       });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
+      setTimeout(() => {
+        try { refetchLowerBps?.(); } catch {}
+        try { refetchUpperBps?.(); } catch {}
+        try { refetchModelAndBands?.(); } catch {}
+      }, 1000);
     } finally {
       setBusy(null);
     }
@@ -160,6 +167,11 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
       });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
+      setTimeout(() => {
+        try { refetchBuyBps?.(); } catch {}
+        try { refetchSmallBuyBps?.(); } catch {}
+        try { refetchSellBps?.(); } catch {}
+      }, 1000);
     } finally {
       setBusy(null);
     }
@@ -167,6 +179,39 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
 
   return (
     <>
+      {(() => {
+        try {
+          const arr = modelAndBands as unknown as [bigint, bigint, bigint] | undefined;
+          if (!arr) return null;
+          const model = Number(arr[0]) / 1e8;
+          const lbps = (lower !== '' ? Number(lower) : (lowerBps !== undefined ? Number(lowerBps) : 0));
+          const ubps = (upper !== '' ? Number(upper) : (upperBps !== undefined ? Number(upperBps) : 0));
+          const buyP = (buy !== '' ? Number(buy) : (buyBps !== undefined ? Number(buyBps) : 0));
+          const smallBuyP = (smallBuy !== '' ? Number(smallBuy) : (smallBuyBps !== undefined ? Number(smallBuyBps) : 0));
+          const sellP = (sell !== '' ? Number(sell) : (sellBps !== undefined ? Number(sellBps) : 0));
+          const lowerTh = model * (1 - lbps / 10000);
+          const upperTh = model * (1 + ubps / 10000);
+          const pct = (bps: number) => `${(bps / 100).toFixed(2)}%`;
+          return (
+            <Box sx={{ mb: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Power Law current model price: {formatUsd0(model)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Larger Buy: {pct(buyP)} USDC below {formatUsd0(lowerTh)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Smaller Buy: {pct(smallBuyP)} USDC between {formatUsd0(lowerTh)} and {formatUsd0(model)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Sell: {pct(sellP)} cbBTC above {formatUsd0(upperTh)}
+              </Typography>
+            </Box>
+          );
+        } catch {
+          return null;
+        }
+      })()}
       <Stack spacing={2} sx={{ mt: 1 }}>
         <Box>
           <Typography variant="caption">DCA Frequency (days)</Typography>
@@ -178,7 +223,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
           </Stack>
         </Box>
         <Box>
-          <Typography variant="caption">Bands (relative to model)</Typography>
+          <Typography variant="caption">Price Bands relative to model (Lower/Upper thresholds)</Typography>
           <Stack sx={{paddingTop: 1}} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <TextField size="small" type="number" value={lower} onChange={(e) => setLower(Number(e.target.value))} label="Lower (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />
             <TextField size="small" type="number" value={upper} onChange={(e) => setUpper(Number(e.target.value))} label="Upper (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />
@@ -186,33 +231,6 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
               {busy === 'bands' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
-          {(() => {
-            try {
-              const arr = modelAndBands as unknown as [bigint, bigint, bigint] | undefined;
-              if (!arr) return null;
-              const model = Number(arr[0]) / 1e8;
-              const lowerTh = Number(arr[1]) / 1e8;
-              const upperTh = Number(arr[2]) / 1e8;
-              return (
-                <Box sx={{ mt: 0.75 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Power Law model: {formatUsd0(model)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Larger Buy below {formatUsd0(lowerTh)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Smaller Buy between {formatUsd0(lowerTh)} and {formatUsd0(model)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Sell above {formatUsd0(upperTh)}
-                  </Typography>
-                </Box>
-              );
-            } catch {
-              return null;
-            }
-          })()}
         </Box>
         <Box>
           <Typography variant="caption">Trade Percents</Typography>

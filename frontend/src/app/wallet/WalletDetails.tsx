@@ -1090,9 +1090,16 @@ export default function WalletDetails() {
       </Dialog>
 
       {/* Strategy Config Modal */}
-      <Dialog open={strategyConfigOpen} onClose={() => setStrategyConfigOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Configure Strategy</DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={strategyConfigOpen}
+        onClose={() => setStrategyConfigOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        fullScreen={isMobile}
+        PaperProps={{ sx: { borderRadius: { xs: 0, sm: 1 } } }}
+      >
+        <DialogTitle sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>Configure Strategy</DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
           {(() => {
             // Determine strategy id using on-chain strategy.id, fallback to description match
             const strategies = (appConfig as any)[chainKey]?.strategies || {};
