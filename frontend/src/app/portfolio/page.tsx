@@ -9,60 +9,17 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain, getChainKey } from '@/config/networks';
 import { getFriendlyChainName, ensureOnPrimaryChain } from '@/lib/web3';
-import { baseSepolia } from 'wagmi/chains';
 import WalletConnectModal from '@/components/WalletConnectModal';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
+import StrategySelector from '@/components/StrategySelector';
+import { walletFactoryAbi, walletViewAbi } from '@/lib/abi';
 import WalletSummaryCard from '@/app/wallet/WalletSummaryCard';
+import PortfolioSummary from '@/components/PortfolioSummary';
+import CreateWalletDialog from '@/components/CreateWalletDialog';
+import Onboarding from '@/components/Onboarding';
+import { loadAssetPrices } from '@/lib/prices';
 import appConfig from '@/config/appConfig.json';
 
-// Minimal ABI for WalletFactory functions we call
-const walletFactoryAbi = [
-  {
-    type: 'function',
-    name: 'getUserWallets',
-    stateMutability: 'view',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
-  },
-  {
-    type: 'function',
-    name: 'createWallet',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'strategyId', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'strategyInitData', internalType: 'bytes', type: 'bytes' },
-      { name: 'stableAsset', internalType: 'address', type: 'address' },
-      { name: 'riskAssets', internalType: 'address[]', type: 'address[]' },
-      { name: 'priceFeeds', internalType: 'address[]', type: 'address[]' },
-      { name: 'poolFees', internalType: 'uint24[]', type: 'uint24[]' },
-    ],
-    outputs: [{ name: 'walletAddr', internalType: 'address', type: 'address' }],
-  },
-];
-
-// Minimal read ABI for wallet summary aggregation
-const walletViewAbi = [
-  { type: 'function', name: 'getBalances', stateMutability: 'view', inputs: [], outputs: [ { name: 'stableBal', type: 'uint256' }, { name: 'riskBals', type: 'uint256[]' } ] },
-  { type: 'function', name: 'getRiskAssets', stateMutability: 'view', inputs: [], outputs: [ { name: 'assets', type: 'address[]' } ] },
-] as const;
-
-const FEED_ABI = [
-  { type: 'function', stateMutability: 'view', name: 'decimals', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
-  { type: 'function', stateMutability: 'view', name: 'latestRoundData', inputs: [], outputs: [
-    { name: 'roundId', type: 'uint80' },
-    { name: 'answer', type: 'int256' },
-    { name: 'startedAt', type: 'uint256' },
-    { name: 'updatedAt', type: 'uint256' },
-    { name: 'answeredInRound', type: 'uint80' },
-  ] },
-] as const;
-
-// Minimal Smart DCA read ABI
-const SMART_DCA_READ_ABI = [
-  { type: 'function', name: 'lowerBandBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'upperBandBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'getModelAndBands', stateMutability: 'view', inputs: [], outputs: [ { type: 'uint256' }, { type: 'uint256' }, { type: 'uint256' } ] },
-] as const;
 
 export default function PortfolioPage() {
   const theme = useTheme();
@@ -114,26 +71,6 @@ export default function PortfolioPage() {
   const assetCfg = (appConfig as any)[chainKey]?.assets as Record<string, { address: string; symbol: string; decimals: number; feed?: `0x${string}` }>;
   const addressesForChain = contractAddresses[chainKey];
   const smartDcaTemplateAddr = addressesForChain?.strategies?.['btc-dca-power-law-v1'] as `0x${string}` | undefined;
-
-  // Read Smart DCA model and bands (declare hooks before any early returns)
-  const { data: smartModelAndBands } = useReadContract({
-    address: smartDcaTemplateAddr as `0x${string}` | undefined,
-    abi: SMART_DCA_READ_ABI as any,
-    functionName: 'getModelAndBands',
-    query: { enabled: Boolean(smartDcaTemplateAddr) },
-  });
-  const { data: smartLowerBps } = useReadContract({
-    address: smartDcaTemplateAddr as `0x${string}` | undefined,
-    abi: SMART_DCA_READ_ABI as any,
-    functionName: 'lowerBandBps',
-    query: { enabled: Boolean(smartDcaTemplateAddr) },
-  });
-  const { data: smartUpperBps } = useReadContract({
-    address: smartDcaTemplateAddr as `0x${string}` | undefined,
-    abi: SMART_DCA_READ_ABI as any,
-    functionName: 'upperBandBps',
-    query: { enabled: Boolean(smartDcaTemplateAddr) },
-  });
 
   // Balances for onboarding funding check
   const { data: nativeBal } = useBalance({ address: address as `0x${string}` | undefined, chainId });
@@ -240,25 +177,13 @@ export default function PortfolioPage() {
         const metas = ['cbBTC', 'WETH', 'USDC']
           .map((k) => (assetCfg as any)[k])
           .filter(Boolean) as { symbol: string; feed?: `0x${string}`; decimals: number }[];
-        const next: Record<string, { price: number; decimals: number }> = {};
-        for (const m of metas) {
-          if (m.symbol === 'USDC') {
-            next['USDC'] = { price: 1, decimals: 6 };
-            continue;
-          }
-          const feed = m.feed as `0x${string}` | undefined;
-          if (!feed) continue;
-          const dec = await feeClient.readContract({ address: feed, abi: FEED_ABI as any, functionName: 'decimals', args: [] }) as number;
-          const round = await feeClient.readContract({ address: feed, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as any;
-          const price = Number(round[1]) / 10 ** dec;
-          next[m.symbol] = { price, decimals: dec };
-        }
+        const next = await loadAssetPrices(chainId, metas);
         setPrices(next);
       } catch {
         setPrices({});
       }
     })();
-  }, [assetCfg, feeClient, chainKey]);
+  }, [assetCfg, chainId]);
 
   // Aggregate portfolio across all open wallets
   useEffect(() => {
@@ -367,7 +292,6 @@ export default function PortfolioPage() {
     const fee = (appConfig as any)[chainKey]?.pools?.["USDC-cbBTC"]?.fee ?? 100;
     const poolFees = [fee];
 
-  const formatUsd0 = (n: number | undefined) => (n === undefined ? '-' : `$${Math.round(n).toLocaleString('en-US')}`);
   const strategyIdBytes32 = strategyPreset?.idBytes32 as `0x${string}`;
   const initCalldata: `0x${string}` | null = (() => {
     if (selectedStrategyId === 'simple-btc-dca-v1') {
@@ -451,310 +375,55 @@ export default function PortfolioPage() {
   // If user already has wallets and clicks create, show streamlined creation form as a dialog
   if (wallets.length > 0 && showCreate) {
     return (
-      <Dialog open={showCreate} onClose={() => setShowCreate(false)} maxWidth="sm" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: { xs: 0, sm: 1 } } }}>
-        <DialogTitle sx={{
-          px: { xs: 2, sm: 3 },
-          py: { xs: 1.5, sm: 2 },
-          position: 'sticky',
-          top: 0,
-          zIndex: 1,
-          bgcolor: { xs: 'background.default', sm: 'background.paper' },
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          boxShadow: { xs: '0 2px 8px rgba(0,0,0,0.35)', sm: '0 1px 2px rgba(0,0,0,0.18)' },
-          borderTopLeftRadius: { sm: 8 },
-          borderTopRightRadius: { sm: 8 },
-        }}>
-          Create a New Power Wallet
-          {isMobile ? (
-            <IconButton aria-label="close" onClick={() => setShowCreate(false)} sx={{ position: 'absolute', right: 8, top: 8, color: 'text.secondary' }}>
-              <CloseIcon />
-            </IconButton>
-          ) : null}
-        </DialogTitle>
-        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
-          <Stack spacing={2}>
-            <Typography sx={{ pt: 2 }} variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
-            <ToggleButtonGroup exclusive size="small" value={selectedStrategyId} onChange={(_, v) => v && setSelectedStrategyId(v)}>
-              <ToggleButton value="simple-btc-dca-v1">Simple BTC DCA</ToggleButton>
-              <ToggleButton value="btc-dca-power-law-v1">Smart BTC DCA</ToggleButton>
-            </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{strategyPreset?.description || ''}</Typography>
-            {selectedStrategyId === 'simple-btc-dca-v1' ? (
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="right">
-                <TextField label="DCA amount (USDC)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} inputProps={{ min: 1 }} />
-                <Box>
-                  <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
-                  <ToggleButtonGroup value={frequency} exclusive onChange={(_, val) => val && setFrequency(val)} size="small">
-                    <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
-                    <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
-                    <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
-                    <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
-                    <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
-                    <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
-                  </ToggleButtonGroup>
-                </Box>
-              </Stack>
-            ) : (
-              <Stack spacing={2}>
-                <Box>
-                  <Stack direction="row" spacing={1} alignItems="start">
-                    <Typography variant="caption">DCA Frequency</Typography>
-                    <TextField label="days" size="small" type="number" value={smartDays} onChange={(e) => setSmartDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ width: 100 }} />
-                  </Stack>
-                </Box>
-              </Stack>
-            )}
-            {isMobile ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>
-                  {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}
-                </Button>
-              </Box>
-            ) : null}
-          </Stack>
-        </DialogContent>
-        {isMobile ? null : (
-          <DialogActions>
-            <Button onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>{creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}</Button>
-          </DialogActions>
-        )}
-      </Dialog>
+      <CreateWalletDialog
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreate={onCreate}
+        creating={creating}
+        isConfirming={isConfirming}
+        selectedStrategyId={selectedStrategyId}
+        onChangeStrategy={setSelectedStrategyId}
+        description={strategyPreset?.description || ''}
+        amount={amount}
+        onChangeAmount={setAmount}
+        frequency={frequency}
+        onChangeFrequency={setFrequency}
+        smartDays={smartDays}
+        onChangeSmartDays={setSmartDays}
+      />
     );
   }
 
   if (walletsReady && sortedWallets.length === 0) {
+    if (showCreate) {
+      return (
+        <CreateWalletDialog
+          open={showCreate}
+          onClose={() => setShowCreate(false)}
+          onCreate={onCreate}
+          creating={creating}
+          isConfirming={isConfirming}
+          selectedStrategyId={selectedStrategyId}
+          onChangeStrategy={setSelectedStrategyId}
+          description={strategyPreset?.description || ''}
+          amount={amount}
+          onChangeAmount={setAmount}
+          frequency={frequency}
+          onChangeFrequency={setFrequency}
+          smartDays={smartDays}
+          onChangeSmartDays={setSmartDays}
+        />
+      );
+    }
     const needsFunding = ((nativeBal?.value ?? BigInt(0)) === BigInt(0)) || ((usdcBal as bigint | undefined) === BigInt(0));
     return (
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Stack spacing={3}>
-          <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Create your first Power Wallet: an on-chain vault that can hold USDC and invest it into BTC according to a strategy you choose. 
-            Your connected account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means no one else can interact with them, and mess with your funds. 
-          </Typography>
-
-          {(showCreate || !needsFunding) ? (
-            <Card variant="outlined">
-              <CardContent>
-                <Stack spacing={2}>
-                  {wallets.length > 0 && (
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <Button size="small" onClick={() => setShowCreate(false)}>Cancel</Button>
-                    </Box>
-                  )}
-                  <Typography sx={{ mt: 2 }} variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
-                  <ToggleButtonGroup
-                    exclusive
-                    size="small"
-                    value={selectedStrategyId}
-                    onChange={(_, v) => v && setSelectedStrategyId(v)}
-                  >
-                    <ToggleButton value="simple-btc-dca-v1">Simple BTC DCA</ToggleButton>
-                    <ToggleButton value="btc-dca-power-law-v1">Smart BTC DCA</ToggleButton>
-                  </ToggleButtonGroup>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    {strategyPreset?.description || ''}
-                  </Typography>
-
-                  {selectedStrategyId === 'simple-btc-dca-v1' ? (
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="right">
-                      <TextField
-                        label="DCA amount (USDC)"
-                        type="number"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        inputProps={{ min: 1 }}
-                      />
-                      <Box>
-                        <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
-                        <ToggleButtonGroup
-                          value={frequency}
-                          exclusive
-                          onChange={(_, val) => val && setFrequency(val)}
-                          size="small"
-                        >
-                          <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
-                          <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
-                          <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
-                          <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
-                          <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
-                          <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
-                        </ToggleButtonGroup>
-                      </Box>
-                    </Stack>
-                  ) : (
-                    <Stack spacing={2}>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                      <Box>
-                        <Stack direction="row" spacing={1} alignItems="start">
-                          <Typography variant="caption">DCA Frequency</Typography>
-                          <TextField label="days" size="small" type="number" value={smartDays} onChange={(e) => setSmartDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ width: 100 }} />
-                        </Stack>
-                      </Box>
-                        <FormControl size="small" sx={{ minWidth: 260 }}>
-                          <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
-                          <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smartSmallBuyBps} onChange={(e) => setSmartSmallBuyBps(Number(e.target.value))}>
-                            {[50, 100, 150, 200, 300, 400, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                        <FormControl size="small" sx={{ minWidth: 260 }}>
-                          <InputLabel id="buy-bps-label">Buy % (below lower band)</InputLabel>
-                          <Select labelId="buy-bps-label" label="Buy % (below lower band)" value={smartBuyBps} onChange={(e) => setSmartBuyBps(Number(e.target.value))}>
-                            {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
-                          </Select>
-                        </FormControl>
-                        <FormControl size="small" sx={{ minWidth: 260 }}>
-                          <InputLabel id="sell-bps-label">Sell % (above upper band)</InputLabel>
-                          <Select labelId="sell-bps-label" label="Sell % (above upper band)" value={smartSellBps} onChange={(e) => setSmartSellBps(Number(e.target.value))}>
-                            {[100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                      {(() => {
-                        try {
-                          const arr = smartModelAndBands as unknown as [bigint, bigint, bigint] | undefined;
-                          if (!arr) return null;
-                          const model = Number(arr[0]) / 1e8;
-                          const lowerPrice = Number(arr[1]) / 1e8;
-                          const upperPrice = Number(arr[2]) / 1e8;
-                          const upperPct = smartUpperBps !== undefined ? (Number(smartUpperBps) / 100).toFixed(2) : undefined;
-                          const lowerPct = smartLowerBps !== undefined ? (Number(smartLowerBps) / 100).toFixed(2) : undefined;
-                          return (
-                            <Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                Model price: {formatUsd0(model)}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                Upper band: model price{upperPct ? ` + ${upperPct}%` : ''} — currently {formatUsd0(upperPrice)}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                Lower band: model price{lowerPct ? ` - ${lowerPct}%` : ''} — currently {formatUsd0(lowerPrice)}
-                              </Typography>
-                            </Box>
-                          );
-                        } catch {
-                          return null;
-                        }
-                      })()}
-                      <Typography variant="caption" color="text.secondary">
-                        Uses: Sell % above upper band, Small Buy % between lower band and model, Buy % below lower band.
-                      </Typography>
-                    </Stack>
-                  )}
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                    <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>
-                      {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}
-                    </Button>
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card variant="outlined">
-              <CardContent>
-                <Stack spacing={2}>
-                  <Typography variant="subtitle1" fontWeight="bold">Fund your account</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    To get started, your connected wallet needs ETH (for gas) and USDC.
-                  </Typography>
-                  {chainKey === 'base-sepolia' ? (
-                    <>
-                      <Typography variant="body2" sx={{ pb: 1 }}>On Base Sepolia (testnet), use the following faucets:</Typography>
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {[{
-                          href: 'https://faucet.circle.com/',
-                          label: 'Circle USDC Faucet',
-                        }, {
-                          href: 'https://faucets.chain.link/base-sepolia',
-                          label: 'Chainlink Base Sepolia Faucet (ETH)',
-                        }, {
-                          href: 'https://portal.cdp.coinbase.com/products/faucet',
-                          label: 'Coinbase Developer Faucet',
-                        }].map((link) => (
-                          <li key={link.href}>
-                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                              <a href={link.href} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{link.label}</a>
-                              <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
-                            </Box>
-                          </li>
-                        ))}
-                      </ul>
-                      {connector?.id === 'coinbaseWalletSDK' ? (
-                        <Alert
-                          severity="success"
-                          icon={<InfoOutlinedIcon fontSize="small" />}
-                          sx={{ mt: 1 }}
-                        >
-                          Using Coinbase Smart Wallet? You can continue without ETH: gas fees are sponsored by Base. You will still need USDC later to fund your wallet.
-                        </Alert>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                          You will need a small amount of ETH for gas to create your first Power Wallet.
-                        </Typography>
-                      )}
-                      <Box>
-                        <Button variant="contained" sx={{ mt: 1 }} onClick={() => setShowCreate(true)}>
-                          Continue to Create Power Wallet
-                        </Button>
-                      </Box>
-                    </>
-                  ) : (
-                    <>
-                      <Typography variant="body2">On Base mainnet, transfer some ETH and USDC to your address:</Typography>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {address ? `${address}` : ''}
-                      </Typography>
-                      {connector?.id === 'coinbaseWalletSDK' ? (
-                        <Alert
-                          severity="success"
-                          icon={<InfoOutlinedIcon fontSize="small" />}
-                          sx={{ mt: 1 }}
-                        >
-                          Using Coinbase Smart Wallet? You can continue without ETH: gas fees may be sponsored when creating your first Power Wallet. You will still need USDC later to deposit.
-                        </Alert>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                          You will need a small amount of ETH for gas to create your first Power Wallet.
-                        </Typography>
-                      )}
-                      <Box>
-                        <Button variant="contained" sx={{ mt: 1 }} onClick={() => setShowCreate(true)}>
-                          Continue to Create Power Wallet
-                        </Button>
-                      </Box>
-                    </>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-          )}
-          <Snackbar
-            open={toast.open}
-            autoHideDuration={6000}
-            onClose={() => setToast((t) => ({ ...t, open: false }))}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          >
-            <Alert onClose={() => setToast((t) => ({ ...t, open: false }))} severity={toast.severity} sx={{ width: '100%' }}>
-              {toast.severity === 'success' && txHash ? (
-                <>
-                  Transaction confirmed.{' '}
-                  {explorerBase ? (
-                    <a href={`${explorerBase}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-                      View on explorer
-                    </a>
-                  ) : null}
-                </>
-              ) : (
-                toast.message
-              )}
-            </Alert>
-          </Snackbar>
-        </Stack>
-      </Container>
+      <Onboarding
+        isBaseSepolia={chainKey === 'base-sepolia'}
+        address={address as `0x${string}` | undefined}
+        connectorId={connector?.id}
+        needsFunding={needsFunding}
+        onOpenCreate={() => setShowCreate(true)}
+      />
     );
   }
 
@@ -766,45 +435,7 @@ export default function PortfolioPage() {
       {portfolioTotals.totalUsd > 0 ? (
         <>
           <Typography variant="h4" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
-          <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'stretch' }}>
-            {/* Treemap-like rectangle */}
-            <Box sx={{ flex: 1, minHeight: { xs: 60, sm: 120 }, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', display: 'flex' }}>
-              {Object.entries(portfolioTotals.perAsset)
-                .filter(([, v]) => v.usd > 0)
-                .sort((a, b) => b[1].usd - a[1].usd)
-                .map(([sym, v]) => {
-                  const pct = portfolioTotals.totalUsd > 0 ? (v.usd / portfolioTotals.totalUsd) : 0;
-                  const bg = sym === 'cbBTC' ? '#F59E0B' : (sym === 'WETH' ? '#9CA3AF' : '#10B981');
-                  return (
-                    <Box
-                      key={sym}
-                      sx={{ flex: pct, bgcolor: bg, minWidth: pct > 0 ? 2 : 0 }}
-                      title={`${sym}: $${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    />
-                  );
-                })}
-            </Box>
-            {/* Breakdown list */}
-            <Box sx={{ flex: { xs: '1 1 auto', sm: '0 0 340px' }, display: 'flex', alignItems: 'stretch', mt: { xs: 0, sm: 0 } }}>
-              <Stack spacing={0.75} sx={{ my: 0, alignSelf: 'stretch', justifyContent: 'flex-start' }}>
-                <Typography variant="h5" sx={{ mb: 2 }}>
-                  {`Total Value: $${portfolioTotals.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                </Typography>
-                {Object.entries(portfolioTotals.perAsset)
-                  .filter(([, v]) => v.usd > 0)
-                  .sort((a, b) => b[1].usd - a[1].usd)
-                  .map(([sym, v]) => (
-                    <Typography key={sym} variant="body2">
-                       {v.amount.toLocaleString('en-US', { maximumFractionDigits: sym === 'USDC' ? 2 : 8 })} {sym} — ${v.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Typography>
-                  ))}
-              </Stack>
-            </Box>
-          </Box>
-        </CardContent>
-        </Card>
+          <PortfolioSummary totalUsd={portfolioTotals.totalUsd} perAsset={portfolioTotals.perAsset} />
         </>
       ) : null}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

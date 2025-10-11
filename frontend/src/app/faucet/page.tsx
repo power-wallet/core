@@ -2,26 +2,15 @@
 
 import React from 'react';
 import { Container, Box, Typography, Card, CardContent, Stack, TextField, Button, Alert, Snackbar, CircularProgress } from '@mui/material';
+import BaseSepoliaFaucets from '@/components/BaseSepoliaFaucets';
 import { useAccount, useChainId, useReadContract, useWriteContract } from 'wagmi';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { getChainKey, getViemChain } from '@/config/networks';
+import { FAUCET_ABI, ERC20_READ_ABI } from '@/lib/abi';
 import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 
-const FAUCET_ABI = [
-  { type: 'function', name: 'claim', stateMutability: 'nonpayable', inputs: [ { name: 'amount', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'totalClaimed', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'totalClaimedBy', stateMutability: 'view', inputs: [ { name: '', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'usdc', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'address' } ] },
-  { type: 'function', name: 'maxClaim', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'claimCooldown', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'lastClaimAt', stateMutability: 'view', inputs: [ { name: '', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
-] as const;
-
-const ERC20_READ_ABI = [
-  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint8' } ] },
-] as const;
+// ABIs moved to lib/abi.ts
 
 function formatToken(amount?: bigint, decimals?: number) {
   if (amount === undefined || decimals === undefined) return '0';
@@ -181,6 +170,7 @@ export default function FaucetPage() {
         ) : null}
 
         <Stack spacing={2}>
+
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>Faucet Status</Typography>
@@ -192,12 +182,8 @@ export default function FaucetPage() {
                   <Typography variant="body2" color="text.secondary">Next claim available in ~{Math.ceil(nextClaimIn/60)} min</Typography>
                 ) : null}
               </Stack>
-            </CardContent>
-          </Card>
 
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>Claim</Typography>
+              <Typography sx={{ pt: 3 }} variant="h6" fontWeight="bold" gutterBottom>Claim</Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
                 <TextField
                   size="small"
@@ -220,6 +206,14 @@ export default function FaucetPage() {
               ) : null}
             </CardContent>
           </Card>
+
+          {chainId === 84532 ? (
+            <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+              <CardContent sx={{ p: 3 }}>
+                <BaseSepoliaFaucets />
+              </CardContent>
+            </Card>
+          ) : null}
         </Stack>
 
         <Snackbar open={toast.open} autoHideDuration={6000} onClose={() => setToast((t) => ({ ...t, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
