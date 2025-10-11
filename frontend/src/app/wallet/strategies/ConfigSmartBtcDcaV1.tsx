@@ -194,8 +194,8 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
           const pct = (bps: number) => `${(bps / 100).toFixed(2)}%`;
           return (
             <Box sx={{ mb: 1 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                Power Law current model price: {formatUsd0(model)}
+              <Typography variant="body2" color="text.secondary" sx={{ display: 'block' }}>
+                Current Power Law model price: {formatUsd0(model)}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                 Larger Buy: {pct(buyP)} USDC below {formatUsd0(lowerTh)}
@@ -223,7 +223,7 @@ export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
           </Stack>
         </Box>
         <Box>
-          <Typography variant="caption">Price Bands relative to model (Lower/Upper thresholds)</Typography>
+          <Typography variant="caption">Trading Bands relative to model (Lower/Upper thresholds)</Typography>
           <Stack sx={{paddingTop: 1}} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <TextField size="small" type="number" value={lower} onChange={(e) => setLower(Number(e.target.value))} label="Lower (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />
             <TextField size="small" type="number" value={upper} onChange={(e) => setUpper(Number(e.target.value))} label="Upper (bps)" inputProps={{ min: 0, max: 20000, step: 50 }} sx={{ maxWidth: 180 }} />

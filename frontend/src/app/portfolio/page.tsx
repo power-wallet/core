@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { getViemChain, getChainKey } from '@/config/networks';
@@ -64,6 +65,8 @@ const SMART_DCA_READ_ABI = [
 ] as const;
 
 export default function PortfolioPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { isConnected, address, connector } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -445,113 +448,81 @@ export default function PortfolioPage() {
       }
     };
 
-  // If user already has wallets and clicks create, show streamlined creation form without onboarding copy
+  // If user already has wallets and clicks create, show streamlined creation form as a dialog
   if (wallets.length > 0 && showCreate) {
     return (
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Stack spacing={3}>
-          <Card variant="outlined">
-            <CardContent>
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="h6" fontWeight="bold">Create a New Power Wallet</Typography>
-                  <Button size="small" onClick={() => setShowCreate(false)}>Cancel</Button>
+      <Dialog open={showCreate} onClose={() => setShowCreate(false)} maxWidth="sm" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: { xs: 0, sm: 1 } } }}>
+        <DialogTitle sx={{
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          bgcolor: 'background.default',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          boxShadow: { xs: '0 2px 8px rgba(0,0,0,0.35)', sm: 'none' },
+        }}>
+          Create a New Power Wallet
+          {isMobile ? (
+            <IconButton aria-label="close" onClick={() => setShowCreate(false)} sx={{ position: 'absolute', right: 8, top: 8, color: 'text.secondary' }}>
+              <CloseIcon />
+            </IconButton>
+          ) : null}
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
+          <Stack spacing={2}>
+            <Typography sx={{ pt: 2 }} variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
+            <ToggleButtonGroup exclusive size="small" value={selectedStrategyId} onChange={(_, v) => v && setSelectedStrategyId(v)}>
+              <ToggleButton value="simple-btc-dca-v1">Simple BTC DCA</ToggleButton>
+              <ToggleButton value="btc-dca-power-law-v1">Smart BTC DCA</ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{strategyPreset?.description || ''}</Typography>
+            {selectedStrategyId === 'simple-btc-dca-v1' ? (
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="right">
+                <TextField label="DCA amount (USDC)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} inputProps={{ min: 1 }} />
+                <Box>
+                  <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
+                  <ToggleButtonGroup value={frequency} exclusive onChange={(_, val) => val && setFrequency(val)} size="small">
+                    <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
+                    <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
+                    <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
+                    <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
+                    <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
+                    <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
+                  </ToggleButtonGroup>
                 </Box>
-                <Typography variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
-                <ToggleButtonGroup exclusive size="small" value={selectedStrategyId} onChange={(_, v) => v && setSelectedStrategyId(v)}>
-                  <ToggleButton value="simple-btc-dca-v1">Simple BTC DCA</ToggleButton>
-                  <ToggleButton value="btc-dca-power-law-v1">Smart BTC DCA</ToggleButton>
-                </ToggleButtonGroup>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{strategyPreset?.description || ''}</Typography>
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 2 }}>Parameters</Typography>
-                {selectedStrategyId === 'simple-btc-dca-v1' ? (
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-                    <TextField label="DCA amount (USDC)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} inputProps={{ min: 1 }} />
-                    <Box>
-                      <Typography variant="caption" display="block" sx={{ mb: 1 }}>Frequency</Typography>
-                      <ToggleButtonGroup value={frequency} exclusive onChange={(_, val) => val && setFrequency(val)} size="small">
-                        <ToggleButton value={String(60 * 60 * 24)}>1d</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 3)}>3d</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 5)}>5d</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 7)}>1w</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 14)}>2w</ToggleButton>
-                        <ToggleButton value={String(60 * 60 * 24 * 30)}>1m</ToggleButton>
-                      </ToggleButtonGroup>
-                    </Box>
-                  </Stack>
-                ) : (
-                  <Stack spacing={2}>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                      <Box>
-                        <Typography variant="caption" display="block">DCA Frequency (days)</Typography>
-                        <TextField size="small" type="number" value={smartDays} onChange={(e) => setSmartDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ maxWidth: 160 }} />
-                      </Box>
-                      <FormControl size="small" sx={{ minWidth: 260 }}>
-                        <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
-                        <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smartSmallBuyBps} onChange={(e) => setSmartSmallBuyBps(Number(e.target.value))}>
-                          {[50, 100, 150, 200, 300, 400, 500].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
-                        </Select>
-                      </FormControl>
-                    </Stack>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                      <FormControl size="small" sx={{ minWidth: 260 }}>
-                        <InputLabel id="buy-bps-label">Buy % (below lower band)</InputLabel>
-                        <Select labelId="buy-bps-label" label="Buy % (below lower band)" value={smartBuyBps} onChange={(e) => setSmartBuyBps(Number(e.target.value))}>
-                          {[100, 200, 500, 1000, 2000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
-                        </Select>
-                      </FormControl>
-                      <FormControl size="small" sx={{ minWidth: 260 }}>
-                        <InputLabel id="sell-bps-label">Sell % (above upper band)</InputLabel>
-                        <Select labelId="sell-bps-label" label="Sell % (above upper band)" value={smartSellBps} onChange={(e) => setSmartSellBps(Number(e.target.value))}>
-                          {[100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000].map((v) => (<MenuItem key={v} value={v}>{(v/100).toFixed(2)}%</MenuItem>))}
-                        </Select>
-                      </FormControl>
-                    </Stack>
-                    {(() => {
-                      try {
-                        const arr = smartModelAndBands as unknown as [bigint, bigint, bigint] | undefined;
-                        if (!arr) return null;
-                        const model = Number(arr[0]) / 1e8;
-                        const lowerPrice = Number(arr[1]) / 1e8;
-                        const upperPrice = Number(arr[2]) / 1e8;
-                        const upperPct = smartUpperBps !== undefined ? (Number(smartUpperBps) / 100).toFixed(2) : undefined;
-                        const lowerPct = smartLowerBps !== undefined ? (Number(smartLowerBps) / 100).toFixed(2) : undefined;
-                        return (
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                              Model price: {formatUsd0(model)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                              Upper band: model price{upperPct ? ` + ${upperPct}%` : ''} — currently {formatUsd0(upperPrice)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                              Lower band: model price{lowerPct ? ` - ${lowerPct}%` : ''} — currently {formatUsd0(lowerPrice)}
-                            </Typography>
-                          </Box>
-                        );
-                      } catch {
-                        return null;
-                      }
-                    })()}
-                    <Typography variant="caption" color="text.secondary">
-                      Uses: Sell % above upper band, Small Buy % between lower band and model, Buy % below lower band.
-                    </Typography>
-                  </Stack>
-                )}
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                  <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>{creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}</Button>
-                </Stack>
               </Stack>
-            </CardContent>
-          </Card>
-        </Stack>
-      </Container>
+            ) : (
+              <Stack spacing={2}>
+                <Box>
+                  <Stack direction="row" spacing={1} alignItems="start">
+                    <Typography variant="caption">DCA Frequency</Typography>
+                    <TextField label="days" size="small" type="number" value={smartDays} onChange={(e) => setSmartDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ width: 100 }} />
+                  </Stack>
+                </Box>
+              </Stack>
+            )}
+            {isMobile ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>
+                  {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}
+                </Button>
+              </Box>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        {isMobile ? null : (
+          <DialogActions>
+            <Button onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>{creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}</Button>
+          </DialogActions>
+        )}
+      </Dialog>
     );
   }
 
   if (walletsReady && sortedWallets.length === 0) {
-
-    
     const needsFunding = ((nativeBal?.value ?? BigInt(0)) === BigInt(0)) || ((usdcBal as bigint | undefined) === BigInt(0));
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
@@ -561,9 +532,7 @@ export default function PortfolioPage() {
             Create your first Power Wallet: an on-chain vault that can hold USDC and invest it into BTC according to a strategy you choose. 
             Your connected account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means no one else can interact with them, and mess with your funds. 
           </Typography>
-          {/* <Typography variant="body2" color="text.secondary">
-            Now, select the strategy that will manage the assets in your Power Wallet.
-          </Typography> */}
+
           {(showCreate || !needsFunding) ? (
             <Card variant="outlined">
               <CardContent>
@@ -573,7 +542,7 @@ export default function PortfolioPage() {
                       <Button size="small" onClick={() => setShowCreate(false)}>Cancel</Button>
                     </Box>
                   )}
-                  <Typography variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
+                  <Typography sx={{ mt: 2 }} variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
                   <ToggleButtonGroup
                     exclusive
                     size="small"
@@ -587,9 +556,8 @@ export default function PortfolioPage() {
                     {strategyPreset?.description || ''}
                   </Typography>
 
-                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 2 }}>Parameters</Typography>
                   {selectedStrategyId === 'simple-btc-dca-v1' ? (
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="right">
                       <TextField
                         label="DCA amount (USDC)"
                         type="number"
@@ -617,10 +585,12 @@ export default function PortfolioPage() {
                   ) : (
                     <Stack spacing={2}>
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                        <Box>
-                          <Typography variant="caption" display="block">DCA Frequency (days)</Typography>
-                          <TextField size="small" type="number" value={smartDays} onChange={(e) => setSmartDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ maxWidth: 160 }} />
-                        </Box>
+                      <Box>
+                        <Stack direction="row" spacing={1} alignItems="start">
+                          <Typography variant="caption">DCA Frequency</Typography>
+                          <TextField label="days" size="small" type="number" value={smartDays} onChange={(e) => setSmartDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} sx={{ width: 100 }} />
+                        </Stack>
+                      </Box>
                         <FormControl size="small" sx={{ minWidth: 260 }}>
                           <InputLabel id="small-buy-bps-label">Small Buy % (between lower and model)</InputLabel>
                           <Select labelId="small-buy-bps-label" label="Small Buy % (between lower and model)" value={smartSmallBuyBps} onChange={(e) => setSmartSmallBuyBps(Number(e.target.value))}>

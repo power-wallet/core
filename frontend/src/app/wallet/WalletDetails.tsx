@@ -6,6 +6,7 @@ import { Box, Button, Card, CardContent, Container, Grid, Stack, Typography, Dia
 import LaunchIcon from '@mui/icons-material/Launch';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SettingsIcon from '@mui/icons-material/Settings';
+import CloseIcon from '@mui/icons-material/Close';
 import ConfigSimpleDcaV1 from './strategies/ConfigSimpleDcaV1';
 import ConfigSmartBtcDcaV1 from './strategies/ConfigSmartBtcDcaV1';
 import { useAccount, useReadContract, useChainId } from 'wagmi';
@@ -1098,7 +1099,18 @@ export default function WalletDetails() {
         fullScreen={isMobile}
         PaperProps={{ sx: { borderRadius: { xs: 0, sm: 1 } } }}
       >
-        <DialogTitle sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>Configure Strategy</DialogTitle>
+        <DialogTitle sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 }, position: 'relative' }}>
+          Configure Strategy
+          {isMobile ? (
+            <IconButton
+              aria-label="close"
+              onClick={() => setStrategyConfigOpen(false)}
+              sx={{ position: 'absolute', right: 8, top: 8, color: 'text.secondary' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          ) : null}
+        </DialogTitle>
         <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
           {(() => {
             // Determine strategy id using on-chain strategy.id, fallback to description match
@@ -1157,9 +1169,11 @@ export default function WalletDetails() {
             );
           })()}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStrategyConfigOpen(false)}>Close</Button>
-        </DialogActions>
+        {!isMobile ? (
+          <DialogActions>
+            <Button onClick={() => setStrategyConfigOpen(false)}>Close</Button>
+          </DialogActions>
+        ) : null}
       </Dialog>
 
       <Snackbar
