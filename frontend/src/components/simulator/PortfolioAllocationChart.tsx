@@ -26,7 +26,7 @@ const PortfolioAllocationChart: React.FC<Props> = ({ result }) => {
   }, [allocationData]);
   const [showUSDC, setShowUSDC] = useState(true);
   const [showBTC, setShowBTC] = useState(true);
-  const [showETH, setShowETH] = useState(true);
+  const [showETH, setShowETH] = useState(() => percentData.some(d => (d.ETH || 0) > 0));
 
   const percentDomain = [0,100] as const;
 
@@ -65,10 +65,12 @@ const PortfolioAllocationChart: React.FC<Props> = ({ result }) => {
             <XAxis dataKey="date" stroke="#D1D5DB" tick={{ fill:'#D1D5DB', fontSize:12 }} tickFormatter={(v)=>new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric'})} />
             <YAxis stroke="#D1D5DB" tick={{ fill:'#D1D5DB', fontSize:12 }} tickFormatter={(v)=>`${(v as number).toFixed(0)}%`} domain={percentDomain as any} />
             <Tooltip content={<TooltipContent />} />
-            <Legend wrapperStyle={{ color:'#D1D5DB', cursor:'pointer' }} onClick={(e:any)=>{ const k=getLegendKey(e); if(k==='USDC') setShowUSDC(v=>!v); if(k==='BTC') setShowBTC(v=>!v); if(k==='ETH') setShowETH(v=>!v); }} />
+            <Legend wrapperStyle={{ color:'#D1D5DB', cursor:'pointer' }} onClick={(e:any)=>{ const k=getLegendKey(e); if(k==='USDC') setShowUSDC(v=>!v); if(k==='BTC') setShowBTC(v=>!v); if(k==='ETH' && percentData.some(d => (d.ETH || 0) > 0)) setShowETH(v=>!v); }} />
             <Area type="monotone" dataKey="USDC" name="USDC" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.6} hide={!showUSDC} />
             <Area type="monotone" dataKey="BTC" name="BTC" stackId="1" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} hide={!showBTC} />
-            <Area type="monotone" dataKey="ETH" name="ETH" stackId="1" stroke="#9CA3AF" fill="#9CA3AF" fillOpacity={0.6} hide={!showETH} />
+            {percentData.some(d => (d.ETH || 0) > 0) && (
+              <Area type="monotone" dataKey="ETH" name="ETH" stackId="1" stroke="#9CA3AF" fill="#9CA3AF" fillOpacity={0.6} hide={!showETH} />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </CardContent>
