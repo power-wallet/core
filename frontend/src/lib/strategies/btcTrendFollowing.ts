@@ -16,10 +16,10 @@ export interface Strategy {
 
 const EVAL_INTERVAL_DAYS = 7; // evaluate weekly
 const SMA_LENGTH = 50; // 50-day SMA
-const RSI_LENGTH = 14;
-const ENTRY_RSI = 60; // wider confirmation band: stronger RSI for entry
+const RSI_LENGTH = 8;
+const ENTRY_RSI = 70; // wider confirmation band: stronger RSI for entry
 const BUFFER_BPS = 50; // 0.5% price buffer around SMA
-const SLOPE_LOOKBACK_DAYS = 5; // SMA must be rising over this lookback
+const SLOPE_LOOKBACK_DAYS = 14; // SMA must be rising over this lookback
 
 export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
   const btcData = options.prices.btc;

@@ -15,6 +15,7 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  Grid
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -49,6 +50,11 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const explorerBase = (appConfig as any)[getChainKey(chainId)]?.explorer as string | undefined;
 
   const { data: nativeBal } = useBalance({ address: (address || undefined) as `0x${string}` | undefined, chainId });
+
+  const shortAddress = React.useMemo(() => {
+    if (!address || address.length < 10) return address || '';
+    return `${address.slice(0, 6)}…${address.slice(-4)}`;
+  }, [address]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -161,7 +167,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
       <DialogContent>
         {isConnected ? (
           <Box>
-            <Card variant="outlined" sx={{ mb: 2 }}>
+            <Card variant="outlined" sx={{ mb: 2, p: 0 }}>
               <CardContent>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Connected Address
@@ -175,30 +181,39 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  {explorerBase ? (
-                    <Tooltip title="Open in block explorer">
-                      <IconButton size="small" onClick={() => window.open(`${explorerBase}/address/${address}`, '_blank', 'noopener')} aria-label="Open on block explorer">
-                        <LaunchIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  ) : null}
                 </Box>
-
-                <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                  {networkName && (
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">Network</Typography>
-                      <Typography variant="body2">{networkName}</Typography>
+                
+                <Box sx={{ mt: 0, display: 'flex', gap: 0, flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      {networkName && (
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary">Network</Typography>
+                          <Typography variant="body2">{networkName}</Typography>
+                        </Box>
+                      )}  
                     </Box>
-                  )}  
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">&nbsp;</Typography>
-                    <Typography variant="body2">{formatEth(nativeBal?.value)} ETH</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">&nbsp;</Typography>
-                    <Typography variant="body2">{formatUsdc(usdc)} USDC</Typography>
-                  </Box>
+
+                    <Box sx={{ mt: 0, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      {networkName && (
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary">Balances</Typography>
+                          <Grid container spacing={0.5}>
+                            <Grid item xs={6}>
+                                <Typography align="right" variant="body2">{formatEth(nativeBal?.value)}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="body2">ETH</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography align="right" variant="body2">{formatUsdc(usdc)}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="body2">USDC</Typography>
+                            </Grid>
+                          </Grid>
+                        </Box>
+                      )}  
+                    </Box>
                 </Box>
 
                 {chainId && chainId !== baseSepolia.id && (
