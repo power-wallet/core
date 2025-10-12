@@ -1,4 +1,4 @@
-import { loadBtcOnly } from '@/lib/strategies/sharedData';
+import { loadBtcOnly } from '@/lib/priceFeed';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 
 export interface Strategy {

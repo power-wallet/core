@@ -1,4 +1,4 @@
-import { loadBtcOnly } from '@/lib/strategies/sharedData';
+import { loadBtcOnly } from '@/lib/priceFeed';
 import { calculateRSI } from '@/lib/indicators';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 

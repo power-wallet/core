@@ -4,6 +4,7 @@
  */
 
 import { calculateRSI, calculateSMA, calculateRatio, crossedAbove, crossedBelow } from './indicators';
+import { loadPriceData } from '@/lib/priceFeed';
 import type { 
   PriceData, 
   SimulationResult, 
@@ -40,104 +41,6 @@ export async function loadPythonData(): Promise<any[]> {
   return response.json();
 }
 
-/**
- * Fetch price data from Binance API (matching Python logic)
- */
-async function fetchBinanceKlines(symbol: string, interval: string, startMs: number, endMs: number): Promise<PriceData[]> {
-  const limit = 1000;
-  const allData: PriceData[] = [];
-  let currentStartMs = startMs;
-  
-  while (currentStartMs < endMs) {
-    const params = new URLSearchParams({
-      symbol,
-      interval,
-      limit: limit.toString(),
-      startTime: currentStartMs.toString(),
-      endTime: endMs.toString(),
-    });
-    
-    const response = await fetch(`https://api.binance.com/api/v3/klines?${params}`);
-    if (!response.ok) {
-      throw new Error(`Binance API error: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    if (!Array.isArray(data) || data.length === 0) break;
-    
-    // Binance kline format: [open_time, open, high, low, close, volume, close_time, ...]
-    for (const candle of data) {
-      const closeTime = new Date(candle[6]); // close_time in ms
-      const closePrice = parseFloat(candle[4]); // close price
-      const dateStr = closeTime.toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      allData.push({
-        date: dateStr,
-        close: closePrice,
-      });
-    }
-    
-    // Move cursor to after last candle
-    const lastCloseTime = data[data.length - 1][6];
-    currentStartMs = lastCloseTime + 1;
-    
-    // Rate limiting
-    await new Promise(resolve => setTimeout(resolve, 200));
-  }
-  
-  // Remove duplicates and sort by date
-  const uniqueData = Array.from(
-    new Map(allData.map(item => [item.date, item])).values()
-  ).sort((a, b) => a.date.localeCompare(b.date));
-  
-  return uniqueData;
-}
-
-/**
- * Load price data from Binance API (matching Python logic)
- */
-export async function loadPriceData(
-  startDate: string,
-  endDate: string,
-  lookbackDays: number = 210
-): Promise<{ btc: PriceData[], eth: PriceData[] }> {
-  const start = new Date(startDate);
-  const lookbackStart = new Date(start);
-  lookbackStart.setDate(lookbackStart.getDate() - lookbackDays);
-  
-  const startMs = lookbackStart.getTime();
-  const endMs = new Date(endDate).getTime();
-  
-  const [btc, eth] = await Promise.all([
-    fetchBinanceKlines('BTCUSDT', '1d', startMs, endMs),
-    fetchBinanceKlines('ETHUSDT', '1d', startMs, endMs),
-  ]);
-  
-  return { btc, eth };
-}
-
-/**
- * Filter price data by date range
- */
-function filterByDateRange(
-  btcData: PriceData[],
-  ethData: PriceData[],
-  startDate: string,
-  endDate: string,
-  lookbackDays: number = 200
-): { btc: PriceData[], eth: PriceData[] } {
-  // Calculate lookback start date
-  const start = new Date(startDate);
-  const lookbackStart = new Date(start);
-  lookbackStart.setDate(lookbackStart.getDate() - lookbackDays);
-  const lookbackStartStr = lookbackStart.toISOString().split('T')[0];
-  
-  // Filter data
-  const btc = btcData.filter(d => d.date >= lookbackStartStr && d.date <= endDate);
-  const eth = ethData.filter(d => d.date >= lookbackStartStr && d.date <= endDate);
-  
-  return { btc, eth };
-}
 
 /**
  * Calculate CAGR (Compound Annual Growth Rate)
@@ -165,17 +68,17 @@ export async function runSimulation(
   endDate: string,
   parameters: StrategyParameters = DEFAULT_PARAMETERS
 ): Promise<SimulationResult> {
-  // Load data from Binance (with lookback for indicators)
+  // Load data (local JSON + Binance tail) with lookback for indicators
   const { btc: btcData, eth: ethData } = await loadPriceData(startDate, endDate, 210);
   
   // Align ALL data (including lookback) on common dates
-  const btcMap = new Map(btcData.map(d => [d.date, d.close]));
-  const ethMap = new Map(ethData.map(d => [d.date, d.close]));
-  const commonDates = btcData.filter(d => ethMap.has(d.date)).map(d => d.date).sort();
+  const btcMap = new Map(btcData.map((d: PriceData) => [d.date, d.close] as const));
+  const ethMap = new Map(ethData.map((d: PriceData) => [d.date, d.close] as const));
+  const commonDates = btcData.filter((d: PriceData) => ethMap.has(d.date)).map((d: PriceData) => d.date).sort();
   
   const allDates = commonDates;
-  const allBtcPrices = allDates.map(d => btcMap.get(d)!);
-  const allEthPrices = allDates.map(d => ethMap.get(d)!);
+  const allBtcPrices = allDates.map((d: string) => btcMap.get(d)!);
+  const allEthPrices = allDates.map((d: string) => ethMap.get(d)!);
   
   // Calculate indicators on ALL data (including lookback period)
   const allBtcRsi = calculateRSI(allBtcPrices, parameters.rsi_bars);

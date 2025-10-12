@@ -1,5 +1,5 @@
 import { calculateRSI, calculateSMA, calculateRatio, crossedAbove, crossedBelow } from '@/lib/indicators';
-import { loadPriceData } from '@/lib/strategies/sharedData';
+import { loadPriceData } from '@/lib/priceFeed';
 import type { SimulationResult, StrategyParameters, Position, Trade, DailyPerformance, DailyRsiSignals } from '@/lib/types';
 
 export interface Strategy {

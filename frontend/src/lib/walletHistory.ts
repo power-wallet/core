@@ -1,4 +1,4 @@
-import { loadPriceData } from '@/lib/strategies/sharedData';
+import { loadPriceData } from '@/lib/priceFeed';
 
 export type DepositRec = { timestamp: bigint; user: `0x${string}`; amount: bigint; balanceAfter: bigint };
 export type WithdrawalRec = { timestamp: bigint; user: `0x${string}`; asset: `0x${string}`; amount: bigint; balanceAfter: bigint };
