@@ -12,14 +12,24 @@ import {
   Card,
   CardContent,
   IconButton,
+  Tooltip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LaunchIcon from '@mui/icons-material/Launch';
 import AddIcon from '@mui/icons-material/Add';
-import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
+import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { getChainKey } from '@/config/networks';
 import { baseSepolia } from 'wagmi/chains';
 import { getFriendlyChainName, switchOrAddPrimaryChain } from '@/lib/web3';
+import { getViemChain } from '@/config/networks';
+import appConfig from '@/config/appConfig.json';
+import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
+import { ERC20_READ_ABI } from '@/lib/abi';
+import { createPublicClient, http } from 'viem';
 
 interface WalletConnectModalProps {
   open: boolean;
@@ -32,6 +42,47 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+  const [copied, setCopied] = React.useState(false);
+  const [usdc, setUsdc] = React.useState<bigint | null>(null);
+  const [usdcDecimals, setUsdcDecimals] = React.useState<number>(6);
+
+  const explorerBase = (appConfig as any)[getChainKey(chainId)]?.explorer as string | undefined;
+
+  const { data: nativeBal } = useBalance({ address: (address || undefined) as `0x${string}` | undefined, chainId });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    async function readUsdc() {
+      try {
+        if (!address) return;
+        const chainKey = getChainKey(chainId);
+        const usdcAddr = (contractAddresses as any)[chainKey]?.usdc as `0x${string}` | undefined;
+        if (!usdcAddr) return;
+        const chain = getViemChain(chainId);
+        const client = createPublicClient({ chain, transport: http() });
+        const [bal, dec] = await Promise.all([
+          client.readContract({ address: usdcAddr, abi: ERC20_READ_ABI as any, functionName: 'balanceOf', args: [address as `0x${string}`] }) as Promise<bigint>,
+          client.readContract({ address: usdcAddr, abi: ERC20_READ_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
+        ]);
+        if (!cancelled) { setUsdc(bal); setUsdcDecimals(dec ?? 6); }
+      } catch {}
+    }
+    readUsdc();
+    return () => { cancelled = true; };
+  }, [address, chainId]);
+
+  const formatEth = (wei?: bigint) => {
+    if (wei == null) return '-';
+    // 18 decimals
+    const s = Number(wei) / 1e18;
+    return s.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  };
+
+  const formatUsdc = (amt?: bigint | null) => {
+    if (amt == null) return '-';
+    const s = Number(amt) / Math.pow(10, usdcDecimals || 6);
+    return s.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  };
 
   const networkName = React.useMemo(() => getFriendlyChainName(chainId), [chainId]);
 
@@ -83,6 +134,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   };
 
   return (
+    <>
     <Dialog 
       open={open} 
       onClose={onClose}
@@ -114,17 +166,41 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Connected Address
                 </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                  {address}
-                </Typography>
-                {networkName && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Network
-                    </Typography>
-                    <Typography variant="body2">{networkName}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                    {address}
+                  </Typography>
+                  <Tooltip title="Copy address">
+                    <IconButton size="small" onClick={async () => { if (address) { await navigator.clipboard.writeText(address); setCopied(true); } }} aria-label="Copy address">
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  {explorerBase ? (
+                    <Tooltip title="Open in block explorer">
+                      <IconButton size="small" onClick={() => window.open(`${explorerBase}/address/${address}`, '_blank', 'noopener')} aria-label="Open on block explorer">
+                        <LaunchIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  ) : null}
+                </Box>
+
+                <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                  {networkName && (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary">Network</Typography>
+                      <Typography variant="body2">{networkName}</Typography>
+                    </Box>
+                  )}  
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">&nbsp;</Typography>
+                    <Typography variant="body2">{formatEth(nativeBal?.value)} ETH</Typography>
                   </Box>
-                )}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">&nbsp;</Typography>
+                    <Typography variant="body2">{formatUsdc(usdc)} USDC</Typography>
+                  </Box>
+                </Box>
+
                 {chainId && chainId !== baseSepolia.id && (
                   <Box
                     sx={{
@@ -228,6 +304,12 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
         )}
       </DialogContent>
     </Dialog>
+    <Snackbar open={copied} autoHideDuration={2000} onClose={() => setCopied(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+      <Alert onClose={() => setCopied(false)} severity="success" sx={{ width: '100%' }}>
+        Address copied to clipboard
+      </Alert>
+    </Snackbar>
+    </>
   );
 };
 

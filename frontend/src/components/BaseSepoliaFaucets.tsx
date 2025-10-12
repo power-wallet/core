@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 
 export default function BaseSepoliaFaucets() {
@@ -12,13 +12,15 @@ export default function BaseSepoliaFaucets() {
   ];
   return (
     <>
-      <Typography variant="body2" sx={{ pb: 1 }}>On Base Sepolia testnet, you can also use the following faucets:</Typography>
+      <Typography variant="body2" sx={{ pb: 1 }}>On Base Sepolia testnet, you can use the following faucets:</Typography>
       <ul style={{ margin: 0, paddingLeft: 18 }}>
         {links.map((link) => (
           <li key={link.href}>
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
               <a href={link.href} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{link.label}</a>
-              <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
+              <Tooltip title="Open in new tab">
+                <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
+              </Tooltip>
             </Box>
           </li>
         ))}

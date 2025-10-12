@@ -1,7 +1,7 @@
 {
   "name": "Power Wallet",
   "short_name": "PowerWallet",
-  "description": "Smart On-Chain Investing",
+  "description": "Smart Bitcoin DCA Investing",
   "dir": "auto",
   "lang": "en-US",
   "display": "standalone",

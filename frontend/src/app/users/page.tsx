@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Container, Box, Typography, Accordion, AccordionSummary, AccordionDetails, Stack, Grid, IconButton } from '@mui/material';
+import { Container, Box, Typography, Accordion, AccordionSummary, AccordionDetails, Stack, Grid, IconButton, Tooltip } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -46,12 +46,16 @@ export default function UsersPage() {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1 }}>
                 <Typography sx={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u}</Typography>
                 <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                  <IconButton size="small" aria-label="Copy address" onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(u).catch(() => {}); }}>
-                    <ContentCopyIcon fontSize="inherit" />
-                  </IconButton>
-                  <IconButton size="small" aria-label="Open in explorer" onClick={(e) => { e.stopPropagation(); window.open(`${explorerBase}/address/${u}`, '_blank', 'noopener'); }}>
-                    <LaunchIcon fontSize="inherit" />
-                  </IconButton>
+                  <Tooltip title="Copy address">
+                    <IconButton size="small" aria-label="Copy address" onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(u).catch(() => {}); }}>
+                      <ContentCopyIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Open in block explorer">
+                    <IconButton size="small" aria-label="Open in explorer" onClick={(e) => { e.stopPropagation(); window.open(`${explorerBase}/address/${u}`, '_blank', 'noopener'); }}>
+                      <LaunchIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
               </Box>
             </AccordionSummary>

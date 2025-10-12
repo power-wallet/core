@@ -9,7 +9,7 @@ const configuration = {
   path: '/',
   appName: 'Power Wallet',
   appShortName: 'PowerWallet',
-  appDescription: 'Smart On-Chain Investing',
+  appDescription: 'Smart Bitcoin DCA Investing',
   developerName: 'Power Wallet',
   developerURL: 'https://powerwallet.finance',
   dir: 'auto',

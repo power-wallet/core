@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Card, CardContent, Container, Grid, Stack, TextField, Typography, Link as MuiLink, Snackbar, Alert, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Grid, Stack, TextField, Typography, Link as MuiLink, Snackbar, Alert, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { getChainKey, getViemChain } from '@/config/networks';
@@ -513,9 +513,11 @@ export default function Client() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{shortAddr}</Typography>
               {explorerBase && poolAddress ? (
-                <a href={`${explorerBase}/address/${poolAddress}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', display: 'inline-flex', alignItems: 'center' }} aria-label="Open on block explorer">
-                  <LaunchIcon sx={{ fontSize: 16 }} />
-                </a>
+                <Tooltip title="Open in block explorer">
+                  <a href={`${explorerBase}/address/${poolAddress}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', display: 'inline-flex', alignItems: 'center' }} aria-label="Open on block explorer">
+                    <LaunchIcon sx={{ fontSize: 16 }} />
+                  </a>
+                </Tooltip>
               ) : null}
             </Box>
             
@@ -659,9 +661,11 @@ export default function Client() {
         <Alert onClose={() => setToastOpen(false)} severity="success" sx={{ width: '100%' }}>
           Transaction confirmed.{' '}
           {explorerBase && lastTx ? (
-            <a href={`${explorerBase}/tx/${lastTx}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-              View on explorer
-            </a>
+            <Tooltip title="Open in block explorer">
+              <a href={`${explorerBase}/tx/${lastTx}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                View on explorer
+              </a>
+            </Tooltip>
           ) : null}
         </Alert>
       </Snackbar>

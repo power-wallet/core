@@ -1,6 +1,6 @@
 import type { SimulationResult, PriceData } from '@/lib/types';
 
-export type StrategyId = 'btc-eth-momentum' | 'smart-btc-dca' | 'simple-btc-dca' | 'btc-trend-following';
+export type StrategyId = 'btc-eth-momentum' | 'smart-btc-dca' | 'simple-btc-dca' | 'btc-trend-following' | 'power-btc-dca';
 
 export interface Strategy {
   id: StrategyId;
@@ -21,6 +21,7 @@ export const strategyCharts: Record<StrategyId, ChartId[]> = {
   'simple-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
   'btc-eth-momentum': ['portfolio', 'prices', 'allocation', 'drawdown', 'rsi', 'trades'],
   'btc-trend-following': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
+  'power-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
 };
 
 // Lazy imports to avoid bundling unused strategies upfront
@@ -41,6 +42,11 @@ async function getSimpleDcaStrategy() {
 
 async function getTrendFollowingStrategy() {
   const mod = await import('@/lib/strategies/btcTrendFollowing');
+  return mod.default as Strategy;
+}
+
+async function getPowerDcaStrategy() {
+  const mod = await import('@/lib/strategies/powerBtcDca');
   return mod.default as Strategy;
 }
 

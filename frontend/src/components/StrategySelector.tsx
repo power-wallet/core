@@ -28,7 +28,7 @@ export default function StrategySelector({
 }: Props) {
   return (
     <Stack spacing={2}>
-      <Typography variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
+      <Typography sx={{ pt: 2 }} variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
       <ToggleButtonGroup exclusive size="small" value={selectedStrategyId} onChange={(_, v) => v && onChangeStrategy(v)}>
         <ToggleButton value="simple-btc-dca-v1">Simple BTC DCA</ToggleButton>
         <ToggleButton value="btc-dca-power-law-v1">Smart BTC DCA</ToggleButton>

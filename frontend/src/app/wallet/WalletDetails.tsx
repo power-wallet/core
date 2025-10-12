@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Container, Grid, Typography, Snackbar, Alert, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Container, Grid, Typography, Snackbar, Alert, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
  
@@ -303,15 +303,17 @@ export default function WalletDetails() {
         </a>
         {` / `}
         <span>{shortAddress}</span>
+        <Tooltip title="Copy address">
         <a
           href="#"
           onClick={(e) => { e.preventDefault(); if (walletAddress) navigator.clipboard.writeText(walletAddress).then(() => setCopied(true)).catch(() => {}); }}
           style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
           aria-label="Copy wallet address"
-          title="Copy address"
         >
           <ContentCopyIcon sx={{ fontSize: 14 }} />
         </a>
+        </Tooltip>
+        <Tooltip title="Open in block explorer">
         <a
           href={`${explorerBase}/address/${walletAddress}`}
           target="_blank"
@@ -321,6 +323,7 @@ export default function WalletDetails() {
         >
           <LaunchIcon sx={{ fontSize: 14 }} />
         </a>
+        </Tooltip>
       </Typography>
 
       {hasAnyTransactions && walletSeries && walletSeries.length ? (

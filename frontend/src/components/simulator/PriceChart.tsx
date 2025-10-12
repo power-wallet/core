@@ -89,8 +89,8 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
       ethBuy: ethTrade?.side === 'BUY' ? ethTrade.price : null,
       ethSell: ethTrade?.side === 'SELL' ? ethTrade.price : null,
       // Trade details for tooltip
-      btcTradeDetails: btcTrade ? `${btcTrade.side} ${btcTrade.quantity.toFixed(4)} BTC @ $${btcTrade.price.toLocaleString()}` : null,
-      ethTradeDetails: ethTrade ? `${ethTrade.side} ${ethTrade.quantity.toFixed(4)} ETH @ $${ethTrade.price.toLocaleString()}` : null,
+      btcTradeDetails: btcTrade ? `${btcTrade.side} ${btcTrade.quantity.toFixed(6)} BTC @${btcTrade.price.toLocaleString('en-US', { maximumFractionDigits: 0 })} for $${(btcTrade.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+      ethTradeDetails: ethTrade ? `${ethTrade.side} ${ethTrade.quantity.toFixed(6)} ETH @${ethTrade.price.toLocaleString('en-US', { maximumFractionDigits: 0 })} for $${(ethTrade.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
     };
   });
 
@@ -147,13 +147,13 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
 
   const leftTickFormatter = useMemo(() => (value: number) => `$${(value / 1000).toFixed(0)}k`, []);
   const rightTickFormatter = useMemo(() => (value: number) => `$${(value / 1000).toFixed(1)}k`, []);
-
+  const titleAssets = hasEth ? 'Asset Prices & Trades' : 'BTC Price & Trades';
   return (
     <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D', mb: 3 }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="h6" fontWeight="bold">
-            Asset Prices & Trades
+            {titleAssets}
           </Typography>
           <ToggleButtonGroup
             size="small"

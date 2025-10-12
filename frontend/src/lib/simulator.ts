@@ -452,6 +452,10 @@ export async function runStrategy(
       const mod = await import('@/lib/strategies/btcTrendFollowing');
       return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
     }
+    case 'power-btc-dca': {
+      const mod = await import('@/lib/strategies/powerBtcDca');
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+    }
     default:
       throw new Error(`Unknown strategy: ${strategyId}`);
   }

@@ -9,4 +9,5 @@ tokei .
 echo
 echo
 echo "=========  scc  ==========="
-scc . --exclude-ext json,html,xml,js,csv,bash
+scc . --exclude-ext json,html,xml,js,csv,bash,py,md,sh,txt,svg --no-large --cocomo-project-type organic --format-multi "tabular:stdout,html:cocomo.html"
+

@@ -1,7 +1,7 @@
-import { loadBtcOnly } from '@/lib/priceFeed';
 import type { PriceData } from '@/lib/types';
 import { calculateRSI } from '@/lib/indicators';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
+import { computeReturnsFromValues, computeSharpeAndSortinoFromReturns } from '@/lib/stats';
 
 export interface Strategy {
   id: 'btc-trend-following';
@@ -152,35 +152,13 @@ async function run(initialCapital: number, startDate: string, endDate: string, o
     : (Math.pow(finalPerf.btcHodlValue / initialCapital, 1 / years) - 1.0) * 100;
   const maxDrawdown = Math.min(...dailyPerformance.map(d => d.drawdown));
 
-  const dailyReturns: number[] = [];
-  for (let i = 1; i < dailyPerformance.length; i++) {
-    const prev = dailyPerformance[i - 1].totalValue;
-    const curr = dailyPerformance[i].totalValue;
-    dailyReturns.push((curr / prev) - 1.0);
-  }
-  const meanDaily = dailyReturns.reduce((a, b) => a + b, 0) / (dailyReturns.length || 1);
-  const stdDaily = Math.sqrt(dailyReturns.reduce((acc, r) => acc + Math.pow(r - meanDaily, 2), 0) / (dailyReturns.length > 1 ? (dailyReturns.length - 1) : 1));
-  const sharpeRatio = stdDaily > 0 ? (meanDaily / stdDaily) * Math.sqrt(365) : 0;
-
-  const downside = dailyReturns.filter(r => r < 0);
-  const meanDown = downside.reduce((a, b) => a + b, 0) / (downside.length || 1);
-  const downDev = Math.sqrt(downside.reduce((acc, r) => acc + Math.pow(r - meanDown, 2), 0) / (downside.length > 1 ? (downside.length - 1) : 1));
-  const sortinoRatio = downDev > 0 ? (meanDaily / downDev) * Math.sqrt(365) : 0;
+  // Risk metrics via shared helpers
+  const dailyReturns = computeReturnsFromValues(dailyPerformance.map(d => d.totalValue));
+  const { sharpe: sharpeRatio, sortino: sortinoRatio } = computeSharpeAndSortinoFromReturns(dailyReturns);
 
   // BTC HODL risk metrics
-  const btcDailyReturns: number[] = [];
-  for (let i = 1; i < dailyPerformance.length; i++) {
-    const prev = dailyPerformance[i - 1].btcHodlValue;
-    const curr = dailyPerformance[i].btcHodlValue;
-    btcDailyReturns.push((curr / prev) - 1.0);
-  }
-  const btcMeanDaily = btcDailyReturns.reduce((a, b) => a + b, 0) / (btcDailyReturns.length || 1);
-  const btcStdDaily = Math.sqrt(btcDailyReturns.reduce((acc, r) => acc + Math.pow(r - btcMeanDaily, 2), 0) / (btcDailyReturns.length > 1 ? (btcDailyReturns.length - 1) : 1));
-  const btcHodlSharpeRatio = btcStdDaily > 0 ? (btcMeanDaily / btcStdDaily) * Math.sqrt(365) : 0;
-  const btcDownside = btcDailyReturns.filter(r => r < 0);
-  const btcMeanDown = btcDownside.reduce((a, b) => a + b, 0) / (btcDownside.length || 1);
-  const btcDownDev = Math.sqrt(btcDownside.reduce((acc, r) => acc + Math.pow(r - btcMeanDown, 2), 0) / (btcDownside.length > 1 ? (btcDownside.length - 1) : 1));
-  const btcHodlSortinoRatio = btcDownDev > 0 ? (btcMeanDaily / btcDownDev) * Math.sqrt(365) : 0;
+  const btcDailyReturns = computeReturnsFromValues(dailyPerformance.map(d => d.btcHodlValue));
+  const { sharpe: btcHodlSharpeRatio, sortino: btcHodlSortinoRatio } = computeSharpeAndSortinoFromReturns(btcDailyReturns);
 
   return {
     dailyPerformance,

@@ -31,10 +31,8 @@ export default function About() {
               Our Mission
             </Typography>
             <Typography variant="body1" paragraph>
-              Power Wallet is building non-custodial, on-chain solutions for Bitcoin &amp; digital assets investors.
-            </Typography>
-            <Typography variant="body1" paragraph>
-             We help you rebalance your portfolio, optimize exposure and manage risk, so you&apos;ll be a more successful long-term investor.
+              Power Wallet is building non-custodial, on-chain solutions that help you accumulate more Bitcoin over time.
+              We provide a set of automated strategies that help you DCA into Bitcoin, rebalance your portfolio, optimize exposure and manage risk, so you&apos;ll be a more successful long-term investor.
             </Typography>
             <Typography variant="body1" paragraph>
               By combining blockchain technology, algorithmic execution and risk management, 

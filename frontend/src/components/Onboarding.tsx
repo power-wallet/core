@@ -40,24 +40,26 @@ export default function Onboarding({ isBaseSepolia, address, connectorId, needsF
             <CardContent>
               <Stack spacing={2}>
                 <Typography variant="subtitle1" fontWeight="bold">Fund your account</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  To get started, your connected wallet needs ETH (for gas) and USDC.
-                </Typography>
-                {isBaseSepolia ? (
-                  <>
-                    <BaseSepoliaFaucets />
+
+                {isBaseSepolia ? ( // Coinbase Smart Wallet
+                  <> 
                     {connectorId === 'coinbaseWalletSDK' ? (
                       <Alert
                         severity="success"
                         icon={<InfoOutlinedIcon fontSize="small" />}
                         sx={{ mt: 1 }}
                       >
-                        Using Coinbase Smart Wallet? You can continue without ETH: gas fees are sponsored by Base. You will still need USDC later to fund your wallet.
+                        Using Coinbase Smart Wallet? <br />
+                        You can continue without ETH: gas fees are sponsored by Base. 
+                        You will still need USDC later to fund your wallet.
                       </Alert>
-                    ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                        You will need a small amount of ETH for gas to create your first Power Wallet.
-                      </Typography>
+                    ) : ( // other connectors
+                        <>
+                            <Typography variant="body2" sx={{ display: 'block', mt: 1 }}>
+                                You will need a small amount of ETH for gas to create your first Power Wallet.
+                            </Typography>
+                            <BaseSepoliaFaucets />
+                        </>
                     )}
                     <Box>
                       <Button variant="contained" sx={{ mt: 1 }} onClick={onOpenCreate}>

@@ -49,7 +49,6 @@ export default function CreateWalletDialog({ open, onClose, onCreate, creating, 
       </DialogTitle>
       <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
-          <Typography sx={{ pt: 2 }} variant="subtitle1" fontWeight="bold">Select Strategy</Typography>
           <StrategySelector
             selectedStrategyId={selectedStrategyId}
             onChangeStrategy={onChangeStrategy}

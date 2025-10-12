@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, Typography, Box, Stack, IconButton } from '@mui/material';
+import { Card, CardContent, Typography, Box, Stack, IconButton, Tooltip } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { formatUsd6Bigint } from '@/lib/format';
@@ -37,15 +37,17 @@ export default function StrategyCard({ strategyName, description, strategyAddr, 
           <Typography variant="body2" sx={{ fontFamily: 'monospace', mt: 1 }}>
             <span>{`${String(strategyAddr).slice(0, 6)}…${String(strategyAddr).slice(-4)}`}</span>
             {explorerBase ? (
-              <a
-                href={`${explorerBase}/address/${strategyAddr}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
-                aria-label="Open strategy on block explorer"
-              >
-                <LaunchIcon sx={{ fontSize: 14 }} />
-              </a>
+              <Tooltip title="Open in block explorer">
+                <a
+                  href={`${explorerBase}/address/${strategyAddr}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
+                  aria-label="Open strategy on block explorer"
+                >
+                  <LaunchIcon sx={{ fontSize: 14 }} />
+                </a>
+              </Tooltip>
             ) : null}
           </Typography>
         ) : null}

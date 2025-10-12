@@ -144,6 +144,9 @@ export default function SimulatorPage() {
                   if (id === 'smart-btc-dca') {
                     return 'A BTC-only DCA strategy guided by a Power Law model, with dynamic buy/sell rules around lower/model/upper bands.';
                   }
+                  if (id === 'power-btc-dca') {
+                    return 'An adaptive BTC DCA that scales buys with volatility and drawdowns, with optional threshold rebalancing to a target BTC weight band.';
+                  }
                   if (id === 'simple-btc-dca') {
                     return 'A simple BTC DCA that invests a fixed USDC amount on a weekly schedule until cash is exhausted.';
                   }
@@ -202,6 +205,53 @@ export default function SimulatorPage() {
                           <li>
                             <Typography variant="body2" color="text.secondary">
                               Execution & benchmark: trades at daily closes on a weekly schedule; benchmark buys BTC on day one (net of fee) and holds.
+                            </Typography>
+                          </li>
+                        </ul>
+                      </>
+                    );
+                  }
+                  if (id === 'power-btc-dca') {
+                    return (
+                      <>
+                        <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mb: 1 }}>Core rules</Typography>
+                        <ul style={{ margin: 0, paddingLeft: 18 }}>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Base DCA: buy a fixed USDC amount daily (default $50); keep a USDC buffer (default 9× base DCA).
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Volatility kicker: add extra buy scaled by annualized volatility and current drawdown, capped at 3× base DCA.
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Optional threshold rebalancing: if BTC weight is above the upper band → SELL to band; below the lower band → BUY to band (each capped to 25% of NAV per trade).
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Target weight band: center 70% BTC with ±10% band (i.e., 60%–80%).
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Fees: trades assume a 0.30% fee; benchmark buys BTC on day one (net of fee) and holds.
+                            </Typography>
+                          </li>
+                        </ul>
+                        <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mt: 2, mb: 1 }}>Examples</Typography>
+                        <ul style={{ margin: 0, paddingLeft: 18 }}>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Nav $10,000, BTC −30% from peak, high vol: base $50 + kicker (capped to $150) → total buy ≈ $200 if buffer allows.
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Nav $12,000, BTC weight 85% (above band): threshold mode sells down to 80% with a single trade capped at 25% of NAV.
                             </Typography>
                           </li>
                         </ul>

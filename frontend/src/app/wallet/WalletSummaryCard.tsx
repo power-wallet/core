@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, Stack, Box, Typography, Button } from '@mui/material';
+import { Card, CardContent, Stack, Box, Typography, Button, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { useReadContract } from 'wagmi';
 import { useWalletReads, useStrategyReads } from '@/lib/walletReads';
@@ -44,9 +44,11 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
             <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Wallet Address</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: 'flex-end', flex: 1 }}>
               <Typography variant="body2" sx={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortAddr}</Typography>
-              <a href={`${explorerBase}/address/${walletAddress}`} target="_blank" rel="noopener noreferrer" aria-label="Open on explorer" style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit' }}>
-                <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
-              </a>
+              <Tooltip title="Open in block explorer">
+                <a href={`${explorerBase}/address/${walletAddress}`} target="_blank" rel="noopener noreferrer" aria-label="Open on explorer" style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit' }}>
+                  <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
+                </a>
+              </Tooltip>
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
