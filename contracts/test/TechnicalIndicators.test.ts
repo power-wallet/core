@@ -410,4 +410,85 @@ describe("TechnicalIndicators - Core Functionality", function () {
             expect(history[0].price).to.equal(firstPrice);
         });
     });
+
+    describe("Volatility and Drawdown - incremental updates", function () {
+        it("Updates latest annualized vol and drawdown across two daily updates", async function () {
+            const { indicators, wbtc, btcFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+
+            // Ensure history is contiguous up to yesterday
+            await closeGapToPresent(indicators, owner, wbtc);
+
+            // Move time to just after midnight (within 1-hour window)
+            await moveToNextDayStart();
+
+            // First update: set yesterday's close to baseline (establish peak)
+            const latest = await indicators.getLatestPrices(await wbtc.getAddress(), 1);
+            const basePrice = latest[0].price; // 1e8
+            await btcFeed.updateAnswer(basePrice);
+
+            // Trigger update, which also updates vol/drawdown
+            await indicators.updateDailyPrices([await wbtc.getAddress()]);
+
+            // Move to next day and set -20% price to generate drawdown and vol
+            await moveToNextDayStart();
+            const lowerPrice = (basePrice * 80n) / 100n; // -20%
+            await btcFeed.updateAnswer(lowerPrice);
+            await indicators.updateDailyPrices([await wbtc.getAddress()]);
+
+            const [volAnn1e8] = await indicators.latestEwmaVolAnnualized(await wbtc.getAddress());
+            const [dd1e8] = await indicators.latestDrawdown(await wbtc.getAddress());
+
+            // Drawdown should be ~20% in 1e8 scale
+            expect(dd1e8).to.equal(20_000000n);
+
+            // Expected EWMA with previous sigma2=0: sigma2=(1-lambda)*r^2 using r from basePrice->lowerPrice
+            const LAMBDA_BPS = 9400n;
+            const oneMinus = 10000n - LAMBDA_BPS; // 600
+            const rAbs1e8 = 20_000000n; // |r| in 1e8
+            const r2_1e16 = rAbs1e8 * rAbs1e8; // 1e16 scale
+            const sigma2_1e16 = (r2_1e16 * oneMinus) / 10000n;
+
+            // Integer sqrt helper (same as contract logic)
+            const isqrt = (x: bigint) => { let z = (x + 1n) / 2n, y = x; while (z < y) { y = z; z = (x / z + z) / 2n; } return y; };
+            const volDaily1e8 = isqrt(sigma2_1e16);
+            const SQRT_365_1e8 = 1910497317n;
+            const expectedVolAnn1e8 = (volDaily1e8 * SQRT_365_1e8) / 100_000000n;
+
+            expect(volAnn1e8).to.equal(expectedVolAnn1e8);
+        });
+
+        it("Owner can recompute indicators from full history", async function () {
+            const { indicators, wbtc, btcFeed, owner } = await loadFixture(deployWithHistoricalDataFixture);
+
+            await closeGapToPresent(indicators, owner, wbtc);
+            await moveToNextDayStart();
+
+            // Establish base then drop 20%
+            const latest = await indicators.getLatestPrices(await wbtc.getAddress(), 1);
+            const basePrice = latest[0].price;
+            await btcFeed.updateAnswer(basePrice);
+            await indicators.updateDailyPrices([await wbtc.getAddress()]);
+
+            await moveToNextDayStart();
+            const lowerPrice = (basePrice * 80n) / 100n;
+            await btcFeed.updateAnswer(lowerPrice);
+            await indicators.updateDailyPrices([await wbtc.getAddress()]);
+
+            // Compute expected drawdown using true running peak from full history
+            const full = await indicators.getFullPriceHistory(await wbtc.getAddress());
+            let peak = 0n;
+            for (let i = 0; i < full.length; i++) {
+                if (full[i].price > peak) peak = full[i].price;
+            }
+            const expectedDd1e8 = peak > 0n ? ((peak - lowerPrice) * 100_000000n) / peak : 0n;
+
+            // Recompute from history
+            await indicators.connect(owner).recomputeIndicators(await wbtc.getAddress());
+
+            const after = await indicators.latestDrawdown(await wbtc.getAddress());
+            expect(after[0]).to.equal(expectedDd1e8);
+            // Timestamp should equal last entry timestamp
+            expect(after[1]).to.equal(full[full.length - 1].timestamp);
+        });
+    });
 });

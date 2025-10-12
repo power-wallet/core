@@ -58,7 +58,7 @@
             "label": "priceHistory",
             "offset": 0,
             "slot": "0",
-            "type": "t_mapping(t_address,t_array(t_struct(DailyPrice)1517_storage)dyn_storage)",
+            "type": "t_mapping(t_address,t_array(t_struct(DailyPrice)5122_storage)dyn_storage)",
             "contract": "TechnicalIndicators",
             "src": "contracts/core/TechnicalIndicators.sol:27"
           },
@@ -66,7 +66,7 @@
             "label": "tokenConfigs",
             "offset": 0,
             "slot": "1",
-            "type": "t_mapping(t_address,t_struct(TokenConfig)1522_storage)",
+            "type": "t_mapping(t_address,t_struct(TokenConfig)5127_storage)",
             "contract": "TechnicalIndicators",
             "src": "contracts/core/TechnicalIndicators.sol:28"
           },
@@ -126,19 +126,19 @@
             "label": "address[]",
             "numberOfBytes": "32"
           },
-          "t_array(t_struct(DailyPrice)1517_storage)dyn_storage": {
+          "t_array(t_struct(DailyPrice)5122_storage)dyn_storage": {
             "label": "struct TechnicalIndicators.DailyPrice[]",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_array(t_struct(DailyPrice)1517_storage)dyn_storage)": {
+          "t_mapping(t_address,t_array(t_struct(DailyPrice)5122_storage)dyn_storage)": {
             "label": "mapping(address => struct TechnicalIndicators.DailyPrice[])",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_struct(TokenConfig)1522_storage)": {
+          "t_mapping(t_address,t_struct(TokenConfig)5127_storage)": {
             "label": "mapping(address => struct TechnicalIndicators.TokenConfig)",
             "numberOfBytes": "32"
           },
-          "t_struct(DailyPrice)1517_storage": {
+          "t_struct(DailyPrice)5122_storage": {
             "label": "struct TechnicalIndicators.DailyPrice",
             "members": [
               {
@@ -156,7 +156,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(TokenConfig)1522_storage": {
+          "t_struct(TokenConfig)5127_storage": {
             "label": "struct TechnicalIndicators.TokenConfig",
             "members": [
               {
@@ -1066,6 +1066,213 @@
           "t_mapping(t_address,t_bool)": {
             "label": "mapping(address => bool)",
             "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "88f806684522cf92635ec0a1f2cf6dbe53bafe50a2ba67ef4f1c9ae689d2090f": {
+      "address": "0xb870876Dbd2039EE870b233e5993bEb9f421e2c9",
+      "txHash": "0xe9d881fd4eb0e3e38da6ca3b3bc4eabc8f0baa457b1437e7917b1eeab697ec77",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "priceHistory",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_array(t_struct(DailyPrice)1517_storage)dyn_storage)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:27"
+          },
+          {
+            "label": "tokenConfigs",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_struct(TokenConfig)1522_storage)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:28"
+          },
+          {
+            "label": "trackedTokens",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_address)dyn_storage",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:29"
+          },
+          {
+            "label": "ewmaSigma2_1e16",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:53"
+          },
+          {
+            "label": "latestVolAnnualized1e8",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:54"
+          },
+          {
+            "label": "runningPeak1e8",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:55"
+          },
+          {
+            "label": "latestDrawdown1e8",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:56"
+          },
+          {
+            "label": "latestIndicatorsTs",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "TechnicalIndicators",
+            "src": "contracts/core/TechnicalIndicators.sol:57"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)136_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)76_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_struct(DailyPrice)1517_storage)dyn_storage": {
+            "label": "struct TechnicalIndicators.DailyPrice[]",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_array(t_struct(DailyPrice)1517_storage)dyn_storage)": {
+            "label": "mapping(address => struct TechnicalIndicators.DailyPrice[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(TokenConfig)1522_storage)": {
+            "label": "mapping(address => struct TechnicalIndicators.TokenConfig)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(DailyPrice)1517_storage": {
+            "label": "struct TechnicalIndicators.DailyPrice",
+            "members": [
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "price",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(TokenConfig)1522_storage": {
+            "label": "struct TechnicalIndicators.TokenConfig",
+            "members": [
+              {
+                "label": "priceFeed",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "lastUpdateTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
           },
           "t_uint256": {
             "label": "uint256",

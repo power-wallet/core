@@ -1,4 +1,4 @@
-import { ethers, upgrades, network } from "hardhat";
+import { ethers, upgrades, network, run } from "hardhat";
 
 // Proxy addresses for each network
 const PROXY_ADDRESSES: { [key: string]: string } = {
@@ -26,26 +26,26 @@ async function main() {
   const upgraded = await upgrades.upgradeProxy(proxyAddress, TechnicalIndicators);
   await upgraded.waitForDeployment();
 
+  // wait 5 secs
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
   const newImplAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
   console.log("New implementation address:", newImplAddress);
 
-  // Verify on block explorer if not on local network
-  if (network.name !== "hardhat" && network.name !== "localhost") {
-    console.log("Waiting for 5 block confirmations before verification...");
-    await ethers.provider.waitForTransaction(
-      upgraded.deploymentTransaction()?.hash || "",
-      5
-    );
-    
-    console.log("Verifying new implementation contract...");
-    try {
-      await run("verify:verify", {
-        address: newImplAddress,
-        constructorArguments: []
-      });
-    } catch (error) {
-      console.log("Verification failed:", error);
-    }
+  console.log("Waiting for 5 block confirmations before verification...");
+  const tx = upgraded.deploymentTransaction();
+  if (tx) {
+    await tx.wait(5);
+  }
+  
+  console.log("Verifying new implementation contract..." + newImplAddress);
+  try {
+    await run("verify:verify", {
+      address: newImplAddress,
+      constructorArguments: []
+    });
+  } catch (error) {
+    console.log("Verification failed:", error);
   }
 }
 

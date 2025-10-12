@@ -53,7 +53,7 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     mapping(address => uint256) public ewmaSigma2_1e16;
     mapping(address => uint256) public latestVolAnnualized1e8; // sqrt(ewmaSigma2) * sqrt(365)
     mapping(address => uint256) public runningPeak1e8;         // running peak of price (1e8)
-    mapping(address => uint256) public latestDrawdown1e8;      // 1e8 - price/peak * 1e8
+    mapping(address => uint256) public latestDrawdown1e8;      // percentage drawdown - 1e8 - price/peak * 1e8
     mapping(address => uint256) public latestIndicatorsTs;     // last update day (UTC midnight)
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -561,6 +561,64 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
             z = (x / z + z) / 2;
         }
         return y;
+    }
+
+    /**
+     * @notice Owner-only backfill to recompute EWMA volatility and drawdown from full history
+     * @dev Recomputes and updates: ewmaSigma2_1e16, latestVolAnnualized1e8, runningPeak1e8,
+     *      latestDrawdown1e8, latestIndicatorsTs for the given token.
+     */
+    function recomputeIndicators(address token) external onlyOwner {
+        DailyPrice[] storage prices = priceHistory[token];
+        require(prices.length > 0, "No price history");
+
+        uint256 sigma2 = 0; // 1e16 scale
+        uint256 peak = 0;   // 1e8 price
+        uint256 lastVolAnn1e8 = 0;
+        uint256 lastDd1e8 = 0;
+        uint256 lastTs = 0;
+
+        for (uint256 i = 0; i < prices.length; i++) {
+            uint256 pCurr = prices[i].price; // 1e8
+            lastTs = prices[i].timestamp;
+
+            if (i == 0) {
+                // Initialize running peak at first price
+                peak = pCurr;
+                // Drawdown 0, vol 0 on first observation
+                lastVolAnn1e8 = 0;
+                lastDd1e8 = 0;
+                continue;
+            }
+
+            uint256 pPrev = prices[i - 1].price; // 1e8
+            if (pPrev > 0) {
+                // Simple return r = (pCurr - pPrev)/pPrev scaled 1e8, winsorize at ±20%
+                int256 diff = int256(pCurr) - int256(pPrev);
+                int256 r1e8 = (diff * int256(SCALE)) / int256(pPrev);
+                int256 clamp = int256(SCALE) * 20 / 100; // 0.2 * 1e8 = 2e7
+                if (r1e8 > clamp) r1e8 = clamp; else if (r1e8 < -clamp) r1e8 = -clamp;
+
+                uint256 rAbs1e8 = uint256(r1e8 >= 0 ? r1e8 : -r1e8);
+                uint256 r2_1e16 = (rAbs1e8 * rAbs1e8); // 1e16
+
+                // EWMA update
+                sigma2 = (sigma2 * LAMBDA_BPS + r2_1e16 * (10000 - LAMBDA_BPS)) / 10000;
+                uint256 volDaily1e8 = _sqrt1e16_to_1e8(sigma2);
+                lastVolAnn1e8 = (volDaily1e8 * SQRT_365_1e8) / (10 ** 8);
+            }
+
+            // Drawdown with running peak
+            if (peak == 0 || pCurr > peak) peak = pCurr;
+            lastDd1e8 = peak > 0 ? ((peak - pCurr) * (10 ** 8)) / peak : 0;
+        }
+
+        // Persist recomputed values
+        ewmaSigma2_1e16[token] = sigma2;
+        latestVolAnnualized1e8[token] = lastVolAnn1e8;
+        runningPeak1e8[token] = peak;
+        latestDrawdown1e8[token] = lastDd1e8;
+        latestIndicatorsTs[token] = lastTs;
     }
 
     /**
