@@ -232,12 +232,23 @@ contract PowerBtcDcaV1 is IStrategy {
     // Owner setters
     function setFrequency(uint256 newFrequency) external onlyOwner { require(newFrequency > 0, "freq"); frequency = newFrequency; }
     function setBaseDcaStable(uint256 newBase) external onlyOwner { require(newBase > 0, "base"); baseDcaStable = newBase; }
-    function setBands(uint16 newTargetBps, uint16 newBandDeltaBps) external onlyOwner { targetBtcBps = newTargetBps; bandDeltaBps = newBandDeltaBps; }
-    function setBufferAndCaps(uint16 newBufferMultX, uint16 newCmaxMultX, uint16 newRebalanceCapBps) external onlyOwner {
-        bufferMultX = newBufferMultX; cmaxMultX = newCmaxMultX; rebalanceCapBps = newRebalanceCapBps; }
-    function setKicker(uint32 newKKicker1e6) external onlyOwner { kKicker1e6 = newKKicker1e6; }
     function setThresholdMode(bool enabled) external onlyOwner { thresholdMode = enabled; }
     function setIndicators(address newIndicators) external onlyOwner { indicators = newIndicators; }
+
+    function setBuffer(uint16 newBufferMultX) external onlyOwner {
+        bufferMultX = newBufferMultX;
+    }
+
+    function setKickerParams(uint32 newKKicker1e6, uint16 newCmaxMultX) external onlyOwner {
+        kKicker1e6 = newKKicker1e6;
+        cmaxMultX = newCmaxMultX;
+    }
+
+    function setRebalanceParams(uint16 newTargetBps, uint16 newBandDeltaBps, uint16 newRebalanceCapBps) external onlyOwner {
+        targetBtcBps = newTargetBps;
+        bandDeltaBps = newBandDeltaBps;
+        rebalanceCapBps = newRebalanceCapBps;
+    }
 }
 
 

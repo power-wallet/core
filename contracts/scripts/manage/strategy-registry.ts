@@ -49,12 +49,13 @@ async function main() {
 
   if (action === 'list') {
     const ids: string[] = await registry.listStrategies();
-    if (!ids.length) {
+    const uniqIds = Array.from(new Set(ids));
+    if (!uniqIds.length) {
       console.log('No strategies registered.');
       return;
     }
-    console.log(`Found ${ids.length} strategy id(s):`);
-    for (const id of ids) {
+    console.log(`Found ${uniqIds.length} strategy id(s):`);
+    for (const id of uniqIds) {
       const impl: string = await registry.getStrategy(id);
       const active = impl !== ethers.ZeroAddress;
       console.log(`- id: ${id} | implementation: ${impl} | ${active ? 'ACTIVE' : 'REMOVED'}`);

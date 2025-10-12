@@ -22,13 +22,11 @@ async function main() {
   let nonce = await deployer.getNonce("pending");
   const overrides = { maxPriorityFeePerGas: basePri, maxFeePerGas: baseMax, nonce } as any;
 
-  // const Strategy = await ethers.getContractFactory("PowerBtcDcaV1");
-  // const impl = await Strategy.deploy(overrides);
-  // await impl.waitForDeployment();
-  // const implAddr = await impl.getAddress();
-  // console.log('PowerBtcDcaV1 (template):', implAddr);
-
-  const implAddr = '0xc0e60CB3c797c77350581153AFd52434ef9Ed506';
+  const Strategy = await ethers.getContractFactory("PowerBtcDcaV1");
+  const impl = await Strategy.deploy(overrides);
+  await impl.waitForDeployment();
+  const implAddr = await impl.getAddress();
+  console.log('PowerBtcDcaV1 (template):', implAddr);
 
   if (process.env.REGISTER === '1') {
     const registryAddr = process.env.REGISTRY;
