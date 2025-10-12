@@ -176,7 +176,7 @@ const StatsSummary: React.FC<StatsSummaryProps> = ({ result }) => {
         {/* Outperformance (green if >= 0, red otherwise) */}
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            label="Outperformance"
+            label="Outperformance (CAGR)"
             value={summary.outperformance.toFixed(2)}
             suffix="%"
             change={summary.outperformance}

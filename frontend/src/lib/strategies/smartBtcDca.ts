@@ -38,7 +38,7 @@ function calculateCAGR(startValue: number, endValue: number, startDate: string, 
   return Math.pow(endValue / startValue, 1 / years) - 1.0;
 }
 
-async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
 
   // Align to range and compute model and bands

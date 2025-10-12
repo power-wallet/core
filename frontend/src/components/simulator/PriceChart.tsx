@@ -89,8 +89,8 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
       ethBuy: ethTrade?.side === 'BUY' ? ethTrade.price : null,
       ethSell: ethTrade?.side === 'SELL' ? ethTrade.price : null,
       // Trade details for tooltip
-      btcTradeDetails: btcTrade ? `${btcTrade.side} ${btcTrade.quantity.toFixed(6)} BTC @${btcTrade.price.toLocaleString('en-US', { maximumFractionDigits: 0 })} for $${(btcTrade.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
-      ethTradeDetails: ethTrade ? `${ethTrade.side} ${ethTrade.quantity.toFixed(6)} ETH @${ethTrade.price.toLocaleString('en-US', { maximumFractionDigits: 0 })} for $${(ethTrade.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+      btcTradeDetails: btcTrade ? `${btcTrade.side} ${btcTrade.quantity.toFixed(6)} BTC for $${(btcTrade.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+      ethTradeDetails: ethTrade ? `${ethTrade.side} ${ethTrade.quantity.toFixed(6)} ETH for $${(ethTrade.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
     };
   });
 

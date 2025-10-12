@@ -24,7 +24,7 @@ const PowerLawChart: React.FC<Props> = ({ result }) => {
       lower: d.btcLowerBand,
       btcBuy: btcTrade?.side === 'BUY' ? btcTrade.price : null,
       btcSell: btcTrade?.side === 'SELL' ? btcTrade.price : null,
-      btcTradeDetails: btcTrade ? `${btcTrade.side} ${btcTrade.quantity.toFixed(4)} BTC @ $${btcTrade.price.toLocaleString()}` : null,
+      btcTradeDetails: btcTrade ? `${btcTrade.side} ${btcTrade.quantity.toFixed(6)} BTC for $${(btcTrade.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
     };
   });
 

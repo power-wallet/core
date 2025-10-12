@@ -40,7 +40,7 @@ function calculateCAGR(startValue: number, endValue: number, startDate: string, 
   return Math.pow(endValue / startValue, 1 / years) - 1.0;
 }
 
-async function run(
+export async function run(
   initialCapital: number,
   startDate: string,
   endDate: string,

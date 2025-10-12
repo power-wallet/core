@@ -21,7 +21,7 @@ const ENTRY_RSI = 60; // wider confirmation band: stronger RSI for entry
 const BUFFER_BPS = 50; // 0.5% price buffer around SMA
 const SLOPE_LOOKBACK_DAYS = 5; // SMA must be rising over this lookback
 
-async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
 
   const dates = btcData.map(d => d.date);

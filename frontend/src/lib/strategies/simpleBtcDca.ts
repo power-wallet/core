@@ -17,7 +17,7 @@ export interface Strategy {
 const DCA_AMOUNT = 100; // USDC per buy
 const DCA_INTERVAL_DAYS = 7; // weekly
 
-async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
 
   const dates = btcData.map(d => d.date);

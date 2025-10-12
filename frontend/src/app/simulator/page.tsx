@@ -218,12 +218,12 @@ export default function SimulatorPage() {
                         <ul style={{ margin: 0, paddingLeft: 18 }}>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Base DCA: buy a fixed USDC amount daily (default $50); keep a USDC buffer (default 9× base DCA).
+                              Base DCA: buy a fixed USDC amount on evaluation days (default <b>$100</b> weekly); keep a USDC buffer (default <b>9×</b> base DCA).
                             </Typography>
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Volatility kicker: add extra buy scaled by annualized volatility and current drawdown, capped at 3× base DCA.
+                              Volatility kicker: add extra buy scaled by annualized volatility and current drawdown, capped at <b>3×</b> base DCA (i.e., up to <b>$300</b> with the default base).
                             </Typography>
                           </li>
                           <li>
@@ -238,6 +238,11 @@ export default function SimulatorPage() {
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
+                              Evaluation cadence: every <b>7</b> days; trading decisions only occur on evaluation dates. Performance still updates daily.
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
                               Fees: trades assume a 0.30% fee; benchmark buys BTC on day one (net of fee) and holds.
                             </Typography>
                           </li>
@@ -246,7 +251,7 @@ export default function SimulatorPage() {
                         <ul style={{ margin: 0, paddingLeft: 18 }}>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Nav $10,000, BTC −30% from peak, high vol: base $50 + kicker (capped to $150) → total buy ≈ $200 if buffer allows.
+                              Nav $10,000, BTC −30% from peak, high vol (evaluation day): base <b>$100</b> + kicker (capped to <b>$300</b>) → total buy up to <b>$400</b> if buffer allows.
                             </Typography>
                           </li>
                           <li>
