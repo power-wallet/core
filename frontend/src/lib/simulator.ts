@@ -5,6 +5,7 @@
 
 import { calculateRSI, calculateSMA, calculateRatio, crossedAbove, crossedBelow } from './indicators';
 import { loadPriceData } from '@/lib/priceFeed';
+import type { StrategyId } from '@/lib/strategies/registry';
 import type { 
   PriceData, 
   SimulationResult, 
@@ -420,4 +421,38 @@ export async function runSimulation(
       outperformance: cagr - btcHodlCagr,
     },
   };
+}
+
+export async function runStrategy(
+  strategyId: StrategyId,
+  initialCapital: number,
+  startDate: string,
+  endDate: string,
+  prices: { btc: PriceData[]; eth: PriceData[] }
+): Promise<SimulationResult> {
+  switch (strategyId) {
+    case 'btc-eth-momentum': {
+      const mod = await import('@/lib/strategies/btcEthMomentum');
+      return mod.default.run(initialCapital, startDate, endDate, { 
+        prices: { 
+          btc: prices.btc, 
+          eth: prices.eth || [] 
+        } 
+      });
+    }
+    case 'smart-btc-dca': {
+      const mod = await import('@/lib/strategies/smartBtcDca');
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+    }
+    case 'simple-btc-dca': {
+      const mod = await import('@/lib/strategies/simpleBtcDca');
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+    }
+    case 'btc-trend-following': {
+      const mod = await import('@/lib/strategies/btcTrendFollowing');
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+    }
+    default:
+      throw new Error(`Unknown strategy: ${strategyId}`);
+  }
 }

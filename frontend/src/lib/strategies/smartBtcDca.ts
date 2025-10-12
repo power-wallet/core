@@ -1,10 +1,16 @@
 import { loadBtcOnly } from '@/lib/priceFeed';
+import type { PriceData } from '@/lib/types';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 
 export interface Strategy {
   id: 'smart-btc-dca';
   name: string;
-  run: (initialCapital: number, startDate: string, endDate: string) => Promise<SimulationResult>;
+  run: (
+    initialCapital: number,
+    startDate: string,
+    endDate: string,
+    options: { prices: { btc: PriceData[] } }
+  ) => Promise<SimulationResult>;
 }
 
 // Power law model: P(t) = C * d^n, with d = days since 2009-01-03
@@ -32,8 +38,8 @@ function calculateCAGR(startValue: number, endValue: number, startDate: string, 
   return Math.pow(endValue / startValue, 1 / years) - 1.0;
 }
 
-async function run(initialCapital: number, startDate: string, endDate: string): Promise<SimulationResult> {
-  const btcData = await loadBtcOnly(startDate, endDate, 30);
+async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+  const btcData = options.prices.btc;
 
   // Align to range and compute model and bands
   const dates = btcData.map(d => d.date);

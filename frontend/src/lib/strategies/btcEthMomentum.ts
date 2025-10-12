@@ -1,11 +1,17 @@
 import { calculateRSI, calculateSMA, calculateRatio, crossedAbove, crossedBelow } from '@/lib/indicators';
 import { loadPriceData } from '@/lib/priceFeed';
+import type { PriceData } from '@/lib/types';
 import type { SimulationResult, StrategyParameters, Position, Trade, DailyPerformance, DailyRsiSignals } from '@/lib/types';
 
 export interface Strategy {
   id: 'btc-eth-momentum';
   name: string;
-  run: (initialCapital: number, startDate: string, endDate: string) => Promise<SimulationResult>;
+  run: (
+    initialCapital: number,
+    startDate: string,
+    endDate: string,
+    options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
+  ) => Promise<SimulationResult>;
 }
 
 const DEFAULT_PARAMETERS: StrategyParameters = {
@@ -33,8 +39,14 @@ function calculateCAGR(startValue: number, endValue: number, startDate: string, 
   return Math.pow(endValue / startValue, 1 / years) - 1.0;
 }
 
-async function run(initialCapital: number, startDate: string, endDate: string, parameters: StrategyParameters = DEFAULT_PARAMETERS): Promise<SimulationResult> {
-  const { btc: btcData, eth: ethData } = await loadPriceData(startDate, endDate, 210);
+async function run(
+  initialCapital: number,
+  startDate: string,
+  endDate: string,
+  options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
+): Promise<SimulationResult> {
+  const parameters = DEFAULT_PARAMETERS;
+  const { btc: btcData = [], eth: ethData = [] } = options.prices;
 
   const btcMap = new Map(btcData.map(d => [d.date, d.close] as const));
   const ethMap = new Map(ethData.map(d => [d.date, d.close] as const));

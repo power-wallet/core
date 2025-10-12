@@ -1,11 +1,17 @@
 import { loadBtcOnly } from '@/lib/priceFeed';
+import type { PriceData } from '@/lib/types';
 import { calculateRSI } from '@/lib/indicators';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 
 export interface Strategy {
   id: 'btc-trend-following';
   name: string;
-  run: (initialCapital: number, startDate: string, endDate: string) => Promise<SimulationResult>;
+  run: (
+    initialCapital: number,
+    startDate: string,
+    endDate: string,
+    options: { prices: { btc: PriceData[] } }
+  ) => Promise<SimulationResult>;
 }
 
 const EVAL_INTERVAL_DAYS = 7; // evaluate weekly
@@ -15,8 +21,8 @@ const ENTRY_RSI = 60; // wider confirmation band: stronger RSI for entry
 const BUFFER_BPS = 50; // 0.5% price buffer around SMA
 const SLOPE_LOOKBACK_DAYS = 5; // SMA must be rising over this lookback
 
-async function run(initialCapital: number, startDate: string, endDate: string): Promise<SimulationResult> {
-  const btcData = await loadBtcOnly(startDate, endDate, SMA_LENGTH + 30);
+async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+  const btcData = options.prices.btc;
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);

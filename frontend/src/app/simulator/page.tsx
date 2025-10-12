@@ -6,7 +6,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import SimulatorControls, { type SimulationParams } from '@/components/simulator/SimulatorControls';
 import StatsSummary from '@/components/simulator/StatsSummary';
 import StrategyCharts from '@/components/simulator/StrategyCharts';
-import { runStrategy } from '@/lib/strategies/registry';
+import { runStrategy } from '@/lib/simulator';
+import { loadPriceData } from '@/lib/priceFeed';
 import type { SimulationResult } from '@/lib/types';
 
 export default function SimulatorPage() {
@@ -38,11 +39,13 @@ export default function SimulatorPage() {
     setResult(null);
 
     try {
+      const prices = await loadPriceData(params.startDate, params.endDate, 210);
       const simulationResult = await runStrategy(
         params.strategy as any,
         params.initialCapital,
         params.startDate,
-        params.endDate
+        params.endDate,
+        prices
       );
       setResult(simulationResult);
     } catch (err) {

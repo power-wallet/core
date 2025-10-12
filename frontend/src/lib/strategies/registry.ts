@@ -1,11 +1,16 @@
-import type { SimulationResult } from '@/lib/types';
+import type { SimulationResult, PriceData } from '@/lib/types';
 
 export type StrategyId = 'btc-eth-momentum' | 'smart-btc-dca' | 'simple-btc-dca' | 'btc-trend-following';
 
 export interface Strategy {
   id: StrategyId;
   name: string;
-  run: (initialCapital: number, startDate: string, endDate: string) => Promise<SimulationResult>;
+  run: (
+    initialCapital: number,
+    startDate: string,
+    endDate: string,
+    options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
+  ) => Promise<SimulationResult>;
 }
 
 // Chart identifiers used by StrategyCharts to determine which charts to render
@@ -39,32 +44,6 @@ async function getTrendFollowingStrategy() {
   return mod.default as Strategy;
 }
 
-export async function runStrategy(
-  strategyId: StrategyId,
-  initialCapital: number,
-  startDate: string,
-  endDate: string
-): Promise<SimulationResult> {
-  switch (strategyId) {
-    case 'btc-eth-momentum': {
-      const s = await getMomentumStrategy();
-      return s.run(initialCapital, startDate, endDate);
-    }
-    case 'smart-btc-dca': {
-      const s = await getDcaStrategy();
-      return s.run(initialCapital, startDate, endDate);
-    }
-    case 'simple-btc-dca': {
-      const s = await getSimpleDcaStrategy();
-      return s.run(initialCapital, startDate, endDate);
-    }
-    case 'btc-trend-following': {
-      const s = await getTrendFollowingStrategy();
-      return s.run(initialCapital, startDate, endDate);
-    }
-    default:
-      throw new Error(`Unknown strategy: ${strategyId}`);
-  }
-}
+// runStrategy moved to lib/simulator.ts
 
 
