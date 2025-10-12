@@ -183,38 +183,34 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                   </Tooltip>
                 </Box>
                 
-                <Box sx={{ mt: 0, display: 'flex', gap: 0, flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {networkName && (
-                        <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Network</Typography>
-                          <Typography variant="body2">{networkName}</Typography>
-                        </Box>
-                      )}  
+                <Box sx={{ mt: 2, display: 'flex', gap: 0, flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <Box sx={{ mt: 0, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                  {networkName && (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary">Network</Typography>
+                      <Typography variant="body2">{networkName}</Typography>
                     </Box>
-
-                    <Box sx={{ mt: 0, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {networkName && (
-                        <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Balances</Typography>
-                          <Grid container spacing={0.5}>
-                            <Grid item xs={6}>
-                                <Typography align="right" variant="body2">{formatEth(nativeBal?.value)}</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Typography variant="body2">ETH</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Typography align="right" variant="body2">{formatUsdc(usdc)}</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Typography variant="body2">USDC</Typography>
-                            </Grid>
-                          </Grid>
-                        </Box>
-                      )}  
-                    </Box>
+                  )}  
                 </Box>
+
+                <Box sx={{ mt: { xs: 2, sm: 0 }, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                  {networkName && (
+                    <Box sx={{ minWidth: 240 }}>
+                      <Typography variant="subtitle2" color="text.secondary">Balances</Typography>
+                      <Stack direction={{ xs: 'row', sm: 'row' }} spacing={2} sx={{ mt: 0.5 }}>
+                        <Stack direction="row" spacing={1} alignItems="baseline" sx={{ minWidth: 120 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatEth(nativeBal?.value)}</Typography>
+                          <Typography variant="body2" color="text.secondary">ETH</Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1} alignItems="baseline" sx={{ minWidth: 120 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatUsdc(usdc)}</Typography>
+                          <Typography variant="body2" color="text.secondary">USDC</Typography>
+                        </Stack>
+                      </Stack>
+                    </Box>
+                  )}  
+                </Box>
+              </Box>
 
                 {chainId && chainId !== baseSepolia.id && (
                   <Box

@@ -110,6 +110,13 @@ export function useStrategyReads(strategyAddr?: `0x${string}` | null) {
     functionName: 'dcaAmountStable',
     query: { enabled },
   });
+  // PowerBtcDcaV1 uses baseDcaStable instead of dcaAmountStable
+  const { data: baseDcaAmount } = useReadContract({
+    address: strategyAddr || undefined,
+    abi: [ { type: 'function', name: 'baseDcaStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] } ] as const,
+    functionName: 'baseDcaStable',
+    query: { enabled },
+  });
   const { data: freq } = useReadContract({
     address: strategyAddr || undefined,
     abi: simpleDcaAbi as any,
@@ -135,7 +142,7 @@ export function useStrategyReads(strategyAddr?: `0x${string}` | null) {
     query: { enabled },
   });
 
-  return { dcaAmount, freq, desc, strategyName, strategyIdStr } as const;
+  return { dcaAmount, baseDcaAmount, freq, desc, strategyName, strategyIdStr } as const;
 }
 
 

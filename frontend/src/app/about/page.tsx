@@ -31,8 +31,10 @@ export default function About() {
               Our Mission
             </Typography>
             <Typography variant="body1" paragraph>
-              Power Wallet is building non-custodial, on-chain solutions that help you accumulate more Bitcoin over time.
-              We provide a set of automated strategies that help you DCA into Bitcoin, rebalance your portfolio, optimize exposure and manage risk, so you&apos;ll be a more successful long-term investor.
+              Power Wallet is building on-chain solutions to help you accumulate more Bitcoin over time.
+            </Typography>
+            <Typography variant="body1" paragraph>
+              We provide a suite of automated strategies to DCA into Bitcoin, optimizing exposure and managing risk, so you&apos;ll be a more successful long-term investor.
             </Typography>
             <Typography variant="body1" paragraph>
               By combining blockchain technology, algorithmic execution and risk management, 
@@ -98,9 +100,9 @@ export default function About() {
                   to optimize returns and manage risk. <br/>
                   Examples include:
                   <ul>
-                    <li>Simple DCA: Buy a fixed amount of BTC at a fixed cadence.</li>
+                    <li>Simple DCA: The OG accumulator, buys with a fixed amount of USDC at a fixed cadence, no matter what.</li>
                     <li>
-                      Smart DCA: Optimize BTC accumulation, guided by the &nbsp;
+                      Smart DCA: Optimized BTC accumulation, guided by the &nbsp;
                       <Box component="a" 
                         href="https://charts.bitbo.io/long-term-power-law/" target="_blank" 
                         rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
@@ -108,8 +110,9 @@ export default function About() {
                       </Box>
                       &nbsp; price model.
                     </li>
+                    <li>Power BTC DCA: Adaptive DCA that buys the dip using volatility, with optional threshold rebalancing.</li>
                     <li>BTC-ETH Momentum: A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.</li>
-                    <li>Trend Following: A trend following strategy that buys BTC when the trend is up and sells when the trend is down.</li>
+                    <li>Trend Following: A trend following strategy that goes all in BTC when the trend is up, otherwise sits in USDC.</li>
                   </ul>
                 </Typography>
               </Box>

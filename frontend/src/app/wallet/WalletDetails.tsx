@@ -68,7 +68,7 @@ export default function WalletDetails() {
     refetchSwaps,
   } = useWalletReads(walletAddress);
 
-  const { dcaAmount, freq, desc, strategyName, strategyIdStr } = useStrategyReads(strategyAddr as any);
+  const { dcaAmount, baseDcaAmount, freq, desc, strategyName, strategyIdStr } = useStrategyReads(strategyAddr as any);
 
   // Transactions moved into useWalletReads
 
@@ -380,7 +380,7 @@ export default function WalletDetails() {
               })()}
             strategyAddr={strategyAddr as any}
             explorerBase={explorerBase}
-            dcaAmount={dcaAmount as any}
+            dcaAmount={(String(strategyIdStr || '').trim() === 'power-btc-dca-v1' ? baseDcaAmount : dcaAmount) as any}
             frequency={freq as any}
             strategyIdStr={strategyIdStr as any}
             onOpenConfig={() => setStrategyConfigOpen(true)}
@@ -548,7 +548,7 @@ export default function WalletDetails() {
             if (String((st as any).description).trim() === descStr) { matchedId = id; stableKey = (st as any).stable; break; }
                 }
               }
-        const content = matchedId === 'simple-btc-dca-v1' ? 'simple' : matchedId === 'btc-dca-power-law-v1' ? 'smart' : 'unknown';
+        const content = matchedId === 'simple-btc-dca-v1' ? 'simple' : matchedId === 'btc-dca-power-law-v1' ? 'smart' : matchedId === 'power-btc-dca-v1' ? 'power' : 'unknown';
               const stableMeta = stableKey ? (appConfig as any)[chainKey].assets[Object.keys((appConfig as any)[chainKey].assets).find(k => k.toLowerCase() === String(stableKey).toLowerCase()) as string] : null;
               return (
           <StrategyConfigDialog

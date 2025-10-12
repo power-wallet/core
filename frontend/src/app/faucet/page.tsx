@@ -10,6 +10,7 @@ import { getChainKey, getViemChain } from '@/config/networks';
 import { FAUCET_ABI, ERC20_READ_ABI } from '@/lib/abi';
 import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
+import { formatTokenAmountBigint } from '@/lib/format';
 
 // ABIs moved to lib/abi.ts
 
@@ -169,9 +170,9 @@ export default function FaucetPage() {
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>Faucet Status</Typography>
               <Stack spacing={0.5}>
-                <Typography variant="body2">Faucet Balance: {formatToken(usdcBalance, usdcDecimals)} USDC</Typography>
-                <Typography variant="body2">Total Claimed: {formatToken(totalClaimed as bigint | undefined, usdcDecimals)} USDC</Typography>
-                <Typography variant="body2">My Total Claimed: {formatToken(totalClaimedBy as bigint | undefined, usdcDecimals)} USDC</Typography>
+                <Typography variant="body2">Faucet Balance: {formatTokenAmountBigint(usdcBalance, usdcDecimals)} USDC</Typography>
+                <Typography variant="body2">Total Claimed: {formatTokenAmountBigint(totalClaimed as bigint | undefined, usdcDecimals)} USDC</Typography>
+                <Typography variant="body2">My Total Claimed: {formatTokenAmountBigint(totalClaimedBy as bigint | undefined, usdcDecimals)} USDC</Typography>
                 {nextClaimIn > 0 ? (
                   <Typography variant="body2" color="text.secondary">Next claim available in ~{Math.ceil(nextClaimIn/60)} min</Typography>
                 ) : null}
