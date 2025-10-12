@@ -32,6 +32,7 @@ export default function StrategySelector({
       <ToggleButtonGroup exclusive size="small" value={selectedStrategyId} onChange={(_, v) => v && onChangeStrategy(v)}>
         <ToggleButton value="simple-btc-dca-v1">Simple BTC DCA</ToggleButton>
         <ToggleButton value="btc-dca-power-law-v1">Smart BTC DCA</ToggleButton>
+        <ToggleButton value="power-btc-dca-v1">Power BTC DCA</ToggleButton>
       </ToggleButtonGroup>
       {description ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{description}</Typography>

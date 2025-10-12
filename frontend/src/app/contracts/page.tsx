@@ -342,7 +342,7 @@ export default function SmartContractsPage() {
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>Uniswap V3 Pools</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Uniswap V3 Pools to perform swaps between the risk assets (cbBTC and WETH) and stablecoin (USDC).
+                  Pools to perform swaps between the risk assets (cbBTC and WETH) and stablecoin (USDC).
                 </Typography>
                 <Stack spacing={1}>
                   <Typography variant="body2">

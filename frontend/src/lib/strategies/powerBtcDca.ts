@@ -18,7 +18,7 @@ const DEFAULTS = {
   ewmaLambdaDaily: 0.94,      // EWMA lambda
   baseDcaUsdc: 100.0,          // daily base DCA
   evalIntervalDays: 7,        // how often to evaluate trading rules (default weekly)
-  targetBtcWeight: 0.70,      // target BTC weight
+  targetBtcWeight: 0.80,      // target BTC weight
   bandDelta: 0.10,            // ±10% band around target
   kKicker: 0.05,              // vol/drawdown sizing coefficient
   cmaxMult: 3.0,              // cap extra buy per day = cmax_mult * base_dca

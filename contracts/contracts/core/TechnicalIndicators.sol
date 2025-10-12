@@ -34,6 +34,9 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     
     // Indicator parameters (from Python strategy)
     uint256 public constant RSI_PERIOD = 8;           // RSI period for BTC and ETH
+    // Volatility (EWMA) config
+    uint16 public constant LAMBDA_BPS = 9400;         // λ = 0.94 in basis points
+    uint256 public constant SQRT_365_1e8 = 1910497317; // sqrt(365) * 1e8
     
     // Parameter limits for configurable indicators
     uint256 public constant MIN_SMA_PERIOD = 5;
@@ -44,6 +47,14 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
     // Events
     event PriceAdded(address token, uint256 timestamp, uint256 price);
     event TokenConfigured(address token, address priceFeed);
+
+    // Precomputed indicator storage (per token)
+    // EWMA variance of daily simple returns r (scaled 1e8); sigma2 is scaled 1e16
+    mapping(address => uint256) public ewmaSigma2_1e16;
+    mapping(address => uint256) public latestVolAnnualized1e8; // sqrt(ewmaSigma2) * sqrt(365)
+    mapping(address => uint256) public runningPeak1e8;         // running peak of price (1e8)
+    mapping(address => uint256) public latestDrawdown1e8;      // 1e8 - price/peak * 1e8
+    mapping(address => uint256) public latestIndicatorsTs;     // last update day (UTC midnight)
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -485,8 +496,71 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
             }));
 
             config.lastUpdateTimestamp = today;
+            // Update precomputed indicators in O(1)
+            _updatePrecomputedIndicators(token, prices, yesterday);
             emit PriceAdded(token, yesterday, scaledPrice);
         }
+    }
+
+    function _updatePrecomputedIndicators(address token, DailyPrice[] storage prices, uint256 today) private {
+        // Require at least two prices to compute return
+        if (prices.length < 2) {
+            // Initialize running peak
+            runningPeak1e8[token] = prices[prices.length - 1].price;
+            latestIndicatorsTs[token] = today;
+            return;
+        }
+
+        uint256 pCurr = prices[prices.length - 1].price; // 1e8
+        uint256 pPrev = prices[prices.length - 2].price; // 1e8
+        if (pPrev == 0) return;
+
+        // Simple return r = (pCurr - pPrev)/pPrev scaled 1e8; winsorize to ±20%
+        int256 diff = int256(pCurr) - int256(pPrev);
+        int256 r1e8 = (diff * int256(SCALE)) / int256(pPrev);
+        int256 clamp = int256(SCALE) * 20 / 100; // 0.2 * 1e8 = 2e7
+        if (r1e8 > clamp) r1e8 = clamp; else if (r1e8 < -clamp) r1e8 = -clamp;
+
+        uint256 rAbs1e8 = uint256(r1e8 >= 0 ? r1e8 : -r1e8);
+        uint256 r2_1e16 = (rAbs1e8 * rAbs1e8); // (1e8)^2 = 1e16
+
+        // EWMA update: sigma2_t = λ*sigma2_{t-1} + (1-λ)*r^2
+        uint256 prevSigma2 = ewmaSigma2_1e16[token];
+        uint256 sigma2 = (prevSigma2 * LAMBDA_BPS + r2_1e16 * (10000 - LAMBDA_BPS)) / 10000;
+        ewmaSigma2_1e16[token] = sigma2;
+
+        // vol_daily_1e8 = sqrt(sigma2), vol_ann = vol_daily * sqrt(365)
+        uint256 volDaily1e8 = _sqrt1e16_to_1e8(sigma2);
+        uint256 volAnn1e8 = (volDaily1e8 * SQRT_365_1e8) / (10 ** 8);
+        latestVolAnnualized1e8[token] = volAnn1e8;
+
+        // Drawdown update with running peak
+        uint256 peak = runningPeak1e8[token];
+        if (peak == 0 || pCurr > peak) peak = pCurr;
+        runningPeak1e8[token] = peak;
+        uint256 dd1e8 = peak > 0 ? ((peak - pCurr) * (10 ** 8)) / peak : 0;
+        latestDrawdown1e8[token] = dd1e8;
+        latestIndicatorsTs[token] = today;
+    }
+
+    function latestEwmaVolAnnualized(address token) external view returns (uint256 value1e8, uint256 ts) {
+        return (latestVolAnnualized1e8[token], latestIndicatorsTs[token]);
+    }
+
+    function latestDrawdown(address token) external view returns (uint256 value1e8, uint256 ts) {
+        return (latestDrawdown1e8[token], latestIndicatorsTs[token]);
+    }
+
+    function _sqrt1e16_to_1e8(uint256 x) internal pure returns (uint256) {
+        // sqrt for 1e16-scaled value, result 1e8
+        if (x == 0) return 0;
+        uint256 z = (x + 1) / 2;
+        uint256 y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+        return y;
     }
 
     /**

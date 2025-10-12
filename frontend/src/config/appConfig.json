@@ -50,6 +50,16 @@
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
         "poolFees": [100]
+      },
+      "power-btc-dca-v1": {
+        "id": "power-btc-dca-v1",
+        "idBytes32": "0x8d7df25bcf3ed36f86688d470ce2bbaf412f5789ed0e10a1a481d9ef3f38893a",
+        "name": "Power BTC DCA (Adaptive)",
+        "description": "Adaptive BTC DCA with weekly cadence, USDC buffer, optional threshold rebalancing to target bands, and a volatility/drawdown kicker.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
       }
     }
   },
