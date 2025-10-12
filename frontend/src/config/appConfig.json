@@ -44,7 +44,7 @@
       "btc-dca-power-law-v1": {
         "id": "btc-dca-power-law-v1",
         "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
-        "name": "Smart BTC DCA (Power Law)",
+        "name": "Smart BTC DCA",
         "description": "Rebalance using the Bitcoin power-law price model as fair BTC price, with configurable bands and trade sizes.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -54,8 +54,8 @@
       "power-btc-dca-v1": {
         "id": "power-btc-dca-v1",
         "idBytes32": "0x8d7df25bcf3ed36f86688d470ce2bbaf412f5789ed0e10a1a481d9ef3f38893a",
-        "name": "Power BTC DCA (Adaptive)",
-        "description": "Adaptive BTC DCA with weekly cadence, USDC buffer, optional threshold rebalancing to target bands, and a volatility/drawdown kicker.",
+        "name": "Power BTC DCA",
+        "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, USDC buffer, and optional threshold rebalancing to target bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],

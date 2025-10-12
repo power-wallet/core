@@ -262,7 +262,7 @@ export async function run(
 
 const strategy: Strategy = {
   id: 'power-btc-dca',
-  name: 'Power BTC DCA (Adaptive)',
+  name: 'Power BTC DCA',
   run,
 };
 

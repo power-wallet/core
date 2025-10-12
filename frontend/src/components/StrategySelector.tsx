@@ -37,7 +37,7 @@ export default function StrategySelector({
       {description ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{description}</Typography>
       ) : null}
-      {selectedStrategyId === 'simple-btc-dca-v1' ? (
+      {(selectedStrategyId === 'simple-btc-dca-v1' || selectedStrategyId === 'power-btc-dca-v1') ? (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="right">
           <TextField label="DCA amount (USDC)" type="number" value={simpleAmount || ''} onChange={(e) => onChangeSimpleAmount?.(e.target.value)} inputProps={{ min: 1 }} />
           <Box>

@@ -34,7 +34,7 @@ export default function PortfolioPage() {
   const [showCreate, setShowCreate] = useState(false);
   // Onboarding params (must be top-level to preserve hooks order)
   const [amount, setAmount] = useState<string>('10');
-  const [frequency, setFrequency] = useState<string>(String(60 * 60 * 24 * 7)); // 1 week in seconds (Simple DCA)
+  const [frequency, setFrequency] = useState<string>(String(60 * 60 * 24 * 7));
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('simple-btc-dca-v1');
   // Smart DCA params
   const [smartDays, setSmartDays] = useState<string>('7');
@@ -71,7 +71,6 @@ export default function PortfolioPage() {
   const usdcAddress = contractAddresses[chainKey]?.usdc as `0x${string}` | undefined;
   const assetCfg = (appConfig as any)[chainKey]?.assets as Record<string, { address: string; symbol: string; decimals: number; feed?: `0x${string}` }>;
   const addressesForChain = contractAddresses[chainKey];
-  const smartDcaTemplateAddr = addressesForChain?.strategies?.['btc-dca-power-law-v1'] as `0x${string}` | undefined;
 
   // Balances for onboarding funding check
   const { data: nativeBal } = useBalance({ address: address as `0x${string}` | undefined, chainId });
@@ -287,12 +286,13 @@ export default function PortfolioPage() {
   // Common strategy/config values for create flow
   const strategiesMap = (appConfig as any)[chainKey]?.strategies || {};
   const strategyPreset = strategiesMap[selectedStrategyId] || (appConfig as any)[chainKey]?.strategies?.['simple-btc-dca-v1'];
-    const usdc = addressesForChain.usdc;
-    const cbBTC = addressesForChain.cbBTC || addressesForChain.wbtc || addressesForChain.weth; // risk asset preference
-    const priceFeeds = [addressesForChain.btcUsdPriceFeed];
-    const fee = (appConfig as any)[chainKey]?.pools?.["USDC-cbBTC"]?.fee ?? 100;
-    const poolFees = [fee];
+  const usdc = addressesForChain.usdc;
+  const cbBTC = addressesForChain.cbBTC || addressesForChain.wbtc || addressesForChain.weth; // risk asset preference
+  const priceFeeds = [addressesForChain.btcUsdPriceFeed];
+  const fee = (appConfig as any)[chainKey]?.pools?.["USDC-cbBTC"]?.fee ?? 100;
+  const poolFees = [fee];
 
+  // TODO thi strategy init loogic should be extracted to separate files and associated with the strategy id
   const strategyIdBytes32 = strategyPreset?.idBytes32 as `0x${string}`;
   const initCalldata: `0x${string}` | null = (() => {
     if (selectedStrategyId === 'simple-btc-dca-v1') {
@@ -345,26 +345,76 @@ export default function PortfolioPage() {
         ],
       }) as `0x${string}`;
     }
+    if (selectedStrategyId === 'power-btc-dca-v1') {
+      const freqSec = BigInt(Math.max(1, Number(frequency)));
+      const feed = addressesForChain.btcUsdPriceFeed as `0x${string}`;
+      const indicators = (addressesForChain as any)?.technicalIndicators as `0x${string}` | undefined;
+      const baseDcaStable = BigInt(Math.max(0, Number(amount)) * 1_000_000);
+      const targetBps = 8000;     // 80% target BTC weight (8000 bps)
+      const bandDeltaBps = 1000;  // ±10% band around target
+      const bufferMultX = 9;      // days of base DCA to keep as USDC buffer
+      const cmaxMultX = 3;        // cap extra buy per day = cmax_mult * base_dca
+      const rebalanceCapBps = 500;// 5% cap single rebalance to 5% NAV
+      const kKicker1e6 = 50_000;  // 0.05 vol/drawdown sizing coefficient
+      const thresholdMode = true; // optional true threshold rebalancing
+      return encodeFunctionData({
+        abi: [
+          { type: 'function', name: 'initialize', stateMutability: 'nonpayable', inputs: [
+            { name: '_risk', type: 'address' },
+            { name: '_stable', type: 'address' },
+            { name: '_feed', type: 'address' },
+            { name: '_indicators', type: 'address' },
+            { name: '_baseDcaStable', type: 'uint256' },
+            { name: '_frequency', type: 'uint256' },
+            { name: '_targetBps', type: 'uint16' },
+            { name: '_bandDeltaBps', type: 'uint16' },
+            { name: '_bufferMultX', type: 'uint16' },
+            { name: '_cmaxMultX', type: 'uint16' },
+            { name: '_rebalanceCapBps', type: 'uint16' },
+            { name: '_kKicker1e6', type: 'uint32' },
+            { name: '_thresholdMode', type: 'bool' },
+            { name: 'desc', type: 'string' },
+          ], outputs: [] },
+        ],
+        functionName: 'initialize',
+        args: [
+          cbBTC as `0x${string}`,
+          usdc as `0x${string}`,
+          feed,
+          (indicators || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+          baseDcaStable,
+          freqSec,
+          targetBps,
+          bandDeltaBps,
+          bufferMultX,
+          cmaxMultX,
+          rebalanceCapBps,
+          kKicker1e6,
+          thresholdMode,
+          strategyPreset.description,
+        ],
+      }) as `0x${string}`;
+    }
     return null;
   })();
-
-    const onCreate = async () => {
+  
+  const onCreate = async () => {
     if (!factoryAddress || !cbBTC || !strategyIdBytes32 || !initCalldata) return;
-      setCreating(true);
-      try {
-        const hash = await writeWithFees({
-          write: writeContractAsync as any,
-          client: feeClient as any,
-          address: factoryAddress as `0x${string}`,
-          abi: walletFactoryAbi as any,
-          functionName: 'createWallet',
-          args: [strategyIdBytes32, initCalldata, usdc as `0x${string}`, [cbBTC as `0x${string}`], priceFeeds as [`0x${string}`], poolFees],
-        });
-        setTxHash(hash as `0x${string}`);
-      } finally {
-        setCreating(false);
-      }
-    };
+    setCreating(true);
+    try {
+      const hash = await writeWithFees({
+        write: writeContractAsync as any,
+        client: feeClient as any,
+        address: factoryAddress as `0x${string}`,
+        abi: walletFactoryAbi as any,
+        functionName: 'createWallet',
+        args: [strategyIdBytes32, initCalldata, usdc as `0x${string}`, [cbBTC as `0x${string}`], priceFeeds as [`0x${string}`], poolFees],
+      });
+      setTxHash(hash as `0x${string}`);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   // If user already has wallets and clicks create, show streamlined creation form as a dialog
   if (wallets.length > 0 && showCreate) {
