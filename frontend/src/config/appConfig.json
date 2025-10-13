@@ -45,7 +45,7 @@
         "id": "btc-dca-power-law-v1",
         "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
         "name": "Smart BTC DCA",
-        "description": "Rebalance using the Bitcoin power-law price model as fair BTC price, with configurable bands and trade sizes.",
+        "description": "Uses the Bitcoin power-law price model as fair BTC price to adjust buy and sell amounts, with configurable bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
