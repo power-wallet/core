@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Button, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Button, CircularProgress, Box, Link } from '@mui/material';
 import { formatAllowance, formatTokenAmountBigint } from '@/lib/format';
 
 type Props = {
@@ -30,9 +30,24 @@ export default function DepositDialog({ open, onClose, amount, onChangeAmount, u
           onChange={(e) => onChangeAmount(e.target.value)}
           inputProps={{ min: 0, step: '0.01' }}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          Your balance: {formatTokenAmountBigint(userUsdcBalance, 6)} USDC
-        </Typography>
+        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+          <Typography variant="caption" color="text.secondary">
+            Your balance: {formatTokenAmountBigint(userUsdcBalance, 6)} USDC
+          </Typography>
+          <Box sx={{ flex: 1 }} />
+          <Link
+            component="button"
+            type="button"
+            onClick={() => {
+              const v = formatTokenAmountBigint(userUsdcBalance, 6);
+              if (v && v !== '0') onChangeAmount(v);
+            }}
+            underline="hover"
+            sx={{ fontSize: '0.75rem' }}
+          >
+            max
+          </Link>
+        </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
           Allowance: {formatAllowance(allowance)} USDC
         </Typography>
