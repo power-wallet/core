@@ -195,7 +195,7 @@ export default function WalletDetails() {
         try { refetchUserUsdc?.(); } catch {}
       }, 1200);
     }
-  }, [isConfirmed, txHash]);
+  }, [isConfirmed, txHash, refetchBalances, refetchValueUsd, refetchDeposits, refetchWithdrawals, refetchSwaps, refetchUserUsdc]);
 
   React.useEffect(() => {
     let cancelled = false;

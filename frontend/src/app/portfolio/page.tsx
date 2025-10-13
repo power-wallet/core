@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { writeWithFees } from '@/lib/tx';
@@ -95,8 +99,12 @@ export default function PortfolioPage() {
 
   // Normalize wallets and sort by createdAt (desc) for display
   const wallets = useMemo(() => (userWallets as string[] | undefined) || [], [userWallets]);
-  const [sortedWallets, setSortedWallets] = useState<string[]>([]);
+  const [openWallets, setOpenWallets] = useState<string[]>([]);
   const [walletsReady, setWalletsReady] = useState(false);
+  const [createdAtByAddr, setCreatedAtByAddr] = useState<Record<string, number>>({});
+  const [walletValueUsdByAddr, setWalletValueUsdByAddr] = useState<Record<string, number>>({});
+  const [sortKey, setSortKey] = useState<'value' | 'createdAt'>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Prices and aggregated totals across all wallets
   const [prices, setPrices] = useState<Record<string, { price: number; decimals: number }>>({});
@@ -109,7 +117,8 @@ export default function PortfolioPage() {
       setWalletsReady(false);
       if (!wallets || wallets.length === 0) {
         if (!cancelled) {
-          setSortedWallets([]);
+          setOpenWallets([]);
+          setCreatedAtByAddr({});
           setWalletsReady(true);
         }
         return;
@@ -125,10 +134,11 @@ export default function PortfolioPage() {
               .catch(() => false)
           )
         );
-        const openWallets = wallets.filter((_, i) => statuses[i] === false);
-        if (openWallets.length === 0) {
+        const open = wallets.filter((_, i) => statuses[i] === false);
+        if (open.length === 0) {
           if (!cancelled) {
-            setSortedWallets([]);
+            setOpenWallets([]);
+            setCreatedAtByAddr({});
             setWalletsReady(true);
           }
           return;
@@ -137,19 +147,27 @@ export default function PortfolioPage() {
           { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint64' }] },
         ] as const;
         const timestamps = await Promise.all(
-          openWallets.map((addr) =>
+          open.map((addr) =>
             feeClient
               .readContract({ address: addr as `0x${string}`, abi: createdAtAbi as any, functionName: 'createdAt', args: [] })
               .catch(() => BigInt(0))
           )
         );
-        const ordered = openWallets
+        const ordered = open
           .map((addr, i) => ({ addr, ts: Number((timestamps[i] as bigint | undefined) ?? BigInt(0)) }))
           .sort((a, b) => b.ts - a.ts)
           .map((x) => x.addr);
-        if (!cancelled) setSortedWallets(ordered);
+        if (!cancelled) {
+          setOpenWallets(ordered);
+          const map: Record<string, number> = {};
+          ordered.forEach((addr, i) => { map[addr] = Number((timestamps[i] as bigint | undefined) ?? BigInt(0)); });
+          setCreatedAtByAddr(map);
+        }
       } catch {
-        if (!cancelled) setSortedWallets([]);
+        if (!cancelled) {
+          setOpenWallets([]);
+          setCreatedAtByAddr({});
+        }
       } finally {
         if (!cancelled) setWalletsReady(true);
       }
@@ -185,14 +203,15 @@ export default function PortfolioPage() {
     })();
   }, [assetCfg, chainId]);
 
-  // Aggregate portfolio across all open wallets
+  // Aggregate portfolio across all open wallets and compute per-wallet value
   useEffect(() => {
     (async () => {
       try {
         if (!walletsReady) return;
-        const open = sortedWallets.length ? sortedWallets : wallets;
+        const open = openWallets.length ? openWallets : wallets;
         if (!open.length) { setPortfolioTotals({ totalUsd: 0, perAsset: {} }); return; }
         const per: Record<string, { amount: number; usd: number }> = { cbBTC: { amount: 0, usd: 0 }, WETH: { amount: 0, usd: 0 }, USDC: { amount: 0, usd: 0 } };
+        const valueByAddr: Record<string, number> = {};
         // Resolve symbols by address
         const byAddr: Record<string, string> = {};
         for (const key of Object.keys(assetCfg)) {
@@ -209,6 +228,7 @@ export default function PortfolioPage() {
             // USDC
             per.USDC.amount += Number(stableBal) / 1e6;
             per.USDC.usd += Number(stableBal) / 1e6;
+            let walletUsd = Number(stableBal) / 1e6;
             // Risks
             assets.forEach((addr: string, i: number) => {
               const sym = byAddr[addr.toLowerCase()];
@@ -216,20 +236,25 @@ export default function PortfolioPage() {
               if (sym === 'cbBTC') {
                 per.cbBTC.amount += amt / 1e8;
                 per.cbBTC.usd += (amt / 1e8) * (prices.cbBTC?.price || 0);
+                walletUsd += (amt / 1e8) * (prices.cbBTC?.price || 0);
               } else if (sym === 'WETH') {
                 per.WETH.amount += amt / 1e18;
                 per.WETH.usd += (amt / 1e18) * (prices.WETH?.price || 0);
+                walletUsd += (amt / 1e18) * (prices.WETH?.price || 0);
               }
             });
+            valueByAddr[w] = walletUsd;
           } catch {}
         }
         const totalUsd = per.cbBTC.usd + per.WETH.usd + per.USDC.usd;
         setPortfolioTotals({ totalUsd, perAsset: per });
+        setWalletValueUsdByAddr(valueByAddr);
       } catch {
         setPortfolioTotals({ totalUsd: 0, perAsset: {} });
+        setWalletValueUsdByAddr({});
       }
     })();
-  }, [walletsReady, sortedWallets, wallets, prices, assetCfg, feeClient]);
+  }, [walletsReady, openWallets, wallets, prices, assetCfg, feeClient]);
 
   useEffect(() => {
     setMounted(true);
@@ -438,7 +463,7 @@ export default function PortfolioPage() {
     );
   }
 
-  if (walletsReady && sortedWallets.length === 0) {
+  if (walletsReady && (openWallets.length === 0)) {
     if (showCreate) {
       return (
         <CreateWalletDialog
@@ -473,6 +498,31 @@ export default function PortfolioPage() {
 
   const shortAddr =  address ? `${address?.slice(0, 6)}..${address?.slice(-4)}` : '';
 
+  const displayWallets = (() => {
+    const list = (openWallets.length ? openWallets : wallets).slice();
+    list.sort((a, b) => {
+      if (sortKey === 'value') {
+        const va = walletValueUsdByAddr[a] ?? 0;
+        const vb = walletValueUsdByAddr[b] ?? 0;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      } else {
+        const ta = createdAtByAddr[a] ?? 0;
+        const tb = createdAtByAddr[b] ?? 0;
+        return sortDir === 'asc' ? ta - tb : tb - ta;
+      }
+    });
+    return list;
+  })();
+
+  const onSortClick = (key: 'value' | 'createdAt') => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Portfolio Summary */}
@@ -486,12 +536,32 @@ export default function PortfolioPage() {
         <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallets</Typography>
         <Button variant="contained" size="small" onClick={() => setShowCreate(true)}>Create New Wallet</Button>
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Power Wallets owned by {shortAddr} 
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="body2" color="text.secondary">
+          Power Wallets owned by {shortAddr}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Tooltip title={`Sort by value (${sortKey === 'value' ? sortDir : 'desc'})`}>
+            <IconButton size="small" color={sortKey === 'value' ? 'primary' : 'default'} onClick={() => onSortClick('value')} aria-label="Sort by value">
+              <MonetizationOnOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {sortKey === 'value' ? (
+            sortDir === 'asc' ? <ArrowUpwardIcon fontSize="small" color="primary" /> : <ArrowDownwardIcon fontSize="small" color="primary" />
+          ) : null}
+          <Tooltip title={`Sort by created date (${sortKey === 'createdAt' ? sortDir : 'desc'})`}>
+            <IconButton size="small" color={sortKey === 'createdAt' ? 'primary' : 'default'} onClick={() => onSortClick('createdAt')} aria-label="Sort by created date">
+              <CalendarTodayOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {sortKey === 'createdAt' ? (
+            sortDir === 'asc' ? <ArrowUpwardIcon fontSize="small" color="primary" /> : <ArrowDownwardIcon fontSize="small" color="primary" />
+          ) : null}
+        </Box>
+      </Box>
 
       <Grid container spacing={3}>
-        {(sortedWallets.length ? sortedWallets : wallets).map((w) => (
+        {displayWallets.map((w) => (
           <Grid item xs={12} md={6} key={w}>
             <WalletSummaryCard walletAddress={w as `0x${string}`} explorerBase={explorerBase} feeClient={feeClient} />
           </Grid>

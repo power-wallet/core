@@ -142,7 +142,7 @@ export default function ConfigPowerBtcDcaV1({ strategyAddr, chainId, stableSymbo
           <Typography variant="body2" color="text.secondary" sx={{ pb: 2 }}>
             Threshold mode buys or sells to push BTC weight back into your bands. When disabled, only DCA + kicker logic applies.
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row', py: 1 }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ py: 1 }}>
             <FormControl size="small" sx={{ width: { xs: '100%', sm: 200 } }} fullWidth>
               <InputLabel id="threshold-label">Threshold Rebalancing</InputLabel>
               <Select labelId="threshold-label" label="Threshold Rebalancing" value={th === '' ? '' : (th ? 'enabled' : 'disabled')} onChange={(e) => setTh(String(e.target.value) === 'enabled')}>
