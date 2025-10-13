@@ -69,7 +69,7 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
               {createdAt}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 0, pt: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0, pt: 2 }}>
             <Button size="small" variant="outlined" href={`/wallet?address=${walletAddress}`}>Open</Button>
           </Box>
         </Stack>
