@@ -363,7 +363,19 @@ export default function WalletDetails() {
         </Grid>
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <StrategyCard
-            strategyName={strategyName as any}
+            strategyName={(() => {
+                const strategies = (appConfig as any)[chainKey]?.strategies || {};
+                const onChainId = String(strategyIdStr || '').trim();
+                let mappedName: string | null = null;
+                if (onChainId && (strategies as any)[onChainId]?.name) {
+                  mappedName = (strategies as any)[onChainId].name as string;
+                } else if (onChainId) {
+                  for (const st of Object.values<any>(strategies)) {
+                    if (String(st.id || '').trim() === onChainId) { mappedName = (st as any).name as string; break; }
+                  }
+                }
+                return mappedName || String(strategyName || '');
+              })() as any}
             description={(() => {
                 const strategies = (appConfig as any)[chainKey]?.strategies || {};
                 const onChainId = String(strategyIdStr || '').trim();

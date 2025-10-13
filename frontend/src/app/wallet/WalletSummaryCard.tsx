@@ -41,6 +41,12 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
       <CardContent sx={{ py: 1.5, px: 1.5 }}>
         <Stack spacing={0.75} sx={{ minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+            <Typography variant="body1" color="text.primary" fontWeight="bold" sx={{ flexShrink: 0 }}>Total Value</Typography>
+            <Typography variant="body1" color="text.primary" fontWeight="bold" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+              {formatUsd6(valueUsd as bigint)}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
             <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Wallet Address</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: 'flex-end', flex: 1 }}>
               <Typography variant="body2" sx={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortAddr}</Typography>
@@ -50,12 +56,6 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
                 </a>
               </Tooltip>
             </Box>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Total Value</Typography>
-            <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-              {formatUsd6(valueUsd as bigint)}
-            </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
             <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Strategy</Typography>

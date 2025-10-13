@@ -99,8 +99,24 @@ export default function PortfolioPage() {
   const [walletsReady, setWalletsReady] = useState(false);
   const [createdAtByAddr, setCreatedAtByAddr] = useState<Record<string, number>>({});
   const [walletValueUsdByAddr, setWalletValueUsdByAddr] = useState<Record<string, number>>({});
-  const [sortKey, setSortKey] = useState<'value' | 'createdAt'>('createdAt');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [sortKey, setSortKey] = useState<'value' | 'createdAt'>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const savedKey = window.localStorage.getItem('portfolioSortKey');
+        if (savedKey === 'value' || savedKey === 'createdAt') return savedKey;
+      }
+    } catch {}
+    return 'createdAt';
+  });
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const savedDir = window.localStorage.getItem('portfolioSortDir');
+        if (savedDir === 'asc' || savedDir === 'desc') return savedDir;
+      }
+    } catch {}
+    return 'desc';
+  });
 
   // Prices and aggregated totals across all wallets
   const [prices, setPrices] = useState<Record<string, { price: number; decimals: number }>>({});
@@ -149,14 +165,15 @@ export default function PortfolioPage() {
               .catch(() => BigInt(0))
           )
         );
-        const ordered = open
-          .map((addr, i) => ({ addr, ts: Number((timestamps[i] as bigint | undefined) ?? BigInt(0)) }))
+        const pairs = open.map((addr, i) => ({ addr, ts: Number((timestamps[i] as bigint | undefined) ?? BigInt(0)) }));
+        const ordered = pairs
+          .slice()
           .sort((a, b) => b.ts - a.ts)
           .map((x) => x.addr);
         if (!cancelled) {
           setOpenWallets(ordered);
           const map: Record<string, number> = {};
-          ordered.forEach((addr, i) => { map[addr] = Number((timestamps[i] as bigint | undefined) ?? BigInt(0)); });
+          for (const p of pairs) map[p.addr] = p.ts;
           setCreatedAtByAddr(map);
         }
       } catch {
@@ -255,6 +272,14 @@ export default function PortfolioPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Persist sort preferences when they change
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('portfolioSortKey', sortKey);
+      window.localStorage.setItem('portfolioSortDir', sortDir);
+    } catch {}
+  }, [sortKey, sortDir]);
 
   if (!mounted) {
     return (
@@ -537,7 +562,7 @@ export default function PortfolioPage() {
           Power Wallets owned by {shortAddr}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Tooltip title={`Sort by value (${sortKey === 'value' ? sortDir : 'desc'})`}>
+          <Tooltip title={`Sort by value`}>
             <IconButton size="small" color={sortKey === 'value' ? 'primary' : 'default'} onClick={() => onSortClick('value')} aria-label="Sort by value">
               <MonetizationOnOutlinedIcon fontSize="small" />
             </IconButton>
@@ -545,7 +570,7 @@ export default function PortfolioPage() {
           {sortKey === 'value' ? (
             sortDir === 'asc' ? <ArrowUpwardIcon fontSize="small" color="primary" /> : <ArrowDownwardIcon fontSize="small" color="primary" />
           ) : null}
-          <Tooltip title={`Sort by created date (${sortKey === 'createdAt' ? sortDir : 'desc'})`}>
+          <Tooltip title={`Sort by created date`}>
             <IconButton size="small" color={sortKey === 'createdAt' ? 'primary' : 'default'} onClick={() => onSortClick('createdAt')} aria-label="Sort by created date">
               <CalendarTodayOutlinedIcon fontSize="small" />
             </IconButton>
