@@ -38,19 +38,19 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
               const p = prices[m.symbol];
               const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
               return (
-                <Box key={sym} sx={{ display: 'flex', flexDirection: 'column', gap: 0.15, minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                <Box key={sym} sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
                     {formatTokenAmountBigint(amt, m.decimals)} {m.symbol}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'right' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                     {usd !== undefined ? `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                   </Typography>
                 </Box>
               );
             })}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Total Value</Typography>
-              <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+              <Typography variant="body1" sx={{ flexShrink: 0 }} >Total Value</Typography>
+              <Typography variant="body1" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
                 {formatUsd6Bigint(valueUsd)}
               </Typography>
             </Box>
@@ -84,8 +84,8 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
             })}
             <Grid item xs={12} sm={6} md={4}>
               <Stack>
-                <Typography variant="caption">Total Value</Typography>
-                <Typography variant="h5">{formatUsd6Bigint(valueUsd)}</Typography>
+                <Typography variant="body1" fontWeight="bold">Total Value</Typography>
+                <Typography variant="body1" fontWeight="bold">{formatUsd6Bigint(valueUsd)}</Typography>
               </Stack>
             </Grid>
           </Grid>

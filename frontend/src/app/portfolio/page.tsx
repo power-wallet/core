@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Card, CardContent, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, useMediaQuery, useTheme, Tooltip } from '@mui/material';
-import LaunchIcon from '@mui/icons-material/Launch';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import CloseIcon from '@mui/icons-material/Close';
+import { Box, Button, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -16,7 +13,6 @@ import { getViemChain, getChainKey } from '@/config/networks';
 import { getFriendlyChainName, ensureOnPrimaryChain } from '@/lib/web3';
 import WalletConnectModal from '@/components/WalletConnectModal';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
-import StrategySelector from '@/components/StrategySelector';
 import { walletFactoryAbi, walletViewAbi } from '@/lib/abi';
 import WalletSummaryCard from '@/app/wallet/WalletSummaryCard';
 import PortfolioSummary from '@/components/PortfolioSummary';
