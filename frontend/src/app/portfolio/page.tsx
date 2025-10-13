@@ -122,7 +122,7 @@ export default function PortfolioPage() {
   const [prices, setPrices] = useState<Record<string, { price: number; decimals: number }>>({});
   const [portfolioTotals, setPortfolioTotals] = useState<{ totalUsd: number; perAsset: Record<string, { amount: number; usd: number }> }>({ totalUsd: 0, perAsset: {} });
 
-  // Filter out closed wallets, then fetch createdAt and sort newest-first
+  // Fetch createdAt for wallets and sort newest-first
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -136,36 +136,17 @@ export default function PortfolioPage() {
         return;
       }
       try {
-        const isClosedAbi = [
-          { type: 'function', name: 'isClosed', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'bool' }] },
-        ] as const;
-        const statuses = await Promise.all(
-          wallets.map((addr) =>
-            feeClient
-              .readContract({ address: addr as `0x${string}`, abi: isClosedAbi as any, functionName: 'isClosed', args: [] })
-              .catch(() => false)
-          )
-        );
-        const open = wallets.filter((_, i) => statuses[i] === false);
-        if (open.length === 0) {
-          if (!cancelled) {
-            setOpenWallets([]);
-            setCreatedAtByAddr({});
-            setWalletsReady(true);
-          }
-          return;
-        }
         const createdAtAbi = [
           { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint64' }] },
         ] as const;
         const timestamps = await Promise.all(
-          open.map((addr) =>
+          wallets.map((addr) =>
             feeClient
               .readContract({ address: addr as `0x${string}`, abi: createdAtAbi as any, functionName: 'createdAt', args: [] })
               .catch(() => BigInt(0))
           )
         );
-        const pairs = open.map((addr, i) => ({ addr, ts: Number((timestamps[i] as bigint | undefined) ?? BigInt(0)) }));
+        const pairs = wallets.map((addr, i) => ({ addr, ts: Number((timestamps[i] as bigint | undefined) ?? BigInt(0)) }));
         const ordered = pairs
           .slice()
           .sort((a, b) => b.ts - a.ts)
