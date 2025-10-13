@@ -551,7 +551,7 @@ export default function PortfolioPage() {
             </IconButton>
           </Tooltip>
           {sortKey === 'createdAt' ? (
-            sortDir === 'asc' ? <ArrowUpwardIcon fontSize="small" color="primary" /> : <ArrowDownwardIcon fontSize="small" color="primary" />
+            sortDir === 'asc' ? <ArrowDownwardIcon fontSize="small" color="primary" /> : <ArrowUpwardIcon fontSize="small" color="primary" />
           ) : null}
         </Box>
       </Box>
