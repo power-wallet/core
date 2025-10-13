@@ -8,24 +8,24 @@ import { writeWithFees } from '@/lib/tx';
 import { getViemChain } from '@/config/networks';
 
 const ABI_READ = [
-  { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'baseDcaStable', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint256' } ] },
-  { type: 'function', name: 'targetBtcBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'bandDeltaBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'bufferMultX', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'cmaxMultX', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'rebalanceCapBps', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint16' } ] },
-  { type: 'function', name: 'kKicker1e6', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'uint32' } ] },
-  { type: 'function', name: 'thresholdMode', stateMutability: 'view', inputs: [], outputs: [ { name: '', type: 'bool' } ] },
+  { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
+  { type: 'function', name: 'baseDcaStable', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
+  { type: 'function', name: 'targetBtcBps', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint16' }] },
+  { type: 'function', name: 'bandDeltaBps', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint16' }] },
+  { type: 'function', name: 'bufferMultX', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint16' }] },
+  { type: 'function', name: 'cmaxMultX', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint16' }] },
+  { type: 'function', name: 'rebalanceCapBps', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint16' }] },
+  { type: 'function', name: 'kKicker1e6', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint32' }] },
+  { type: 'function', name: 'thresholdMode', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'bool' }] },
 ] as const;
 
 const ABI_WRITE = [
-  { type: 'function', name: 'setFrequency', stateMutability: 'nonpayable', inputs: [ { name: 'newFrequency', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'setBaseDcaStable', stateMutability: 'nonpayable', inputs: [ { name: 'newBase', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'setBuffer', stateMutability: 'nonpayable', inputs: [ { name: 'newBufferMultX', type: 'uint16' } ], outputs: [] },
-  { type: 'function', name: 'setKickerParams', stateMutability: 'nonpayable', inputs: [ { name: 'newKKicker1e6', type: 'uint32' }, { name: 'newCmaxMultX', type: 'uint16' } ], outputs: [] },
-  { type: 'function', name: 'setRebalanceParams', stateMutability: 'nonpayable', inputs: [ { name: 'newTargetBps', type: 'uint16' }, { name: 'newBandDeltaBps', type: 'uint16' }, { name: 'newRebalanceCapBps', type: 'uint16' } ], outputs: [] },
-  { type: 'function', name: 'setThresholdMode', stateMutability: 'nonpayable', inputs: [ { name: 'enabled', type: 'bool' } ], outputs: [] },
+  { type: 'function', name: 'setFrequency', stateMutability: 'nonpayable', inputs: [{ name: 'newFrequency', type: 'uint256' }], outputs: [] },
+  { type: 'function', name: 'setBaseDcaStable', stateMutability: 'nonpayable', inputs: [{ name: 'newBase', type: 'uint256' }], outputs: [] },
+  { type: 'function', name: 'setBuffer', stateMutability: 'nonpayable', inputs: [{ name: 'newBufferMultX', type: 'uint16' }], outputs: [] },
+  { type: 'function', name: 'setKickerParams', stateMutability: 'nonpayable', inputs: [{ name: 'newKKicker1e6', type: 'uint32' }, { name: 'newCmaxMultX', type: 'uint16' }], outputs: [] },
+  { type: 'function', name: 'setRebalanceParams', stateMutability: 'nonpayable', inputs: [{ name: 'newTargetBps', type: 'uint16' }, { name: 'newBandDeltaBps', type: 'uint16' }, { name: 'newRebalanceCapBps', type: 'uint16' }], outputs: [] },
+  { type: 'function', name: 'setThresholdMode', stateMutability: 'nonpayable', inputs: [{ name: 'enabled', type: 'bool' }], outputs: [] },
 ] as const;
 
 type Props = { strategyAddr: `0x${string}`; chainId: number; stableSymbol?: string; stableDecimals?: number };
@@ -72,7 +72,7 @@ export default function ConfigPowerBtcDcaV1({ strategyAddr, chainId, stableSymbo
       const hash = await writeWithFees({ write: writeContractAsync as any, client, address: strategyAddr, abi: ABI_WRITE as any, functionName: fn as any, args });
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, hash });
-      setTimeout(() => { try { after?.(); } catch {} }, 1000);
+      setTimeout(() => { try { after?.(); } catch { } }, 1000);
     } finally {
       setBusy(null);
     }
@@ -82,12 +82,12 @@ export default function ConfigPowerBtcDcaV1({ strategyAddr, chainId, stableSymbo
     <>
       <Stack spacing={2} sx={{ mt: 1 }}>
         <Box sx={{ pt: 2 }}>
-          <Typography variant="subtitle1" fontWeight="bold">Common settings</Typography>
+          <Typography variant="subtitle1" fontWeight="bold">Basic Settings</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ pb: 2 }}>
             Configure your base buy size and cadence. The buffer keeps a USDC reserve equal to buffer × base DCA before spending extra.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-            <TextField fullWidth label="DCA Frequency (days)" sx={{ width: { xs: '100%', sm: 150 } }} size="small" type="number" value={days} onChange={(e) => setDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} />
+            <TextField fullWidth label="DCA Frequency (days)" sx={{ width: { xs: '100%', sm: 180 } }} size="small" type="number" value={days} onChange={(e) => setDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} />
             <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={() => exec('setFrequency', [BigInt(Math.floor(Number(days || '0')) * 86400)], () => refetchFreq?.())} disabled={busy === 'setFrequency'}>
               {busy === 'setFrequency' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
@@ -95,44 +95,47 @@ export default function ConfigPowerBtcDcaV1({ strategyAddr, chainId, stableSymbo
         </Box>
         <Box>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-            <TextField fullWidth sx={{ width: { xs: '100%', sm: 150 } }} size="small" label="Base DCA Amount" type="number" value={base} onChange={(e) => setBase(e.target.value)} inputProps={{ min: 1, step: 1 }} />
+            <TextField fullWidth sx={{ width: { xs: '100%', sm: 180 } }} size="small" label="Base DCA Amount (USDC)" type="number" value={base} onChange={(e) => setBase(e.target.value)} inputProps={{ min: 1, step: 1 }} />
             <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={() => exec('setBaseDcaStable', [BigInt(Math.floor(Number(base || '0') * 10 ** stableDecimals))], () => refetchBase?.())} disabled={busy === 'setBaseDcaStable'}>
               {busy === 'setBaseDcaStable' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
         </Box>
-        {/* Removed old target/band block; handled under Rebalancing below */}
+
         <Box sx={{ pt: 1 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-            <TextField fullWidth sx={{ width: { xs: '100%', sm: 150 } }} size="small" type="number" value={buffer} onChange={(e) => setBuffer(e.target.value)} label="Buffer Multiplier (×)" inputProps={{ min: 0, max: 60, step: 1 }} />
+            <TextField fullWidth sx={{ width: { xs: '100%', sm: 180 } }} size="small" type="number" value={buffer} onChange={(e) => setBuffer(e.target.value)} label="Buffer Multiplier (×)" inputProps={{ min: 0, max: 60, step: 1 }} />
             <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={() => exec('setBuffer', [Number(buffer || '0')], () => { refetchBuffer?.(); })} disabled={busy === 'setBuffer'}>
               {busy === 'setBuffer' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
         </Box>
         <Box sx={{ pt: 1 }}>
-          <Typography variant="subtitle1" fontWeight="bold">Kicker params</Typography>
+          <Typography variant="subtitle1" fontWeight="bold">Buy the dip</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ pb: 2 }}>
-            Increase buy size when volatility and drawdown are high. Cap limits the extra buy to a multiple of base DCA.
+            Increase buy size when volatility and drawdown are high. Kicker Cap limits the extra buy to a multiple of the Base DCA amount.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <FormControl size="small" sx={{ width: { xs: '100%', sm: 180 } }} fullWidth>
-            <InputLabel id="kicker-label">Kicker Coefficient</InputLabel>
-            <Select labelId="kicker-label" label="Kicker Coefficient" value={kUi} onChange={(e) => setKUi(String(e.target.value))}>
+              <InputLabel id="kicker-label">Kicker Coefficient</InputLabel>
+              <Select labelId="kicker-label" label="Kicker Coefficient" value={kUi} onChange={(e) => setKUi(String(e.target.value))}>
                 {/* ensure current on-chain value is selectable even if not in defaults */}
-                {kUi && !['0.02','0.03','0.05','0.07','0.10'].includes(kUi) ? (
-                <MenuItem key={`current-${kUi}`} value={kUi}>{kUi} (current)</MenuItem>
+                {kUi && !['0.02', '0.03', '0.05', '0.07', '0.10'].includes(kUi) ? (
+                  <MenuItem key={`current-${kUi}`} value={kUi}>{kUi} (current)</MenuItem>
                 ) : null}
-                {['0.02','0.03','0.05','0.07','0.10'].map(v => (
-                <MenuItem key={v} value={v}>{v}</MenuItem>
+                {['0.02', '0.03', '0.05', '0.07', '0.10'].map(v => (
+                  <MenuItem key={v} value={v}>{v}</MenuItem>
                 ))}
-            </Select>
+              </Select>
             </FormControl>
-            <TextField fullWidth sx={{ width: { xs: '100%', sm: 150 } }} size="small" type="number" value={cmax} onChange={(e) => setCmax(e.target.value)} label="Kicker Cap (×)" inputProps={{ min: 1, max: 20, step: 1 }} />
+            <TextField fullWidth sx={{ width: { xs: '100%', sm: 180 } }} size="small" type="number" value={cmax} onChange={(e) => setCmax(e.target.value)} label="Kicker Cap (×)" inputProps={{ min: 1, max: 20, step: 1 }} />
             <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={() => exec('setKickerParams', [Math.round(Number(kUi || '0') * 1_000_000), Number(cmax || '0')], () => { refetchK?.(); refetchCmax?.(); })} disabled={busy === 'setKickerParams'}>
               {busy === 'setKickerParams' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
           </Stack>
+          <Typography variant="caption" color="text.secondary" sx={{ pb: 2 }}>
+            Buy size = min(Kicker coeff * Volatility * Drawdown * NAV, Kicker Cap * Base DCA)
+          </Typography>
         </Box>
         <Box sx={{ py: 1 }}>
           <Typography variant="subtitle1" fontWeight="bold">Rebalancing</Typography>
@@ -140,13 +143,13 @@ export default function ConfigPowerBtcDcaV1({ strategyAddr, chainId, stableSymbo
             Threshold mode buys or sells to push BTC weight back into your bands. When disabled, only DCA + kicker logic applies.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row', py: 1 }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-              <FormControl size="small" sx={{ width: { xs: '100%', sm: 200 } }} fullWidth>
-                <InputLabel id="threshold-label">Threshold Rebalancing</InputLabel>
-                <Select labelId="threshold-label" label="Threshold Rebalancing" value={th === '' ? '' : (th ? 'enabled' : 'disabled')} onChange={(e) => setTh(String(e.target.value) === 'enabled')}>
-                  <MenuItem value={'enabled'}>Enabled</MenuItem>
-                  <MenuItem value={'disabled'}>Disabled</MenuItem>
-                </Select>
-              </FormControl>
+            <FormControl size="small" sx={{ width: { xs: '100%', sm: 200 } }} fullWidth>
+              <InputLabel id="threshold-label">Threshold Rebalancing</InputLabel>
+              <Select labelId="threshold-label" label="Threshold Rebalancing" value={th === '' ? '' : (th ? 'enabled' : 'disabled')} onChange={(e) => setTh(String(e.target.value) === 'enabled')}>
+                <MenuItem value={'enabled'}>Enabled</MenuItem>
+                <MenuItem value={'disabled'}>Disabled</MenuItem>
+              </Select>
+            </FormControl>
             <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={() => exec('setThresholdMode', [Boolean(th)], () => refetchThreshold?.())} disabled={busy === 'setThresholdMode'}>
               {busy === 'setThresholdMode' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
@@ -161,11 +164,11 @@ export default function ConfigPowerBtcDcaV1({ strategyAddr, chainId, stableSymbo
                 <TextField fullWidth sx={{ width: { xs: '100%', sm: 180 } }} size="small" type="number" value={bandPct} onChange={(e) => setBandPct(e.target.value)} label="Band Δ (%)" inputProps={{ min: 0, max: 100, step: 0.25 }} />
                 <TextField fullWidth sx={{ width: { xs: '100%', sm: 180 } }} size="small" type="number" value={capPct} onChange={(e) => setCapPct(e.target.value)} label="Rebalance Cap (%)" inputProps={{ min: 0, max: 100, step: 0.25 }} />
                 <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={() => exec('setRebalanceParams', [
-                    Math.round(Math.max(0, Number(targetPct || '0')) * 100),
-                    Math.round(Math.max(0, Number(bandPct || '0')) * 100),
-                    Math.round(Math.max(0, Number(capPct || '0')) * 100),
-                    ], () => { refetchTarget?.(); refetchBand?.(); refetchCap?.(); })} disabled={busy === 'setRebalanceParams'}>
-                    {busy === 'setRebalanceParams' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
+                  Math.round(Math.max(0, Number(targetPct || '0')) * 100),
+                  Math.round(Math.max(0, Number(bandPct || '0')) * 100),
+                  Math.round(Math.max(0, Number(capPct || '0')) * 100),
+                ], () => { refetchTarget?.(); refetchBand?.(); refetchCap?.(); })} disabled={busy === 'setRebalanceParams'}>
+                  {busy === 'setRebalanceParams' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
                 </Button>
               </Stack>
             </Box>
