@@ -55,7 +55,7 @@
         "id": "power-btc-dca-v1",
         "idBytes32": "0x8d7df25bcf3ed36f86688d470ce2bbaf412f5789ed0e10a1a481d9ef3f38893a",
         "name": "Power BTC DCA",
-        "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, USDC buffer, and optional threshold rebalancing to target bands.",
+        "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, and optional rebalancing to target bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, Typography, Box } from '@mui/material';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ReferenceDot } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ReferenceDot, ReferenceArea } from 'recharts';
 import type { WalletHistoryPoint, WalletEvent } from '@/lib/walletHistory';
 
 function formatUsd(n: number) {
@@ -12,7 +12,8 @@ function formatUsd(n: number) {
 function eventLabel(ev: WalletEvent): string {
   if (ev.kind === 'deposit') return `Deposit ${formatUsd(Number(ev.amount) / 1_000_000)}`;
   if (ev.kind === 'withdrawal') return `Withdrawal ${(Number(ev.amount) / 1_000_000).toFixed(2)}`;
-  return ev.detail ? ev.detail : 'Swap';
+  if (ev.kind === 'swap') return ev.detail ? ev.detail : 'Swap';
+  return 'Event';
 }
 
 function CustomTooltip({ active, label, payload }: any) {
@@ -35,20 +36,25 @@ function CustomTooltip({ active, label, payload }: any) {
 }
 
 export default function WalletHistoryChart({ data }: { data: WalletHistoryPoint[] }) {
-  const { depositDots, withdrawalDots, swapDots } = React.useMemo(() => {
+  const { depositDots, withdrawalDots, swapBuyDots, swapSellDots } = React.useMemo(() => {
     const dep: { x: string; y: number; label: string }[] = [];
     const wit: { x: string; y: number; label: string }[] = [];
-    const swp: { x: string; y: number; label: string }[] = [];
+    const swpBuy: { x: string; y: number; label: string }[] = [];
+    const swpSell: { x: string; y: number; label: string }[] = [];
     for (const p of data) {
       if (!p.events) continue;
       for (const ev of p.events) {
         const item = { x: p.date, y: p.totalUsd, label: eventLabel(ev) };
         if (ev.kind === 'deposit') dep.push(item);
         else if (ev.kind === 'withdrawal') wit.push(item);
-        else swp.push(item);
+        else if (ev.kind === 'swap') {
+          if (ev.side === 'buy') swpBuy.push(item);
+          else if (ev.side === 'sell') swpSell.push(item);
+          else swpBuy.push(item);
+        }
       }
     }
-    return { depositDots: dep, withdrawalDots: wit, swapDots: swp };
+    return { depositDots: dep, withdrawalDots: wit, swapBuyDots: swpBuy, swapSellDots: swpSell };
   }, [data]);
 
   return (
@@ -62,15 +68,18 @@ export default function WalletHistoryChart({ data }: { data: WalletHistoryPoint[
               <XAxis dataKey="date" tick={{ fontSize: 12 }} minTickGap={24} />
               <YAxis tickFormatter={(v) => `$${Number(v).toLocaleString('en-US')}`} width={70} />
               <RTooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="totalUsd" stroke="#8884d8" dot={false} strokeWidth={2} />
+              <Line type="monotone" dataKey="totalUsd" stroke="#F59E0B" dot={false} strokeWidth={2} />
               {depositDots.map((d, i) => (
-                <ReferenceDot key={`dep-${i}`} x={d.x} y={d.y} r={3} fill="#2e7d32" stroke="none" />
+                <ReferenceDot key={`dep-${i}`} x={d.x} y={d.y} r={5} fill="#2e7d32" stroke="none" />
               ))}
               {withdrawalDots.map((d, i) => (
-                <ReferenceDot key={`wit-${i}`} x={d.x} y={d.y} r={3} fill="#c62828" stroke="none" />
+                <ReferenceDot key={`wit-${i}`} x={d.x} y={d.y} r={5} fill="#c62828" stroke="none" />
               ))}
-              {swapDots.map((d, i) => (
-                <ReferenceDot key={`swp-${i}`} x={d.x} y={d.y} r={3} fill="#1976d2" stroke="none" />
+              {swapBuyDots.map((d, i) => (
+                <ReferenceDot key={`swpb-${i}`} x={d.x} y={d.y} r={6} fill="#1976d2" stroke="#0d47a1" />
+              ))}
+              {swapSellDots.map((d, i) => (
+                <ReferenceDot key={`swps-${i}`} x={d.x} y={d.y} r={6} fill="#960064" stroke="none" />
               ))}
             </LineChart>
           </ResponsiveContainer>
@@ -86,7 +95,11 @@ export default function WalletHistoryChart({ data }: { data: WalletHistoryPoint[
           </Box>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
             <Box sx={{ width: 10, height: 10, bgcolor: '#1976d2', borderRadius: '50%' }} />
-            <Typography variant="caption">Swap</Typography>
+            <Typography variant="caption">Buy</Typography>
+          </Box>
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+            <Box sx={{ width: 10, height: 10, bgcolor: '#960064', borderRadius: '50%' }} />
+            <Typography variant="caption">Sell</Typography>
           </Box>
         </Box>
       </CardContent>

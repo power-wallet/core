@@ -17,7 +17,7 @@ export type AddressMeta = { address: `0x${string}`; symbol: string; decimals: nu
 export type WalletEvent =
   | { kind: 'deposit'; ts: number; amount: bigint }
   | { kind: 'withdrawal'; ts: number; asset: `0x${string}`; amount: bigint }
-  | { kind: 'swap'; ts: number; tokenIn: `0x${string}`; tokenOut: `0x${string}`; amountIn: bigint; amountOut: bigint; detail?: string };
+  | { kind: 'swap'; ts: number; tokenIn: `0x${string}`; tokenOut: `0x${string}`; amountIn: bigint; amountOut: bigint; detail?: string; side?: 'buy' | 'sell' };
 
 export type WalletHistoryPoint = { date: string; totalUsd: number; events?: WalletEvent[] };
 
@@ -165,6 +165,16 @@ export async function buildWalletHistorySeries(args: {
             if (px !== undefined) price = px;
           }
           const priceStr = price !== undefined ? `$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '';
+          const inIsStable = ev.tokenIn.toLowerCase() === stable.address.toLowerCase();
+          const outIsStable = ev.tokenOut.toLowerCase() === stable.address.toLowerCase();
+          if (inIsStable && outMeta) {
+            const detail = `BUY ${amtOutNum} ${outMeta.symbol}${priceStr ? ` @ ${priceStr}` : ''}`;
+            return { ...ev, detail, side: 'buy' } as WalletEvent;
+          }
+          if (outIsStable && inMeta) {
+            const detail = `SELL ${amtInNum} ${inMeta.symbol}${priceStr ? ` @ ${priceStr}` : ''}`;
+            return { ...ev, detail, side: 'sell' } as WalletEvent;
+          }
           const detail = `${'Swap'} ${amtInNum} ${inMeta?.symbol || ''} for ${amtOutNum} ${outMeta?.symbol || ''}${priceStr ? ` @ ${priceStr}` : ''}`;
           return { ...ev, detail } as WalletEvent;
         })
