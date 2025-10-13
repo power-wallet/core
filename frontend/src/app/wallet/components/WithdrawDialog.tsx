@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem, TextField, Typography, Button, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem, TextField, Typography, Button, CircularProgress, Box, Link } from '@mui/material';
 import { formatTokenAmountBigint } from '@/lib/format';
 
 type Props = {
@@ -23,7 +23,7 @@ type Props = {
 export default function WithdrawDialog({ open, onClose, withdrawAssetAddr, onChangeAsset, withdrawAmount, onChangeAmount, stableTokenAddr, riskAssets, stableBal, riskBals, addressToMeta, onSubmit, isSubmitting }: Props) {
   const meta = addressToMeta(withdrawAssetAddr || '');
   const sym = meta?.symbol || 'token';
-  const available = (() => {
+  const availableInfo = (() => {
     const addr = withdrawAssetAddr?.toLowerCase();
     const isStable = addr && stableTokenAddr && addr === String(stableTokenAddr).toLowerCase();
     let bal: bigint | undefined = undefined;
@@ -33,7 +33,11 @@ export default function WithdrawDialog({ open, onClose, withdrawAssetAddr, onCha
       const idx = riskAssets.findIndex(x => x.toLowerCase() === addr);
       bal = idx === -1 ? undefined : riskBals[idx];
     }
-    return bal !== undefined && meta?.decimals !== undefined ? `${formatTokenAmountBigint(bal, meta.decimals)} ${sym}` : '';
+    if (bal !== undefined && meta?.decimals !== undefined) {
+      const amtStr = formatTokenAmountBigint(bal, meta.decimals);
+      return { display: `${amtStr} ${sym}`, amountStr: amtStr };
+    }
+    return { display: '', amountStr: '' };
   })();
 
   return (
@@ -69,9 +73,25 @@ export default function WithdrawDialog({ open, onClose, withdrawAssetAddr, onCha
           onChange={(e) => onChangeAmount(e.target.value)}
           inputProps={{ min: 0, step: '0.000001' }}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          {available ? `Available: ${available}` : ''}
-        </Typography>
+        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+          <Typography variant="caption" color="text.secondary">
+            {availableInfo.display ? `Available: ${availableInfo.display}` : ''}
+          </Typography>
+          <Box sx={{ flex: 1 }} />
+          {availableInfo.amountStr ? (
+            <Link
+              component="button"
+              type="button"
+              onClick={() => {
+                if (availableInfo.amountStr) onChangeAmount(availableInfo.amountStr);
+              }}
+              underline="hover"
+              sx={{ fontSize: '0.75rem' }}
+            >
+              max
+            </Link>
+          ) : null}
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
