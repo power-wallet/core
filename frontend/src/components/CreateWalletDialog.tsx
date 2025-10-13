@@ -47,6 +47,7 @@ export default function CreateWalletDialog({ open, onClose, onCreate, creating, 
           </IconButton>
         ) : null}
       </DialogTitle>
+
       <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
           <StrategySelector
@@ -60,6 +61,11 @@ export default function CreateWalletDialog({ open, onClose, onCreate, creating, 
             smartDays={smartDays}
             onChangeSmartDays={onChangeSmartDays}
           />
+          
+          <Typography variant="caption">
+            You will be able to configure your strategy after creating the wallet.
+          </Typography>
+
           {isMobile ? (
             <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate} sx={{ alignSelf: 'center', mt: 2 }}>
               {creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}
