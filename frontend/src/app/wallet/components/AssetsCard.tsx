@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, Typography, Stack, Box, Grid, Button } from '@mui/material';
+import { Card, CardContent, Typography, Stack, Box, Grid, Button, Alert } from '@mui/material';
 import { useMediaQuery, useTheme } from '@mui/material';
+import { useChainId } from 'wagmi';
+import { getChainKey } from '@/config/networks';
 import { formatTokenAmountBigint, formatUsd6Bigint } from '@/lib/format';
 
 type Props = {
@@ -10,15 +12,18 @@ type Props = {
   riskAssets: string[];
   stableBal?: bigint;
   riskBals: bigint[];
+  userUsdcBalance?: bigint;
   prices: Record<string, { price: number; decimals: number }>;
   valueUsd?: bigint;
   onDeposit: () => void;
   onWithdraw: () => void;
 };
 
-export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBals, prices, valueUsd, onDeposit, onWithdraw }: Props) {
+export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBals, userUsdcBalance, prices, valueUsd, onDeposit, onWithdraw }: Props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const chainId = useChainId();
+  const chainKey = getChainKey(chainId);
   return (
     <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', px: 1 }}>
@@ -31,9 +36,9 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
               let amt: bigint | undefined = sym === 'USDC'
                 ? stableBal
                 : (() => {
-                    const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
-                    return idx === -1 ? undefined : riskBals[idx];
-                  })();
+                  const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
+                  return idx === -1 ? undefined : riskBals[idx];
+                })();
               if (amt === undefined) return null;
               const p = prices[m.symbol];
               const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
@@ -63,16 +68,16 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
               let amt: bigint | undefined = sym === 'USDC'
                 ? stableBal
                 : (() => {
-                    const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
-                    return idx === -1 ? undefined : riskBals[idx];
-                  })();
+                  const idx = riskAssets.findIndex(x => x.toLowerCase() === m.address.toLowerCase());
+                  return idx === -1 ? undefined : riskBals[idx];
+                })();
               if (amt === undefined) return null;
               const p = prices[m.symbol];
               const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
               return (
                 <Grid key={sym} item xs={12} sm={6} md={4}>
                   <Stack>
-                    <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem', pr: 0.1}}>
+                    <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '1.1rem', pr: 0.1 }}>
                       {formatTokenAmountBigint(amt, m.decimals)} {m.symbol}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
@@ -90,6 +95,15 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
             </Grid>
           </Grid>
         )}
+
+      {chainKey === 'base-sepolia' && (userUsdcBalance !== undefined) && (userUsdcBalance === 0n) ? (
+          <Alert severity="info" sx={{ mt: 3 }}>
+            You can claim testnet USDC from the{' '}
+            <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Circle Faucet</a>.
+          </Alert>
+        ) : null
+      }
+
         <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
           <Button variant="outlined" size="small" onClick={onDeposit}>Deposit</Button>
           <Button variant="outlined" size="small" onClick={onWithdraw}>Withdraw</Button>

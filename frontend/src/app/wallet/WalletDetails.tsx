@@ -343,24 +343,20 @@ export default function WalletDetails() {
       ) : null}
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+        <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
           <AssetsCard
             chainAssets={chainAssets as any}
             riskAssets={riskAssets as any}
             stableBal={stableBal}
             riskBals={riskBals}
+            userUsdcBalance={userUsdcBalance}
             prices={prices}
             valueUsd={valueUsd as bigint}
             onDeposit={() => setDepositOpen(true)}
             onWithdraw={() => setWithdrawOpen(true)}
           />
-              {chainKey === 'base-sepolia' && (userUsdcBalance !== undefined) && ((userUsdcBalance as bigint) === BigInt(0)) ? (
-                <Alert severity="info" sx={{ mt: 3 }}>
-                  You can claim testnet USDC from the{' '}
-                  <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Circle Faucet</a>.
-                </Alert>
-              ) : null}
         </Grid>
+
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <StrategyCard
             strategyName={(() => {
