@@ -19,7 +19,15 @@ export type WalletEvent =
   | { kind: 'withdrawal'; ts: number; asset: `0x${string}`; amount: bigint }
   | { kind: 'swap'; ts: number; tokenIn: `0x${string}`; tokenOut: `0x${string}`; amountIn: bigint; amountOut: bigint; detail?: string; side?: 'buy' | 'sell' };
 
-export type WalletHistoryPoint = { date: string; totalUsd: number; events?: WalletEvent[] };
+export type WalletHistoryPoint = {
+  date: string;
+  totalUsd: number;
+  btcQty: number;
+  usdcUsd: number;
+  btcUsd: number;
+  ethUsd: number;
+  events?: WalletEvent[];
+};
 
 function toDateKey(tsSec: number): string {
   const d = new Date(tsSec * 1000);
@@ -137,15 +145,25 @@ export async function buildWalletHistorySeries(args: {
       }
     }
 
-    // Compute USD value at close of day
-    let total = numFromBig(stableBal, stable.decimals); // stable ~ USD
+    // Compute USD value and BTC qty at close of day
+    let usdcUsd = numFromBig(stableBal, stable.decimals); // stable ~ USD
+    let total = usdcUsd;
+    let btcQty = 0;
+    let btcUsd = 0;
+    let ethUsd = 0;
     for (const r of risks) {
       const qty = numFromBig(riskBals.get(r.address) || BigInt(0), r.decimals);
       if (qty === 0) continue;
       const key = mapSymbolToFeedKey(r.symbol);
       if (!key) continue;
       const px = key === 'BTC' ? btcByDate.get(dk) : ethByDate.get(dk);
-      if (px !== undefined) total += qty * px;
+      if (key === 'BTC') btcQty += qty;
+      if (px !== undefined) {
+        const usd = qty * px;
+        total += usd;
+        if (key === 'BTC') btcUsd += usd;
+        if (key === 'ETH') ethUsd += usd;
+      }
     }
 
     // Enrich today's events (for tooltip)
@@ -180,7 +198,7 @@ export async function buildWalletHistorySeries(args: {
         })
       : undefined;
 
-    out.push({ date: dk, totalUsd: total, events: enriched });
+    out.push({ date: dk, totalUsd: total, btcQty, usdcUsd, btcUsd, ethUsd, events: enriched });
   }
 
   return out;
