@@ -337,7 +337,7 @@ export default function PortfolioPage() {
         args: [cbBTC as `0x${string}`, usdc as `0x${string}`, BigInt(Math.max(0, Number(amount)) * 1_000_000), BigInt(Math.max(1, Number(frequency))), strategyPreset.description],
       }) as `0x${string}`;
     }
-    if (selectedStrategyId === 'btc-dca-power-law-v1') {
+    if (selectedStrategyId === 'power-btc-dca-v2') {
       const freqSec = BigInt(Math.max(1, Number(smartDays)) * 86400);
       const lowerBps = 5000;
       const upperBps = 10000;
@@ -372,7 +372,7 @@ export default function PortfolioPage() {
         ],
       }) as `0x${string}`;
     }
-    if (selectedStrategyId === 'power-btc-dca-v1') {
+    if (selectedStrategyId === 'smart-btc-dca-v2') {
       const freqSec = BigInt(Math.max(1, Number(frequency)));
       const feed = addressesForChain.btcUsdPriceFeed as `0x${string}`;
       const indicators = (addressesForChain as any)?.technicalIndicators as `0x${string}` | undefined;

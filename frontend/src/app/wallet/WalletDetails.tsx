@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Box, Button, Container, Grid, Typography, Snackbar, Alert, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
- 
+
 import { useAccount, useReadContract, useChainId } from 'wagmi';
 import WalletHistoryChart from './charts/WalletHistoryChart';
 import { buildWalletHistorySeries } from '@/lib/walletHistory';
@@ -111,7 +111,7 @@ export default function WalletDetails() {
   const { data: userUsdcBalance, refetch: refetchUserUsdc } = useReadContract({
     address: (stableTokenAddr as `0x${string}`) || undefined,
     abi: [
-      { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+      { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
     ] as const,
     functionName: 'balanceOf',
     args: connected ? [connected as `0x${string}`] : undefined,
@@ -187,12 +187,12 @@ export default function WalletDetails() {
       setToast({ open: true, message: `Transaction confirmed: ${txHash}`, severity: 'success' });
       // After confirmation, refetch key wallet data (with a brief delay to allow RPC/state propagation)
       setTimeout(() => {
-        try { refetchBalances?.(); } catch {}
-        try { refetchValueUsd?.(); } catch {}
-        try { refetchDeposits?.(); } catch {}
-        try { refetchWithdrawals?.(); } catch {}
-        try { refetchSwaps?.(); } catch {}
-        try { refetchUserUsdc?.(); } catch {}
+        try { refetchBalances?.(); } catch { }
+        try { refetchValueUsd?.(); } catch { }
+        try { refetchDeposits?.(); } catch { }
+        try { refetchWithdrawals?.(); } catch { }
+        try { refetchSwaps?.(); } catch { }
+        try { refetchUserUsdc?.(); } catch { }
       }, 1200);
     }
   }, [isConfirmed, txHash, refetchBalances, refetchValueUsd, refetchDeposits, refetchWithdrawals, refetchSwaps, refetchUserUsdc]);
@@ -211,7 +211,7 @@ export default function WalletDetails() {
           ]);
           const p = Number(round[1]);
           next[m.symbol] = { price: p, decimals: dec };
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!cancelled) setPrices(next);
     };
@@ -226,7 +226,7 @@ export default function WalletDetails() {
       if (!depositOpen || !stableTokenAddr || !walletAddress || !connected) return;
       try {
         const erc20ReadAbi = [
-          { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [ { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
+          { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
         ] as const;
         const a = await client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'allowance', args: [connected as `0x${string}`, walletAddress] }) as bigint;
         setAllowance(a);
@@ -304,25 +304,25 @@ export default function WalletDetails() {
         {` / `}
         <span>{shortAddress}</span>
         <Tooltip title="Copy address">
-        <a
-          href="#"
-          onClick={(e) => { e.preventDefault(); if (walletAddress) navigator.clipboard.writeText(walletAddress).then(() => setCopied(true)).catch(() => {}); }}
-          style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
-          aria-label="Copy wallet address"
-        >
-          <ContentCopyIcon sx={{ fontSize: 14 }} />
-        </a>
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); if (walletAddress) navigator.clipboard.writeText(walletAddress).then(() => setCopied(true)).catch(() => { }); }}
+            style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
+            aria-label="Copy wallet address"
+          >
+            <ContentCopyIcon sx={{ fontSize: 14 }} />
+          </a>
         </Tooltip>
         <Tooltip title="Open in block explorer">
-        <a
-          href={`${explorerBase}/address/${walletAddress}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
-          aria-label="Open on block explorer"
-        >
-          <LaunchIcon sx={{ fontSize: 14 }} />
-        </a>
+          <a
+            href={`${explorerBase}/address/${walletAddress}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'inherit', marginLeft: 6, display: 'inline-flex', alignItems: 'center' }}
+            aria-label="Open on block explorer"
+          >
+            <LaunchIcon sx={{ fontSize: 14 }} />
+          </a>
         </Tooltip>
       </Typography>
 
@@ -360,35 +360,35 @@ export default function WalletDetails() {
         <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
           <StrategyCard
             strategyName={(() => {
-                const strategies = (appConfig as any)[chainKey]?.strategies || {};
-                const onChainId = String(strategyIdStr || '').trim();
-                let mappedName: string | null = null;
-                if (onChainId && (strategies as any)[onChainId]?.name) {
-                  mappedName = (strategies as any)[onChainId].name as string;
-                } else if (onChainId) {
-                  for (const st of Object.values<any>(strategies)) {
-                    if (String(st.id || '').trim() === onChainId) { mappedName = (st as any).name as string; break; }
-                  }
+              const strategies = (appConfig as any)[chainKey]?.strategies || {};
+              const onChainId = String(strategyIdStr || '').trim();
+              let mappedName: string | null = null;
+              if (onChainId && (strategies as any)[onChainId]?.name) {
+                mappedName = (strategies as any)[onChainId].name as string;
+              } else if (onChainId) {
+                for (const st of Object.values<any>(strategies)) {
+                  if (String(st.id || '').trim() === onChainId) { mappedName = (st as any).name as string; break; }
                 }
-                return mappedName || String(strategyName || '');
-              })() as any}
+              }
+              return mappedName || String(strategyName || '');
+            })() as any}
             description={(() => {
-                const strategies = (appConfig as any)[chainKey]?.strategies || {};
-                const onChainId = String(strategyIdStr || '').trim();
-                let mappedDesc: string | null = null;
-                if (onChainId && (strategies as any)[onChainId]?.description) {
-                  mappedDesc = (strategies as any)[onChainId].description as string;
-                } else if (onChainId) {
-                  for (const st of Object.values<any>(strategies)) {
+              const strategies = (appConfig as any)[chainKey]?.strategies || {};
+              const onChainId = String(strategyIdStr || '').trim();
+              let mappedDesc: string | null = null;
+              if (onChainId && (strategies as any)[onChainId]?.description) {
+                mappedDesc = (strategies as any)[onChainId].description as string;
+              } else if (onChainId) {
+                for (const st of Object.values<any>(strategies)) {
                   if (String(st.id || '').trim() === onChainId) { mappedDesc = (st as any).description as string; break; }
-                  }
                 }
-                const finalDesc = mappedDesc || String(desc || '');
+              }
+              const finalDesc = mappedDesc || String(desc || '');
               return finalDesc;
-              })()}
+            })()}
             strategyAddr={strategyAddr as any}
             explorerBase={explorerBase}
-            dcaAmount={(String(strategyIdStr || '').trim() === 'power-btc-dca-v1' ? baseDcaAmount : dcaAmount) as any}
+            dcaAmount={(["power-btc-dca-v1", "smart-btc-dca-v2"].includes(String(strategyIdStr || '').trim()) ? baseDcaAmount : dcaAmount) as any}
             frequency={freq as any}
             strategyIdStr={strategyIdStr as any}
             onOpenConfig={() => setStrategyConfigOpen(true)}
@@ -404,16 +404,16 @@ export default function WalletDetails() {
             slippage={slippage as any}
             onOpenSlippage={() => { setSlippageInput(slippage ? String(Number(slippage)) : ''); setSlippageOpen(true); }}
             onToggleAutomation={async () => {
-                      const ok = await ensureOnPrimaryChain(chainId as number, (args: any) => (window as any));
-                      if (!walletAddress) return;
-                      try {
-                        const fn = automationPaused ? 'unpauseAutomation' : 'pauseAutomation';
-                        const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: fn as any, args: [] });
-                        setTxHash(hash as `0x${string}`);
-                      } catch (e: any) {
-                        setToast({ open: true, message: e?.shortMessage || e?.message || 'Transaction failed', severity: 'error' });
-                      }
-                    }}
+              const ok = await ensureOnPrimaryChain(chainId as number, (args: any) => (window as any));
+              if (!walletAddress) return;
+              try {
+                const fn = automationPaused ? 'unpauseAutomation' : 'pauseAutomation';
+                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: fn as any, args: [] });
+                setTxHash(hash as `0x${string}`);
+              } catch (e: any) {
+                setToast({ open: true, message: e?.shortMessage || e?.message || 'Transaction failed', severity: 'error' });
+              }
+            }}
           />
         </Grid>
 
@@ -436,43 +436,43 @@ export default function WalletDetails() {
         allowance={allowance}
         isSubmitting={isDepositing}
         onSubmit={async () => {
-              if (!stableTokenAddr || !walletAddress) return;
-              const amount = Math.max(0, Number(depositAmount || '0'));
-              if (amount <= 0) return;
-              const amt = BigInt(Math.round(amount * 1_000_000));
-              setIsDepositing(true);
-              try {
-                const erc20ReadAbi = [
-                  { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [ { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
-                  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: '', type: 'uint256' } ] },
-                ] as const;
-                const [allowance, balance] = await Promise.all([
-                  client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'allowance', args: [connected as `0x${string}`, walletAddress] }) as Promise<bigint>,
-                  client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'balanceOf', args: [connected as `0x${string}`] }) as Promise<bigint>,
-                ]);
-                if (balance < amt) {
-                  setToast({ open: true, message: 'Insufficient USDC balance', severity: 'error' });
-                  return;
-                }
-                if (allowance < amt) {
-                  const erc20WriteAbi = [
-                    { type: 'function', name: 'approve', stateMutability: 'nonpayable', inputs: [ { name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' } ], outputs: [ { name: '', type: 'bool' } ] },
-                  ] as const;
-                  const approveHash = await writeWithFees({ write: writeContractAsync as any, client, address: stableTokenAddr as `0x${string}`, abi: erc20WriteAbi as any, functionName: 'approve', args: [walletAddress, amt] });
-                  setTxHash(approveHash as `0x${string}`);
-                  await client.waitForTransactionReceipt({ hash: approveHash as `0x${string}` });
-                }
-                const depositHash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'deposit', args: [amt] });
-                setTxHash(depositHash as `0x${string}`);
-                setDepositOpen(false);
-                setDepositAmount('');
-              } catch (e: any) {
-                const msg = e?.shortMessage || e?.message || 'Deposit failed';
-                setToast({ open: true, message: msg, severity: 'error' });
-              } finally {
-                setIsDepositing(false);
-              }
-            }}
+          if (!stableTokenAddr || !walletAddress) return;
+          const amount = Math.max(0, Number(depositAmount || '0'));
+          if (amount <= 0) return;
+          const amt = BigInt(Math.round(amount * 1_000_000));
+          setIsDepositing(true);
+          try {
+            const erc20ReadAbi = [
+              { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
+              { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
+            ] as const;
+            const [allowance, balance] = await Promise.all([
+              client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'allowance', args: [connected as `0x${string}`, walletAddress] }) as Promise<bigint>,
+              client.readContract({ address: stableTokenAddr as `0x${string}`, abi: erc20ReadAbi as any, functionName: 'balanceOf', args: [connected as `0x${string}`] }) as Promise<bigint>,
+            ]);
+            if (balance < amt) {
+              setToast({ open: true, message: 'Insufficient USDC balance', severity: 'error' });
+              return;
+            }
+            if (allowance < amt) {
+              const erc20WriteAbi = [
+                { type: 'function', name: 'approve', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] },
+              ] as const;
+              const approveHash = await writeWithFees({ write: writeContractAsync as any, client, address: stableTokenAddr as `0x${string}`, abi: erc20WriteAbi as any, functionName: 'approve', args: [walletAddress, amt] });
+              setTxHash(approveHash as `0x${string}`);
+              await client.waitForTransactionReceipt({ hash: approveHash as `0x${string}` });
+            }
+            const depositHash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'deposit', args: [amt] });
+            setTxHash(depositHash as `0x${string}`);
+            setDepositOpen(false);
+            setDepositAmount('');
+          } catch (e: any) {
+            const msg = e?.shortMessage || e?.message || 'Deposit failed';
+            setToast({ open: true, message: msg, severity: 'error' });
+          } finally {
+            setIsDepositing(false);
+          }
+        }}
       />
 
       {/* Update Slippage Modal */}
@@ -482,22 +482,22 @@ export default function WalletDetails() {
         slippage={Number(slippage ?? 0)}
         onChange={setSlippageInput}
         onSubmit={async () => {
-              if (!walletAddress) return;
-              const val = Math.max(0, Math.floor(Number(slippageInput || '0')));
-              if (Number.isNaN(val) || val >= 5000) {
-                setToast({ open: true, message: 'Enter a value below 5000', severity: 'error' });
-                return;
-              }
-              try {
-                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'setSlippageBps', args: [val] });
-                setTxHash(hash as `0x${string}`);
-                await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
-                await refetchSlippage();
-                setSlippageOpen(false);
-              } catch (e: any) {
-                setToast({ open: true, message: e?.shortMessage || e?.message || 'Update failed', severity: 'error' });
-              }
-            }}
+          if (!walletAddress) return;
+          const val = Math.max(0, Math.floor(Number(slippageInput || '0')));
+          if (Number.isNaN(val) || val >= 5000) {
+            setToast({ open: true, message: 'Enter a value below 5000', severity: 'error' });
+            return;
+          }
+          try {
+            const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'setSlippageBps', args: [val] });
+            setTxHash(hash as `0x${string}`);
+            await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            await refetchSlippage();
+            setSlippageOpen(false);
+          } catch (e: any) {
+            setToast({ open: true, message: e?.shortMessage || e?.message || 'Update failed', severity: 'error' });
+          }
+        }}
       />
 
       {/* Withdraw Modal */}
@@ -515,55 +515,57 @@ export default function WalletDetails() {
         addressToMeta={addressToMeta as any}
         isSubmitting={isWithdrawing}
         onSubmit={async () => {
-              if (!walletAddress || !withdrawAssetAddr) return;
-              const amount = Math.max(0, Number(withdrawAmount || '0'));
-              if (amount <= 0) return;
-              const meta = addressToMeta(withdrawAssetAddr);
-              const decimals = meta?.decimals ?? 6;
-              const scale = Math.pow(10, Math.min(decimals, 18));
-              const amt = BigInt(Math.round(amount * scale));
-              setIsWithdrawing(true);
-              try {
-                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'withdrawAsset', args: [withdrawAssetAddr, amt] });
-                setTxHash(hash as `0x${string}`);
-                setWithdrawOpen(false);
-                setWithdrawAmount('');
-              } catch (e) {
-                setToast({ open: true, message: 'Withdraw failed', severity: 'error' });
-              } finally {
-                setIsWithdrawing(false);
-              }
-            }}
+          if (!walletAddress || !withdrawAssetAddr) return;
+          const amount = Math.max(0, Number(withdrawAmount || '0'));
+          if (amount <= 0) return;
+          const meta = addressToMeta(withdrawAssetAddr);
+          const decimals = meta?.decimals ?? 6;
+          const scale = Math.pow(10, Math.min(decimals, 18));
+          const amt = BigInt(Math.round(amount * scale));
+          setIsWithdrawing(true);
+          try {
+            const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'withdrawAsset', args: [withdrawAssetAddr, amt] });
+            setTxHash(hash as `0x${string}`);
+            setWithdrawOpen(false);
+            setWithdrawAmount('');
+          } catch (e) {
+            setToast({ open: true, message: 'Withdraw failed', severity: 'error' });
+          } finally {
+            setIsWithdrawing(false);
+          }
+        }}
       />
 
       {/* Strategy Config Modal */}
-          {(() => {
-            const strategies = (appConfig as any)[chainKey]?.strategies || {};
-            const descStr = String(desc || '').trim();
-            let matchedId: string | null = null;
-            let stableKey: string | null = null;
-            const onChainId = String(strategyIdStr || '').trim();
-            if (onChainId && strategies[onChainId]) {
-              matchedId = onChainId;
-              stableKey = (strategies as any)[onChainId].stable;
-            } else if (onChainId) {
-              for (const [id, st] of Object.entries<any>(strategies)) {
-            if (String((st as any).id || '').trim() === onChainId) { matchedId = id; stableKey = (st as any).stable; break; }
-              }
+      {(() => {
+        const strategies = (appConfig as any)[chainKey]?.strategies || {};
+        const descStr = String(desc || '').trim();
+        let matchedId: string | null = null;
+        let stableKey: string | null = null;
+        const onChainId = String(strategyIdStr || '').trim();
+        if (onChainId && strategies[onChainId]) {
+          matchedId = onChainId;
+          stableKey = (strategies as any)[onChainId].stable;
+        } else if (onChainId) {
+          for (const [id, st] of Object.entries<any>(strategies)) {
+            if (String((st as any).id || '').trim() === onChainId) {
+              matchedId = id;
+              stableKey = (st as any).stable; break;
             }
-            if (!matchedId) {
-              for (const [id, st] of Object.entries<any>(strategies)) {
-            if (String((st as any).description).trim() === descStr) { matchedId = id; stableKey = (st as any).stable; break; }
-                }
-              }
-        const content = matchedId === 'simple-btc-dca-v1' ? 'simple' : matchedId === 'btc-dca-power-law-v1' ? 'smart' : matchedId === 'power-btc-dca-v1' ? 'power' : 'unknown';
-              const stableMeta = stableKey ? (appConfig as any)[chainKey].assets[Object.keys((appConfig as any)[chainKey].assets).find(k => k.toLowerCase() === String(stableKey).toLowerCase()) as string] : null;
-              return (
+          }
+        }
+
+        const content = matchedId === 'simple-btc-dca-v1' ? 'simple' :
+            ['btc-dca-power-law-v1', 'power-btc-dca-v2'].includes(matchedId ?? '') ? 'power' :
+            ['power-btc-dca-v1', 'smart-btc-dca-v2'].includes(matchedId ?? '') ? 'smart' : 'unknown';
+
+        const stableMeta = stableKey ? (appConfig as any)[chainKey].assets[Object.keys((appConfig as any)[chainKey].assets).find(k => k.toLowerCase() === String(stableKey).toLowerCase()) as string] : null;
+        return (
           <StrategyConfigDialog
             open={strategyConfigOpen}
             onClose={() => setStrategyConfigOpen(false)}
             isMobile={isMobile}
-                  chainId={chainId}
+            chainId={chainId}
             content={content as any}
             strategyAddr={String(strategyAddr || '') as `0x${string}`}
             dcaAmount={dcaAmount as any}
@@ -571,8 +573,8 @@ export default function WalletDetails() {
             stableSymbol={stableMeta?.symbol || 'USDC'}
             stableDecimals={stableMeta?.decimals ?? 6}
           />
-            );
-          })()}
+        );
+      })()}
 
       <Snackbar
         open={toast.open}
@@ -614,29 +616,29 @@ export default function WalletDetails() {
         onClose={() => setCloseOpen(false)}
         hasAnyFunds={hasAnyFunds}
         onConfirm={async () => {
-              if (!walletAddress) return;
-              try {
-                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'closeWallet', args: [] });
-                setTxHash(hash as `0x${string}`);
-                await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
-                // After closing, request factory to delete the wallet reference
-                try {
-                  const factory = contractAddresses[chainKey]?.walletFactory as `0x${string}` | undefined;
-                  if (factory) {
-                    const factoryAbi = [
-                      { type: 'function', name: 'deleteWallet', stateMutability: 'nonpayable', inputs: [ { name: 'walletAddr', type: 'address' } ], outputs: [] },
-                    ] as const;
-                    const delHash = await writeWithFees({ write: writeContractAsync as any, client, address: factory, abi: factoryAbi as any, functionName: 'deleteWallet', args: [walletAddress] });
-                    setTxHash(delHash as `0x${string}`);
-                  }
-                } catch (e) {}
-                setCloseOpen(false);
-              } catch (e: any) {
-                setToast({ open: true, message: e?.shortMessage || e?.message || 'Close failed', severity: 'error' });
+          if (!walletAddress) return;
+          try {
+            const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'closeWallet', args: [] });
+            setTxHash(hash as `0x${string}`);
+            await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            // After closing, request factory to delete the wallet reference
+            try {
+              const factory = contractAddresses[chainKey]?.walletFactory as `0x${string}` | undefined;
+              if (factory) {
+                const factoryAbi = [
+                  { type: 'function', name: 'deleteWallet', stateMutability: 'nonpayable', inputs: [{ name: 'walletAddr', type: 'address' }], outputs: [] },
+                ] as const;
+                const delHash = await writeWithFees({ write: writeContractAsync as any, client, address: factory, abi: factoryAbi as any, functionName: 'deleteWallet', args: [walletAddress] });
+                setTxHash(delHash as `0x${string}`);
               }
-            }}
+            } catch (e) { }
+            setCloseOpen(false);
+          } catch (e: any) {
+            setToast({ open: true, message: e?.shortMessage || e?.message || 'Close failed', severity: 'error' });
+          }
+        }}
       />
-      
+
 
       {/* Transactions - Deposits & Withdrawals */}
       <Grid container spacing={3} sx={{ mt: 0 }}>

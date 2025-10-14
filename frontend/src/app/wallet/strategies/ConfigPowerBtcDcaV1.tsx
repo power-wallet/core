@@ -30,7 +30,7 @@ const ABI_WRITE = [
 
 type Props = { strategyAddr: `0x${string}`; chainId: number; stableSymbol?: string; stableDecimals?: number };
 
-export default function ConfigPowerBtcDcaV1({ strategyAddr, chainId, stableSymbol = 'USDC', stableDecimals = 6 }: Props) {
+export default function ConfigSmartBtcDcaV2({ strategyAddr, chainId, stableSymbol = 'USDC', stableDecimals = 6 }: Props) {
   const { writeContractAsync } = useWriteContract();
   const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
 

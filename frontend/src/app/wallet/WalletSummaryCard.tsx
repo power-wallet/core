@@ -3,15 +3,18 @@
 import React from 'react';
 import { Card, CardContent, Stack, Box, Typography, Button, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
-import { useReadContract } from 'wagmi';
+import { useReadContract, useChainId } from 'wagmi';
 import { useWalletReads, useStrategyReads } from '@/lib/walletReads';
+import appConfig from '@/config/appConfig.json';
+import { getChainKey } from '@/config/networks';
 
 type Props = { walletAddress: `0x${string}`; explorerBase: string; feeClient: any };
 
 export default function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: Props) {
   const { valueUsd, strategyAddr, createdAtTs } = useWalletReads(walletAddress);
-  const { strategyName, freq, dcaAmount } = useStrategyReads(strategyAddr as any);
-  const isSimple = String(strategyName || '').trim() === 'Simple BTC DCA';
+  const { strategyName, freq, dcaAmount, strategyIdStr } = useStrategyReads(strategyAddr as any);
+  const chainId = useChainId();
+  const chainKey = getChainKey(chainId);
 
   const formatUsd6 = (v?: bigint) => {
     if (!v) return '$0.00';
@@ -19,7 +22,19 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
     return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const displayName = String(strategyName || '').trim() || 'Strategy';
+  const displayName = (() => {
+    try {
+      const strategies = (appConfig as any)[chainKey]?.strategies || {};
+      const onChainId = String(strategyIdStr || '').trim();
+      if (onChainId && (strategies as any)[onChainId]?.name) return (strategies as any)[onChainId].name as string;
+      if (onChainId) {
+        for (const st of Object.values<any>(strategies)) {
+          if (String(st.id || '').trim() === onChainId) return String(st.name || '');
+        }
+      }
+    } catch {}
+    return String(strategyName || '').trim() || 'Strategy';
+  })();
   const shortAddr = `${walletAddress.slice(0, 6)}..${walletAddress.slice(-4)}`;
   const createdAt = createdAtTs ? new Date(Number(createdAtTs) * 1000).toLocaleDateString() : '';
   const dcaAmountDisplay = (() => {
@@ -34,6 +49,11 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
     if (!f) return '-';
     const days = Math.round(Number(f) / 86400);
     return `${days}d`;
+  })();
+  const isSimple = (() => {
+    const onChainId = String(strategyIdStr || '').trim();
+    if (onChainId === 'simple-btc-dca-v1') return true;
+    return displayName === 'Simple BTC DCA';
   })();
 
   return (

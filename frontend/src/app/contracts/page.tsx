@@ -31,7 +31,8 @@ const ADDR = {
   faucet: String(addrChain.faucet || ''),
   strategies: {
     'simple-btc-dca-v1': String(addrChain.strategies['simple-btc-dca-v1'] || ''),
-    'btc-dca-power-law-v1': String(addrChain.strategies['btc-dca-power-law-v1'] || ''),
+    'power-btc-dca-v2': String(addrChain.strategies['power-btc-dca-v2'] || ''),
+    'smart-btc-dca-v2': String(addrChain.strategies['smart-btc-dca-v2'] || ''),
   },
 } as const;
 
@@ -327,7 +328,7 @@ export default function SmartContractsPage() {
               blurb="Simple DCA Strategy into BTC that invests a fixed amount of USDC at a fixed frequency." />
 
             <Section title="Smart BTC DCA"
-              address={ADDR.strategies['btc-dca-power-law-v1']}
+              address={ADDR.strategies['power-btc-dca-v2']}
               blurb="Advanced DCA Strategy into BTC with optimized buy and sell amounts, based on the Bitcoin Power Law price model." />
 
             <Section title="Technical Indicators"

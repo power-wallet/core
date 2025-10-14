@@ -41,10 +41,11 @@
         "priceFeeds": ["btcUsdPriceFeed"],
         "poolFees": [100]
       },
+      
       "btc-dca-power-law-v1": {
         "id": "btc-dca-power-law-v1",
         "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
-        "name": "Smart BTC DCA",
+        "name": "Power BTC DCA",
         "description": "Uses the Bitcoin power-law price model as fair BTC price to adjust buy and sell amounts, with configurable bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -54,13 +55,36 @@
       "power-btc-dca-v1": {
         "id": "power-btc-dca-v1",
         "idBytes32": "0x8d7df25bcf3ed36f86688d470ce2bbaf412f5789ed0e10a1a481d9ef3f38893a",
+        "name": "Smart BTC DCA",
+        "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, and optional rebalancing to target bands.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
+      },
+
+
+      "power-btc-dca-v2": {
+        "id": "power-btc-dca-v2",
+        "idBytes32": "",
         "name": "Power BTC DCA",
+        "description": "Uses the Bitcoin power-law price model as fair BTC price to adjust buy and sell amounts, with configurable bands.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
+      },
+      "smart-btc-dca-v2": {
+        "id": "smart-btc-dca-v2",
+        "idBytes32": "",
+        "name": "Smart BTC DCA",
         "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, and optional rebalancing to target bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
         "poolFees": [100]
       }
+
     }
   },
   "base": {
@@ -108,7 +132,7 @@
       "btc-dca-power-law-v1": {
         "id": "btc-dca-power-law-v1",
         "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
-        "name": "Smart BTC DCA (Power Law)",
+        "name": "Power BTC DCA",
         "description": "Rebalance using the Bitcoin power-law price model as fair BTC price, with configurable bands and trade sizes.",
         "stable": "usdc",
         "risk": ["cbBTC"],

@@ -29,7 +29,7 @@ const SMART_DCA_WRITE_ABI = [
   { type: 'function', name: 'setTradePercents', stateMutability: 'nonpayable', inputs: [ { name: 'newBuyBpsStable', type: 'uint16' }, { name: 'newSmallBuyBpsStable', type: 'uint16' }, { name: 'newSellBpsRisk', type: 'uint16' } ], outputs: [] },
 ] as const;
 
-export default function ConfigSmartBtcDcaV1({ strategyAddr, chainId }: Props) {
+export default function ConfigPowerBtcDcaV2({ strategyAddr, chainId }: Props) {
   const { data: freqSec, refetch: refetchFreq } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'frequency', query: { refetchInterval: 60000 } });
   const { data: lowerBps, refetch: refetchLowerBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'lowerBandBps', query: { refetchInterval: 60000 } });
   const { data: upperBps, refetch: refetchUpperBps } = useReadContract({ address: strategyAddr, abi: SMART_DCA_READ_ABI as any, functionName: 'upperBandBps', query: { refetchInterval: 60000 } });

@@ -57,7 +57,7 @@ export default function StrategyCard({ strategyName, description, strategyAddr, 
             <Typography variant="body1">
               {(() => {
                 const id = String(strategyIdStr || '').trim();
-                if (id === 'btc-dca-power-law-v1') return 'Dynamic %';
+                if (['btc-dca-power-law-v1', 'power-btc-dca-v2'].includes(id)) return 'Dynamic %';
                 return formatUsd6Bigint(dcaAmount);
               })()}
             </Typography>

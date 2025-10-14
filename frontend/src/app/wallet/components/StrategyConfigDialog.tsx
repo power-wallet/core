@@ -4,8 +4,8 @@ import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ConfigSimpleDcaV1 from '../strategies/ConfigSimpleDcaV1';
-import ConfigSmartBtcDcaV1 from '../strategies/ConfigSmartBtcDcaV1';
-import ConfigPowerBtcDcaV1 from '../strategies/ConfigPowerBtcDcaV1';
+import ConfigPowerBtcDcaV2 from '../strategies/ConfigSmartBtcDcaV1';
+import ConfigSmartBtcDcaV2 from '../strategies/ConfigPowerBtcDcaV1';
 
 type Props = {
   open: boolean;
@@ -53,10 +53,10 @@ export default function StrategyConfigDialog({ open, onClose, isMobile, chainId,
       <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 1, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
         {content === 'simple' && strategyAddr ? (
           <ConfigSimpleDcaV1 strategyAddr={strategyAddr} chainId={chainId} stableSymbol={stableSymbol || 'USDC'} stableDecimals={stableDecimals ?? 6} initialAmountStable={dcaAmount || (0n as any)} initialFrequency={freq || (0n as any)} />
-        ) : content === 'smart' && strategyAddr ? (
-          <ConfigSmartBtcDcaV1 strategyAddr={strategyAddr} chainId={chainId} />
         ) : content === 'power' && strategyAddr ? (
-          <ConfigPowerBtcDcaV1 strategyAddr={strategyAddr} chainId={chainId} stableSymbol={stableSymbol || 'USDC'} stableDecimals={stableDecimals ?? 6} />
+          <ConfigPowerBtcDcaV2 strategyAddr={strategyAddr} chainId={chainId} />
+        ) : content === 'smart' && strategyAddr ? (
+          <ConfigSmartBtcDcaV2 strategyAddr={strategyAddr} chainId={chainId} stableSymbol={stableSymbol || 'USDC'} stableDecimals={stableDecimals ?? 6} />
         ) : (
           <Typography variant="body2" color="text.secondary">This strategy is not yet configurable in the app.</Typography>
         )}
