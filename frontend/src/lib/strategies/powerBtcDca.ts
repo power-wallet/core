@@ -1,4 +1,5 @@
-import type { SimulationResult, Trade, DailyPerformance, PriceData } from '@/lib/types';
+import type { PriceData } from '@/lib/types';
+import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 import { computeReturnsFromValues, computeSharpeAndSortinoFromReturns } from '@/lib/stats';
 
 export interface Strategy {
@@ -12,71 +13,67 @@ export interface Strategy {
   ) => Promise<SimulationResult>;
 }
 
-// Defaults adapted from adaptive_dca_btc.py
-const DEFAULTS = {
-  lookbackDays: 30,           // rolling realized variance window
-  ewmaLambdaDaily: 0.94,      // EWMA lambda
-  baseDcaUsdc: 100.0,          // daily base DCA
-  evalIntervalDays: 7,        // how often to evaluate trading rules (default weekly)
-  targetBtcWeight: 0.80,      // target BTC weight
-  bandDelta: 0.10,            // ±10% band around target
-  kKicker: 0.05,              // vol/drawdown sizing coefficient
-  cmaxMult: 3.0,              // cap extra buy per day = cmax_mult * base_dca
-  bufferMult: 9.0,            // days of base DCA to keep as USDC buffer
-  minTradeUsd: 1.0,           // minimum trade to execute/record
-  winsorizeAbsRet: 0.20,      // clip abs daily log return
-  thresholdMode: true,        // optional true threshold rebalancing
-  rebalanceCapFrac: 0.05,     // cap single rebalance to 5% NAV
-};
+// Power law model: P(t) = C * d^n, with d = days since 2009-01-03
+const C = 9.65e-18; // 9.65 × 10^-18
+const N = 5.845;
+
+function daysSinceGenesis(dateStr: string): number {
+  const genesis = new Date('2009-01-03T00:00:00Z').getTime();
+  const d = new Date(dateStr + 'T00:00:00Z').getTime();
+  const days = Math.floor((d - genesis) / (1000 * 60 * 60 * 24));
+  return Math.max(1, days);
+}
+
+function modelPriceUSD(dateStr: string): number {
+  const d = daysSinceGenesis(dateStr);
+  return C * Math.pow(d, N);
+}
 
 function calculateCAGR(startValue: number, endValue: number, startDate: string, endDate: string): number {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const days = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
   const years = days / 365.2425;
-  if (years < 1) return (endValue / startValue - 1.0) * (365.2425 / days);
+  if (years < 1) { return (endValue / startValue - 1.0) * (365.2425 / days); }
   return Math.pow(endValue / startValue, 1 / years) - 1.0;
 }
 
-export async function run(
-  initialCapital: number,
-  startDate: string,
-  endDate: string,
-  options: { prices: { btc: PriceData[] } }
-): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
+
+  // Align to range and compute model and bands
   const dates = btcData.map(d => d.date);
-  const closes = btcData.map(d => d.close);
+  const prices = btcData.map(d => d.close);
+
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in BTC data');
 
-  // Portfolio state
+  // Portfolio: USDC + BTC only
   let usdc = initialCapital;
   let btcQty = 0;
-  let maxPortfolioValue = initialCapital;
-  let maxBtcHodlValue = initialCapital;
-
-  // Benchmark HODL
-  const btcStartPrice = closes[startIdx];
-  const btcHodlQty = (initialCapital * (1.0 - 0.003)) / btcStartPrice;
-
   const trades: Trade[] = [];
   const dailyPerformance: DailyPerformance[] = [];
 
-  // Rolling realized variance buffer and EWMA variance
-  const buf: number[] = [];
-  let sumR2 = 0.0;
-  let ewmaSigma2 = 0.0;
-  const warmup: number[] = [];
+  // Benchmark HODL BTC
+  const btcStartPrice = prices[startIdx];
+  const btcHodlQty = (initialCapital * (1.0 - 0.003)) / btcStartPrice; // reuse 0.3% fee assumption
 
-  // Buffer target (USDC)
-  const bufferTarget = DEFAULTS.bufferMult * DEFAULTS.baseDcaUsdc;
+  let maxPortfolioValue = initialCapital;
+  let maxBtcHodlValue = initialCapital;
 
-  // Running peak for drawdown
-  let runningPeak = closes[startIdx];
-  let prevClose: number | null = null;
+  // Helper: is week boundary (trade once per 7 days)
+  const shouldTradeOnIndex = (i: number): boolean => {
+    if (i <= startIdx) return false;
+    const prev = new Date(dates[i - 1]);
+    const curr = new Date(dates[i]);
+    const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+    // Trade if at least 7 days since last trade index tracked
+    return diffDays >= 7;
+  };
 
-  // Initial day perf
+  let lastTradeIndex = startIdx;
+
+  // Initial perf day
   dailyPerformance.push({
     date: dates[startIdx],
     cash: usdc,
@@ -88,137 +85,89 @@ export async function run(
     btcHodlValue: initialCapital,
     drawdown: 0,
     btcHodlDrawdown: 0,
-    btcPrice: closes[startIdx],
+    btcPrice: prices[startIdx],
     ethPrice: 0,
+    btcModel: modelPriceUSD(dates[startIdx]),
+    btcUpperBand: modelPriceUSD(dates[startIdx]) * 2,
+    btcLowerBand: modelPriceUSD(dates[startIdx]) * 0.5,
   });
-
-  // Evaluation cadence state
-  const toDate = (s: string) => new Date(s + 'T00:00:00Z');
-  let nextEvalDate = toDate(dates[startIdx]);
-  nextEvalDate.setDate(nextEvalDate.getDate() + DEFAULTS.evalIntervalDays);
 
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
-    const price = closes[i];
-    const currDate = toDate(date);
+    const btcPrice = prices[i];
+    const model = modelPriceUSD(date);
+    const upper = model * 2;
+    const lower = model * 0.5;
 
-    // Update drawdown
-    runningPeak = Math.max(runningPeak, price);
-    const drawdown = runningPeak > 0 ? Math.max(0, 1.0 - price / runningPeak) : 0;
+    // Update portfolio value
+    const btcValue = btcQty * btcPrice;
+    const totalEquity = usdc + btcValue;
 
-    // Daily return (log), winsorized
-    let r = 0;
-    if (prevClose != null && prevClose > 0) {
-      r = Math.log(price / prevClose);
-      const w = DEFAULTS.winsorizeAbsRet;
-      if (r > w) r = w; else if (r < -w) r = -w;
-    }
-    prevClose = price;
+    // Weekly trading rule
+    let traded = false;
+    if ((i - lastTradeIndex) >= 7 || shouldTradeOnIndex(i)) {
+      // Keep 2% USDC reserve, 10% BTC reserve
+      const usdcSpendable = Math.max(0, totalEquity * 0.98 - btcValue);
+      const btcSpendableQty = Math.max(0, btcQty - (totalEquity * 0.10) / btcPrice);
 
-    // Rolling RV update over lookbackDays
-    const r2 = r * r;
-    if (buf.length === DEFAULTS.lookbackDays) {
-      sumR2 -= buf[0];
-      buf.shift();
-    }
-    buf.push(r2);
-    sumR2 += r2;
-
-    // EWMA update (after brief warmup)
-    if (warmup.length < Math.min(10, Math.floor(DEFAULTS.lookbackDays / 3))) {
-      warmup.push(r2);
-      if (warmup.length === Math.min(10, Math.floor(DEFAULTS.lookbackDays / 3))) {
-        ewmaSigma2 = warmup.reduce((a, b) => a + b, 0) / warmup.length;
-      }
-    } else {
-      const lam = DEFAULTS.ewmaLambdaDaily;
-      ewmaSigma2 = lam * ewmaSigma2 + (1 - lam) * r2;
-    }
-
-    // Annualized vols
-    const rvAnn = buf.length > 0 ? Math.sqrt(sumR2 * (365.0 / buf.length)) : 0;
-    const ewmaAnn = ewmaSigma2 > 0 ? Math.sqrt(ewmaSigma2 * 365.0) : 0;
-    const sigmaAnn = Math.max(rvAnn, ewmaAnn);
-
-    // Portfolio before trades
-    const nav = usdc + btcQty * price;
-    const btcValue = btcQty * price;
-    const wBtc = nav > 0 ? btcValue / nav : 0;
-    const wMinus = Math.max(0, DEFAULTS.targetBtcWeight - DEFAULTS.bandDelta);
-    const wPlus = Math.min(1, DEFAULTS.targetBtcWeight + DEFAULTS.bandDelta);
-
-    // Evaluate trading rules only on evaluation days
-    if (currDate >= nextEvalDate) {
-      // Threshold-mode optional rebalancing to band boundary
-      if (DEFAULTS.thresholdMode && nav > 0) {
-        if (wBtc > wPlus) {
-          const targetBtcValue = wPlus * nav;
-          const excessUsd = Math.max(0, btcValue - targetBtcValue);
-          let tradeUsd = Math.min(excessUsd, DEFAULTS.rebalanceCapFrac * nav);
-          if (tradeUsd >= DEFAULTS.minTradeUsd && price > 0) {
-            let qty = tradeUsd / price;
-            qty = Math.min(qty, btcQty);
-            tradeUsd = qty * price;
-            btcQty -= qty;
-            usdc += tradeUsd;
-            trades.push({ date, symbol: 'BTC', side: 'SELL', price, quantity: qty, value: tradeUsd, fee: 0, portfolioValue: usdc + btcQty * price });
-          }
-        } else if (wBtc < wMinus) {
-          const targetBtcValue = wMinus * nav;
-          const shortfallUsd = Math.max(0, targetBtcValue - btcValue);
-          const tradeUsd = Math.min(shortfallUsd, usdc, DEFAULTS.rebalanceCapFrac * nav);
-          if (tradeUsd >= DEFAULTS.minTradeUsd && price > 0) {
-            const qty = tradeUsd / price;
-            btcQty += qty;
-            usdc -= tradeUsd;
-            trades.push({ date, symbol: 'BTC', side: 'BUY', price, quantity: qty, value: tradeUsd, fee: 0, portfolioValue: usdc + btcQty * price });
-          }
+      if (btcPrice < lower && usdc > 0) {
+        // BUY 5% of available USDC when below lower band
+        const buyAmount = Math.min(usdc * 0.05, usdcSpendable);
+        if (buyAmount > 0) {
+          const fee = buyAmount * 0.003;
+          const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;
+          btcQty += qty; usdc -= (buyAmount + fee);
+          trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: buyAmount, fee, portfolioValue: usdc + btcQty * btcPrice });
+          traded = true; lastTradeIndex = i;
         }
-        // If outside band we skip DCA logic for today
-        if (wBtc > wPlus || wBtc < wMinus) {
-          const portfolioValue = usdc + btcQty * price;
-          const btcHodlValue = btcHodlQty * price;
-          maxPortfolioValue = Math.max(maxPortfolioValue, portfolioValue);
-          maxBtcHodlValue = Math.max(maxBtcHodlValue, btcHodlValue);
-          const dd = ((portfolioValue / maxPortfolioValue) - 1.0) * 100;
-          const hodlDD = ((btcHodlValue / maxBtcHodlValue) - 1.0) * 100;
-          dailyPerformance.push({ date, cash: usdc, btcQty, ethQty: 0, btcValue: btcQty * price, ethValue: 0, totalValue: portfolioValue, btcHodlValue, drawdown: dd, btcHodlDrawdown: hodlDD, btcPrice: price, ethPrice: 0 });
-          nextEvalDate.setDate(nextEvalDate.getDate() + DEFAULTS.evalIntervalDays);
-          continue;
+      } else if (btcPrice >= lower && btcPrice <= model && usdc > 0) {
+        // BUY 1% of available USDC when between lower band and model price (small DCA)
+        const buyAmount = Math.min(usdc * 0.01, usdcSpendable);
+        if (buyAmount > 0) {
+          const fee = buyAmount * 0.003;
+          const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;
+          btcQty += qty; usdc -= (buyAmount + fee);
+          trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: buyAmount, fee, portfolioValue: usdc + btcQty * btcPrice });
+          traded = true; lastTradeIndex = i;
+        }
+      } else if (btcPrice > upper && btcQty > 0) {
+        // SELL 5% of available BTC
+        const qtyToSell = Math.min(btcQty * 0.05, btcSpendableQty);
+        if (qtyToSell > 0) {
+          const gross = qtyToSell * btcPrice;
+          const fee = gross * 0.003;
+          btcQty -= qtyToSell; usdc += gross * (1.0 - 0.003);
+          trades.push({ date, symbol: 'BTC', side: 'SELL', price: btcPrice, quantity: qtyToSell, value: gross, fee, portfolioValue: usdc + btcQty * btcPrice });
+          traded = true; lastTradeIndex = i;
         }
       }
-
-      // Buy-only logic (base DCA + volatility kicker)
-      const availableToSpend = Math.max(0, usdc - bufferTarget);
-      const baseBuy = Math.min(DEFAULTS.baseDcaUsdc, usdc);
-      let buyBudget = baseBuy;
-      // Kicker scaled by volatility and drawdown
-      let extraBuy = DEFAULTS.kKicker * sigmaAnn * drawdown * nav;
-      const extraCap = DEFAULTS.cmaxMult * DEFAULTS.baseDcaUsdc;
-      extraBuy = Math.min(extraBuy, extraCap);
-      extraBuy = Math.min(extraBuy, availableToSpend);
-      buyBudget += Math.max(0, extraBuy);
-
-      const buyUsd = Math.min(usdc, buyBudget);
-      if (buyUsd >= DEFAULTS.minTradeUsd && price > 0) {
-        const qty = buyUsd / price;
-        btcQty += qty;
-        usdc -= buyUsd;
-        trades.push({ date, symbol: 'BTC', side: 'BUY', price, quantity: qty, value: buyUsd, fee: 0, portfolioValue: usdc + btcQty * price });
-      }
-
-      // Advance next evaluation date
-      nextEvalDate.setDate(nextEvalDate.getDate() + DEFAULTS.evalIntervalDays);
     }
 
-    // Daily performance
-    const portfolioValue = usdc + btcQty * price;
-    const btcHodlValue = btcHodlQty * price;
+    const newBtcValue = btcQty * btcPrice;
+    const portfolioValue = usdc + newBtcValue;
+    const btcHodlValue = btcHodlQty * btcPrice;
     maxPortfolioValue = Math.max(maxPortfolioValue, portfolioValue);
     maxBtcHodlValue = Math.max(maxBtcHodlValue, btcHodlValue);
-    const dd = ((portfolioValue / maxPortfolioValue) - 1.0) * 100;
-    const hodlDD = ((btcHodlValue / maxBtcHodlValue) - 1.0) * 100;
-    dailyPerformance.push({ date, cash: usdc, btcQty, ethQty: 0, btcValue: btcQty * price, ethValue: 0, totalValue: portfolioValue, btcHodlValue, drawdown: dd, btcHodlDrawdown: hodlDD, btcPrice: price, ethPrice: 0 });
+    const drawdown = ((portfolioValue / maxPortfolioValue) - 1.0) * 100;
+    const btcHodlDrawdown = ((btcHodlValue / maxBtcHodlValue) - 1.0) * 100;
+
+    dailyPerformance.push({
+      date,
+      cash: usdc,
+      btcQty,
+      ethQty: 0,
+      btcValue: newBtcValue,
+      ethValue: 0,
+      totalValue: portfolioValue,
+      btcHodlValue,
+      drawdown,
+      btcHodlDrawdown,
+      btcPrice,
+      ethPrice: 0,
+      btcModel: model,
+      btcUpperBand: upper,
+      btcLowerBand: lower,
+    });
   }
 
   const finalPerf = dailyPerformance[dailyPerformance.length - 1];
@@ -227,12 +176,12 @@ export async function run(
   const btcHodlReturn = ((finalPerf.btcHodlValue / initialCapital) - 1.0) * 100;
   const btcHodlCagr = calculateCAGR(initialCapital, finalPerf.btcHodlValue, dates[startIdx], dates[dates.length - 1]) * 100;
   const maxDrawdown = Math.min(...dailyPerformance.map(d => d.drawdown));
+  const btcHodlMaxDrawdown = Math.min(...dailyPerformance.map(d => d.btcHodlDrawdown));
 
-  // Sharpe/Sortino (same method as other strategies)
+  // Risk metrics
   const dailyReturns = computeReturnsFromValues(dailyPerformance.map(d => d.totalValue));
   const { sharpe: sharpeRatio, sortino: sortinoRatio } = computeSharpeAndSortinoFromReturns(dailyReturns);
 
-  // BTC HODL Sharpe/Sortino computed from BTC HODL daily returns
   const btcDailyReturns = computeReturnsFromValues(dailyPerformance.map(d => d.btcHodlValue));
   const { sharpe: btcHodlSharpeRatio, sortino: btcHodlSortinoRatio } = computeSharpeAndSortinoFromReturns(btcDailyReturns);
 
@@ -252,7 +201,7 @@ export async function run(
       btcHodlFinalValue: finalPerf.btcHodlValue,
       btcHodlReturn,
       btcHodlCagr,
-      btcHodlMaxDrawdown: Math.min(...dailyPerformance.map(d => d.btcHodlDrawdown)),
+      btcHodlMaxDrawdown,
       btcHodlSharpeRatio,
       btcHodlSortinoRatio,
       outperformance: cagr - btcHodlCagr,
@@ -267,5 +216,3 @@ const strategy: Strategy = {
 };
 
 export default strategy;
-
-

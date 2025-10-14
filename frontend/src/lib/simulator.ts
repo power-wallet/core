@@ -440,20 +440,20 @@ export async function runStrategy(
         } 
       });
     }
-    case 'smart-btc-dca': {
-      const mod = await import('@/lib/strategies/smartBtcDca');
-      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
-    }
     case 'simple-btc-dca': {
       const mod = await import('@/lib/strategies/simpleBtcDca');
       return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
     }
-    case 'trend-btc-dca': {
-      const mod = await import('@/lib/strategies/btcTrendFollowing');
-      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
-    }
     case 'power-btc-dca': {
       const mod = await import('@/lib/strategies/powerBtcDca');
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+    }
+    case 'smart-btc-dca': {
+      const mod = await import('@/lib/strategies/smartBtcDca');
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+    }
+    case 'trend-btc-dca': {
+      const mod = await import('@/lib/strategies/btcTrendFollowing');
       return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
     }
     default:

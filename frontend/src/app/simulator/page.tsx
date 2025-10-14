@@ -141,10 +141,10 @@ export default function SimulatorPage() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {(() => {
                   const id = strategyId;
-                  if (id === 'smart-btc-dca') {
+                  if (id === 'power-btc-dca') {
                     return 'A BTC-only DCA strategy guided by a Power Law model, with dynamic buy/sell rules around lower/model/upper bands.';
                   }
-                  if (id === 'power-btc-dca') {
+                  if (id === 'smart-btc-dca') {
                     return 'An adaptive BTC DCA that scales buys with volatility and drawdowns, with optional threshold rebalancing to a target BTC weight band.';
                   }
                   if (id === 'simple-btc-dca') {
@@ -167,7 +167,7 @@ export default function SimulatorPage() {
               <Collapse in={showOverview} timeout="auto" unmountOnExit>
                 {(() => {
                   const id = strategyId;
-                  if (id === 'smart-btc-dca') {
+                  if (id === 'power-btc-dca') {
                     return (
                       <>
                         <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mb: 1 }}>Core rules</Typography>
@@ -211,7 +211,7 @@ export default function SimulatorPage() {
                       </>
                     );
                   }
-                  if (id === 'power-btc-dca') {
+                  if (id === 'smart-btc-dca') {
                     return (
                       <>
                         <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mb: 1 }}>Core rules</Typography>

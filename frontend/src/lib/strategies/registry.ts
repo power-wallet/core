@@ -17,11 +17,11 @@ export interface Strategy {
 export type ChartId = 'portfolio' | 'powerlaw' | 'allocation' | 'drawdown' | 'prices' | 'rsi' | 'trades';
 
 export const strategyCharts: Record<StrategyId, ChartId[]> = {
-  'smart-btc-dca': ['portfolio', 'powerlaw', 'allocation', 'drawdown', 'trades'],
   'simple-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
-  'btc-eth-momentum': ['portfolio', 'prices', 'allocation', 'drawdown', 'rsi', 'trades'],
+  'power-btc-dca': ['portfolio', 'powerlaw', 'allocation', 'drawdown', 'trades'],
+  'smart-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
   'trend-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
-  'power-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
+  'btc-eth-momentum': ['portfolio', 'prices', 'allocation', 'drawdown', 'rsi', 'trades'],
 };
 
 // Lazy imports to avoid bundling unused strategies upfront
@@ -31,7 +31,7 @@ async function getMomentumStrategy() {
 }
 
 async function getDcaStrategy() {
-  const mod = await import('@/lib/strategies/smartBtcDca');
+  const mod = await import('@/lib/strategies/powerBtcDca');
   return mod.default as Strategy;
 }
 
@@ -46,7 +46,7 @@ async function getTrendFollowingStrategy() {
 }
 
 async function getPowerDcaStrategy() {
-  const mod = await import('@/lib/strategies/powerBtcDca');
+  const mod = await import('@/lib/strategies/smartBtcDca');
   return mod.default as Strategy;
 }
 
