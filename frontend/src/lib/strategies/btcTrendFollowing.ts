@@ -3,7 +3,7 @@ import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 import { computeReturnsFromValues, computeSharpeAndSortinoFromReturns } from '@/lib/stats';
 
 export interface Strategy {
-  id: 'btc-trend-following';
+  id: 'trend-btc-dca';
   name: string;
   run: (
     initialCapital: number,
@@ -210,7 +210,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   return {
     dailyPerformance,
     trades,
-    strategyId: 'btc-trend-following',
+    strategyId: 'trend-btc-dca',
     summary: {
       initialCapital,
       finalValue: finalPerf.totalValue,
@@ -234,7 +234,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 }
 
 const strategy: Strategy = {
-  id: 'btc-trend-following',
+  id: 'trend-btc-dca',
   name: 'Trend BTC DCA (SMA50, weekly)',
   run,
 };

@@ -153,7 +153,7 @@ export default function SimulatorPage() {
                   if (id === 'btc-eth-momentum') {
                     return 'A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.';
                   }
-                  if (id === 'btc-trend-following') {
+                  if (id === 'trend-btc-dca') {
                     return 'Trend BTC DCA: all‑in BTC when price is convincingly above SMA50 with a rising slope; otherwise hold USDC and DCA on a schedule.';
                   }
                   return '';
@@ -363,7 +363,7 @@ export default function SimulatorPage() {
                       </>
                     );
                   }
-                  if (id === 'btc-trend-following') {
+                  if (id === 'trend-btc-dca') {
                     return (
                       <>
                         <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mb: 1 }}>Core rules</Typography>

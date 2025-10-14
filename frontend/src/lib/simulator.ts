@@ -448,7 +448,7 @@ export async function runStrategy(
       const mod = await import('@/lib/strategies/simpleBtcDca');
       return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
     }
-    case 'btc-trend-following': {
+    case 'trend-btc-dca': {
       const mod = await import('@/lib/strategies/btcTrendFollowing');
       return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
     }

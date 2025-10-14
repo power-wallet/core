@@ -1,6 +1,6 @@
 import type { SimulationResult, PriceData } from '@/lib/types';
 
-export type StrategyId = 'btc-eth-momentum' | 'smart-btc-dca' | 'simple-btc-dca' | 'btc-trend-following' | 'power-btc-dca';
+export type StrategyId = 'btc-eth-momentum' | 'smart-btc-dca' | 'simple-btc-dca' | 'trend-btc-dca' | 'power-btc-dca';
 
 export interface Strategy {
   id: StrategyId;
@@ -20,7 +20,7 @@ export const strategyCharts: Record<StrategyId, ChartId[]> = {
   'smart-btc-dca': ['portfolio', 'powerlaw', 'allocation', 'drawdown', 'trades'],
   'simple-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
   'btc-eth-momentum': ['portfolio', 'prices', 'allocation', 'drawdown', 'rsi', 'trades'],
-  'btc-trend-following': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
+  'trend-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
   'power-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
 };
 

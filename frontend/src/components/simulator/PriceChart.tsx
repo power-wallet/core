@@ -58,7 +58,7 @@ const TriangleDown = (props: any) => {
 
 const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
   const { dailyPerformance, trades } = result;
-  const showSma50 = useMemo(() => result.strategyId === 'btc-trend-following', [result.strategyId]);
+  const showSma50 = useMemo(() => result.strategyId === 'trend-btc-dca', [result.strategyId]);
   const hasEth = useMemo(() => {
     const anyEthPrices = dailyPerformance.some((d) => (d.ethPrice || 0) > 0);
     const anyEthTrades = trades.some((t) => t.symbol === 'ETH');
