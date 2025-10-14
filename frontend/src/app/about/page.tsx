@@ -111,8 +111,7 @@ export default function About() {
                       &nbsp; price model.
                     </li>
                     <li>Power BTC DCA: Adaptive DCA that buys the dip using volatility, with optional threshold rebalancing.</li>
-                    <li>BTC-ETH Momentum: A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.</li>
-                    <li>Trend Following: A trend following strategy that goes all in BTC when the trend is up, otherwise sits in USDC.</li>
+                    <li>Trend BTC DCA: All‑in BTC when the trend is up (above SMA50 with rising slope), otherwise sit in USDC and DCA on a schedule.</li>
                   </ul>
                 </Typography>
               </Box>

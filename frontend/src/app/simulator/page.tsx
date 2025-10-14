@@ -154,7 +154,7 @@ export default function SimulatorPage() {
                     return 'A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.';
                   }
                   if (id === 'btc-trend-following') {
-                    return 'A weekly 50‑day SMA trend strategy: fully in BTC when price > 50D SMA; otherwise in USDC.';
+                    return 'Trend BTC DCA: all‑in BTC when price is convincingly above SMA50 with a rising slope; otherwise hold USDC and DCA on a schedule.';
                   }
                   return '';
                 })()}
@@ -370,22 +370,40 @@ export default function SimulatorPage() {
                         <ul style={{ margin: 0, paddingLeft: 18 }}>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Signal: BTC close versus its 50‑day simple moving average (SMA50).
+                              Trend filter: BTC close vs. SMA50 with 1.5% hysteresis and a rising SMA slope (14‑day lookback).
                             </Typography>
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Entry (weekly): close &gt; SMA50 × 1.005 AND RSI(14) &gt; 60 AND SMA50 rising over 5 days.
+                              Entry: close &gt; SMA50 × (1 + 1.5%) AND slope rising → buy 100% USDC into BTC.
                             </Typography>
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Exit (aggressive): close &lt; SMA50 → SELL 100% to USDC (after 0.30% fee).
+                              Exit: close &lt; SMA50 × (1 − 1.5%) OR slope not rising → sell 100% BTC to USDC and enter DCA mode.
                             </Typography>
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Evaluation cadence: every 7 days; decisions only occur on evaluation dates.
+                              DCA mode: buy 5% of USDC each evaluation; if price is ≥ 15% below SMA50, boost to 2×. Only act if USDC &gt; $100 and spend ≥ $1.
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Cadence & fees: evaluate every 5 trading days; 0.30% fee on buys and sells.
+                            </Typography>
+                          </li>
+                        </ul>
+                        <Typography variant="subtitle2" sx={{ color: '#D1D5DB', mt: 2, mb: 1 }}>Examples</Typography>
+                        <ul style={{ margin: 0, paddingLeft: 18 }}>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Price 2% above SMA50 and SMA rising → on next evaluation, go 100% BTC.
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Price 12% below SMA50 → DCA 5% of USDC; 18% below → DCA 10% (boosted).
                             </Typography>
                           </li>
                         </ul>

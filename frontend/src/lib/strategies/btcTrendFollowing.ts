@@ -1,5 +1,4 @@
 import type { PriceData } from '@/lib/types';
-import { calculateRSI } from '@/lib/indicators';
 import type { SimulationResult, Trade, DailyPerformance } from '@/lib/types';
 import { computeReturnsFromValues, computeSharpeAndSortinoFromReturns } from '@/lib/stats';
 
@@ -10,28 +9,55 @@ export interface Strategy {
     initialCapital: number,
     startDate: string,
     endDate: string,
-    options: { prices: { btc: PriceData[] } }
+    options: {
+      prices: { btc: PriceData[] };
+      evalIntervalDays?: number;
+      feePct?: number;
+      // DCA configuration
+      dcaPctWhenBearish?: number;
+      discountBelowSmaPct?: number;
+      dcaBoostMultiplier?: number;
+      minCashUsd?: number;
+      minSpendUsd?: number;
+      // Trend filter configuration
+      hystBps?: number;           // hysteresis band in basis points (default 150 = 1.5%)
+      slopeLookbackDays?: number; // SMA slope lookback (default 14)
+    }
   ) => Promise<SimulationResult>;
 }
 
-const EVAL_INTERVAL_DAYS = 7; // evaluate weekly
-const SMA_LENGTH = 50; // 50-day SMA
-const RSI_LENGTH = 8;
-const ENTRY_RSI = 70; // wider confirmation band: stronger RSI for entry
-const BUFFER_BPS = 50; // 0.5% price buffer around SMA
-const SLOPE_LOOKBACK_DAYS = 14; // SMA must be rising over this lookback
+const DEFAULT_EVAL_INTERVAL_DAYS = 5; // evaluate roughly weekly
+const SMA_LENGTH = 50; // SMA period for trend
+const DEFAULT_SLOPE_LOOKBACK_DAYS = 14; // slope window
+const DEFAULT_HYST_BPS = 150; // 1.5% hysteresis band
+const DEFAULT_DCA_PCT_WHEN_BEARISH = 0.05; // 5% base DCA
+const DEFAULT_DISCOUNT_BELOW_SMA_PCT = 15; // boost when price ≥15% below SMA
+const DEFAULT_DCA_BOOST_MULTIPLIER = 2; // 2x DCA when discounted
+const DEFAULT_FEE_PCT = 0.003; // 0.3%
+const DEFAULT_MIN_CASH_USD = 100; // only DCA if we have at least this much USDC
+const DEFAULT_MIN_SPEND_USD = 1; // minimum spend per DCA
+const DEFAULT_DCA_MODE = false;
 
-export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
+  const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_DCA_PCT_WHEN_BEARISH));
+  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_EVAL_INTERVAL_DAYS));
+  const feePct = options.feePct ?? DEFAULT_FEE_PCT;
+  const discountBelowSmaPct = Math.max(0, options.discountBelowSmaPct ?? DEFAULT_DISCOUNT_BELOW_SMA_PCT);
+  const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_DCA_BOOST_MULTIPLIER);
+  const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_MIN_CASH_USD);
+  const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_MIN_SPEND_USD);
+  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_HYST_BPS));
+  const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_SLOPE_LOOKBACK_DAYS));
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
-  const rsi = calculateRSI(prices, RSI_LENGTH);
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in BTC data');
 
   let usdc = initialCapital;
   let btcQty = 0;
+  let inDcaMode = DEFAULT_DCA_MODE;
   const trades: Trade[] = [];
   const dailyPerformance: DailyPerformance[] = [];
 
@@ -44,7 +70,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
   const toDate = (s: string) => new Date(s + 'T00:00:00Z');
   let nextEvalDate = toDate(dates[startIdx]);
-  nextEvalDate.setDate(nextEvalDate.getDate() + EVAL_INTERVAL_DAYS);
+  nextEvalDate.setDate(nextEvalDate.getDate() + evalIntervalDays);
 
   // Initial day
   dailyPerformance.push({
@@ -85,31 +111,52 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     // Evaluate weekly
     const currDate = toDate(date);
     if (sma !== null && currDate >= nextEvalDate) {
-      // Price buffer around SMA to avoid whipsaws
-      const entryThresh = sma * (1 + BUFFER_BPS / 10_000);
-      // RSI filters
-      const rsiNow = rsi[i];
-      const enterConfirmed = btcPrice > entryThresh && rsiNow > ENTRY_RSI;
-      // Aggressive exit: drop below SMA50 exits immediately
-      const exitConfirmed = btcPrice < sma;
-      // SMA slope filter
-      const slopeOk = i - SLOPE_LOOKBACK_DAYS >= 0 ? smaAt(i, SMA_LENGTH)! > smaAt(i - SLOPE_LOOKBACK_DAYS, SMA_LENGTH)! : true;
+      // Hysteresis thresholds and slope gate
+      const upThresh = sma * (1 + hystBps / 10_000);
+      const dnThresh = sma * (1 - hystBps / 10_000);
+      const slopeOk = i - slopeLookback >= 0 ? smaAt(i, SMA_LENGTH)! > smaAt(i - slopeLookback, SMA_LENGTH)! : true;
+      const enterUp = btcPrice > upThresh && slopeOk;
+      const exitUp = btcPrice < dnThresh || !slopeOk;
 
-      if (enterConfirmed && slopeOk && usdc > 1) {
+      if (!inDcaMode && enterUp && usdc >= 1) {
         // BUY 100% USDC into BTC
-        const fee = usdc * 0.003;
-        const qty = (usdc * (1.0 - 0.003)) / btcPrice;
+        const fee = usdc * feePct;
+        const qty = (usdc * (1.0 - feePct)) / btcPrice;
         btcQty += qty; usdc = 0;
         trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: qty * btcPrice, fee, portfolioValue: usdc + btcQty * btcPrice });
-      } else if (exitConfirmed && btcQty > 0) {
-        // SELL 100% BTC into USDC
+        inDcaMode = false;
+      } else if (!inDcaMode && exitUp && btcQty > 0) {
+        // On first confirmed exit, sell 100% BTC to USDC, then enter DCA mode
         const gross = btcQty * btcPrice;
-        const fee = gross * 0.003;
-        const value = gross * (1.0 - 0.003);
+        const fee = gross * feePct;
+        const value = gross * (1.0 - feePct);
         trades.push({ date, symbol: 'BTC', side: 'SELL', price: btcPrice, quantity: btcQty, value: gross, fee, portfolioValue: usdc + value });
         usdc += value; btcQty = 0;
+        inDcaMode = true;
+      } else if (inDcaMode && !enterUp && usdc > minCashUsd) {
+        // DCA gently while trend is not up
+        let spend = Math.min(usdc, usdc * dcaPct);
+        const discount = 1 - (btcPrice / sma);
+        if (discount * 100 >= discountBelowSmaPct) {
+          spend = Math.min(usdc, spend * dcaBoostMultiplier);
+        }
+        if (spend >= minSpendUsd) {
+          const fee = spend * feePct;
+          const net = spend * (1.0 - feePct);
+          const qty = net / btcPrice;
+          btcQty += qty;
+          usdc -= (spend);
+          trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: spend, fee, portfolioValue: usdc + btcQty * btcPrice });
+        }
+      } else if (inDcaMode && enterUp && usdc >= 1) {
+        // Switch from DCA to full BTC when trend resumes
+        const fee = usdc * feePct;
+        const qty = (usdc * (1.0 - feePct)) / btcPrice;
+        btcQty += qty; usdc = 0;
+        trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: qty * btcPrice, fee, portfolioValue: usdc + btcQty * btcPrice });
+        inDcaMode = false;
       }
-      nextEvalDate.setDate(nextEvalDate.getDate() + EVAL_INTERVAL_DAYS);
+      nextEvalDate.setDate(nextEvalDate.getDate() + evalIntervalDays);
     }
 
     const btcValue = btcQty * btcPrice;
@@ -188,7 +235,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
 const strategy: Strategy = {
   id: 'btc-trend-following',
-  name: 'BTC Trend Following (50D SMA, weekly)',
+  name: 'Trend BTC DCA (SMA50, weekly)',
   run,
 };
 
