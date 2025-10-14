@@ -84,14 +84,14 @@ export default function Home() {
                 gutterBottom
                 sx={{ opacity: 0.95, mb: 4, fontSize: { xs: '1.25rem', md: '1.5rem' } }}
               >
-                Smart Investing in Bitcoin & Digital Assets
+                Smarter Bitcoin Investing
               </Typography>
               <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0 }}>
                 <li>
-                  <Typography variant="body1"><strong>Power up</strong> your Bitcoin & crypto investments with proven investment strategies automated on-chain.</Typography>
+                  <Typography variant="body1"><strong>Power up</strong> your Bitcoin investments with proven DCA strategies automated on-chain.</Typography>
                 </li>
                 <li>
-                  <Typography variant="body1"><strong>DCA into Bitcoin</strong> with the benefits of <strong>automated risk management</strong>.</Typography>
+                  <Typography variant="body1">Stack more Bitcoin with the benefits of <strong>automated risk management</strong>.</Typography>
                 </li>
                 <li>
                   <Typography variant="body1">Maintain <strong>full custody</strong> with blockchain-based secure, transparent, verifiable execution. </Typography>
@@ -171,7 +171,7 @@ export default function Home() {
           color="text.secondary"
           sx={{ mb: 6, maxWidth: 600, mx: 'auto' }}
         >
-          Experience the future of Bitcoin digital asset investing with smart on-chain wallets that rebalance your portfolio for you.
+          Experience the future of Bitcoin investing with smart, on-chain wallets that accumulate Bitcoin and rebalance your portfolio for you.
         </Typography>
 
         <Grid container spacing={4}>

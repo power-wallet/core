@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Power Wallet - Smart Bitcoin DCA Investing',
-  description: 'An on-chain wallet for smart investing in Bitcoin and digital assets',
+  description: 'On-chain wallet for smart investing in Bitcoin and digital assets',
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
