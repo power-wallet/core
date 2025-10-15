@@ -34,6 +34,7 @@ contract PowerBtcDcaV2 is IStrategy {
 
     uint256 public frequency;          // seconds between evaluations
     uint256 public lastTimestamp;      // last executed timestamp, set in onRebalanceExecuted
+    address public authorizedWallet;
 
     // Band thresholds expressed as bps around model
     // Buy if price <= model * (10000 - lowerBandBps) / 10000
@@ -170,7 +171,9 @@ contract PowerBtcDcaV2 is IStrategy {
         return (false, actions);
     }
 
-    function onRebalanceExecuted() external {
+    function onRebalanceExecutedWithContext(SwapAction[] calldata /*actions*/) external {
+        require(msg.sender == authorizedWallet, "unauthorized");
+        
         lastTimestamp = block.timestamp;
         emit Executed(lastTimestamp, 0, 0);
     }
@@ -185,6 +188,7 @@ contract PowerBtcDcaV2 is IStrategy {
     }
     function setFrequency(uint256 newFrequency) external onlyOwner { require(newFrequency > 0, "freq"); frequency = newFrequency; }
     function setFeed(address newFeed) external onlyOwner { require(newFeed != address(0), "feed"); btcUsdFeed = newFeed; }
+    function setAuthorizedWallet(address wallet_) external onlyOwner { authorizedWallet = wallet_; }
 
     // ---- Testing helpers (view) ----
     function getModelAndBands() external view returns (uint256 model, uint256 lowerThreshold, uint256 upperThreshold) {

@@ -3,8 +3,7 @@ import { ethers } from "hardhat";
 
 describe("SmartBtcDcaV2", function () {
   it("initializes and produces DCA action on evaluation day", async () => {
-    const [] = await ethers.getSigners();
-
+    
     // Deploy mocks
     const MockERC20 = await ethers.getContractFactory("MockERC20");
     const usdc = await MockERC20.deploy("USDC", "USDC", 6);
@@ -198,6 +197,8 @@ describe("SmartBtcDcaV2", function () {
   });
 
   it("cadence gate blocks subsequent action until interval elapses", async () => {
+    const [deployer] = await ethers.getSigners();
+
     const MockERC20 = await ethers.getContractFactory("MockERC20");
     const usdc = await MockERC20.deploy("USDC", "USDC", 6);
     const cbBTC = await MockERC20.deploy("cbBTC", "cbBTC", 8);
@@ -214,11 +215,13 @@ describe("SmartBtcDcaV2", function () {
       100_000000n, 7n*24n*3600n, 7000, 2000, 9, 3, 500, 50_000, false, "desc"
     );
 
+    strat.setAuthorizedWallet(await deployer.getAddress());
+
     const stableBal = 10_000_000000n; // 10,000 USDC
     const riskBal = 0n;
     const first = await strat.shouldRebalance(await usdc.getAddress(), [await cbBTC.getAddress()], stableBal, [riskBal]);
     expect(first[0]).to.eq(true);
-    await (await strat.onRebalanceExecuted()).wait();
+    await (await strat.onRebalanceExecutedWithContext([])).wait();
     const second = await strat.shouldRebalance(await usdc.getAddress(), [await cbBTC.getAddress()], stableBal, [riskBal]);
     expect(second[0]).to.eq(false);
   });

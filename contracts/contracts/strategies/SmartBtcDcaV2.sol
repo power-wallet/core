@@ -49,6 +49,7 @@ contract SmartBtcDcaV2 is IStrategy {
     uint256 public baseDcaStable;        // base DCA amount in stable decimals
     uint256 public frequency;            // seconds between evaluations
     uint256 public lastTimestamp;        // updated via onRebalanceExecuted
+    address public authorizedWallet;
 
     uint16 public targetBtcBps;          // 7000 = 70%
     uint16 public bandDeltaBps;          // 2000 = ±20% (band around target)
@@ -224,7 +225,9 @@ contract SmartBtcDcaV2 is IStrategy {
         return (false, actions);
     }
 
-    function onRebalanceExecuted() external {
+    function onRebalanceExecutedWithContext(SwapAction[] calldata /*actions*/) external {
+        require(msg.sender == authorizedWallet, "unauthorized");
+        
         lastTimestamp = block.timestamp;
         emit Executed(lastTimestamp, 0, 0);
     }
@@ -251,6 +254,7 @@ contract SmartBtcDcaV2 is IStrategy {
     }
     
     function setIndicators(address newIndicators) external onlyOwner { indicators = newIndicators; }
+    function setAuthorizedWallet(address wallet_) external onlyOwner { authorizedWallet = wallet_; }
 }
 
 

@@ -37,7 +37,7 @@ async function main() {
   const buy = Number(process.env.BUY || "500"); // 5% of stable balance
   const smallBuy = Number(process.env.SMALLBUY || "100"); // 1% of stable balance
   const sell = Number(process.env.SELL || "500"); // 5% of risk balance
-  const desc = process.env.DESC || "Smart BTC DCA (Power Law)";
+  const desc = process.env.DESC || "Power BTC DCA";
 
   if (!registryAddr) throw new Error("REGISTRY required");
   if (!user) throw new Error("USER_ADDRESS required");

@@ -16,7 +16,8 @@ describe("SimpleDCA strategy", () => {
     const frequency = 1n; // 1s
     await dca.initialize(await cbBTC.getAddress(), await usdc.getAddress(), amountStable, frequency, "Simple DCA");
 
-    return { dca, usdc, cbBTC };
+    dca.setAuthorizedWallet(await deployer.getAddress());
+    return { dca, usdc, cbBTC , deployer};
   }
 
   it("returns no action if stable asset mismatches", async () => {
@@ -71,8 +72,8 @@ describe("SimpleDCA strategy", () => {
     expect(actions[0].amountIn).to.eq(100_000_000n);
   });
 
-  it("updates lastTimestamp on onRebalanceExecuted", async () => {
-    const { dca, usdc, cbBTC } = await deployFixture();
+  it("updates lastTimestamp on onRebalanceExecutedWithContext", async () => {
+    const { dca, usdc, cbBTC, deployer } = await deployFixture();
     const [need] = await dca.shouldRebalance.staticCall(
       await usdc.getAddress(),
       [await cbBTC.getAddress()],
@@ -81,7 +82,7 @@ describe("SimpleDCA strategy", () => {
     );
     expect(need).to.eq(true);
     // call and then ensure next call is frequency-gated
-    await dca.onRebalanceExecuted();
+    await dca.onRebalanceExecutedWithContext([]);
     const [need2] = await dca.shouldRebalance.staticCall(
       await usdc.getAddress(),
       [await cbBTC.getAddress()],

@@ -30,6 +30,7 @@ contract SimpleDCA is IStrategy {
     uint256 public dcaAmountStable; // in stable decimals
     uint256 public frequency; // seconds
     uint256 public lastTimestamp;
+    address public authorizedWallet;
     string private _description;
     string private _id;
     string private _name;
@@ -76,7 +77,10 @@ contract SimpleDCA is IStrategy {
         return (true, actions);
     }
 
-    function onRebalanceExecuted() external {
+    // V2 hook receiving actions; here we only update cadence gate
+    function onRebalanceExecutedWithContext(SwapAction[] calldata /*actions*/) external {
+        require(msg.sender == authorizedWallet, "unauthorized");
+        
         lastTimestamp = block.timestamp;
         emit Executed(lastTimestamp, dcaAmountStable);
     }
@@ -102,6 +106,10 @@ contract SimpleDCA is IStrategy {
     function setFrequency(uint256 newFrequency) external onlyOwner {
         require(newFrequency > 0, "freq");
         frequency = newFrequency;
+    }
+
+    function setAuthorizedWallet(address wallet_) external onlyOwner {
+        authorizedWallet = wallet_;
     }
 }
 

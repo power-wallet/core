@@ -52,9 +52,9 @@ async function main() {
   console.log('PowerBtcDcaV2 (template):', await power.getAddress());
 
   // Register PowerBtcDcaV2 strategy id
-  const powerId = ethers.id('smart-btc-dca-v2');
+  const powerId = ethers.id('power-btc-dca-v2');
   await (await registry.registerStrategy(powerId, await power.getAddress(), nextOverrides())).wait();
-  console.log('Registered strategy id (PowerBtcDcaV2) smart-btc-dca-v2:', powerId);
+  console.log('Registered strategy id (PowerBtcDcaV2) power-btc-dca-v2:', powerId);
 
   // Deploy SmartBtcDcaV2 implementation template (not proxy)
   const SmartBtcDca = await ethers.getContractFactory('SmartBtcDcaV2');
