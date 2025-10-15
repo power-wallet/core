@@ -43,10 +43,45 @@ async function main() {
     const idStr = process.env.STRATEGY_ID || STRATEGY_ID;
     const id = idStr.startsWith('0x') && idStr.length === 66 ? idStr : ethers.id(idStr);
     const registry = await ethers.getContractAt('StrategyRegistry', registryAddr, deployer);
-    const tx = await registry.registerStrategy(id, smartAddr);
-    console.log('registerStrategy tx:', tx.hash);
-    await tx.wait();
-    console.log('Registered strategy id:', id);
+
+    // Prepare fresh fee data and use pending nonce to avoid replacement underpriced
+    const fee2 = await ethers.provider.getFeeData();
+    let pri = fee2.maxPriorityFeePerGas ?? ethers.parseUnits('1', 'gwei');
+    let max = fee2.maxFeePerGas ?? ethers.parseUnits('10', 'gwei');
+    let nonce = await deployer.getNonce('pending');
+
+    const send = async () => {
+      const tx = await registry.registerStrategy(
+        id,
+        smartAddr,
+        { maxPriorityFeePerGas: pri, maxFeePerGas: max, nonce } as any,
+      );
+      console.log('registerStrategy tx:', tx.hash);
+      await tx.wait();
+      console.log('Registered strategy id:', id);
+    };
+
+    try {
+      await send();
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      // Retry once with bumped fees and refreshed pending nonce if underpriced/replacement error
+      if (msg.includes('underpriced') || msg.includes('replacement') || msg.includes('already known') || msg.includes('nonce too low')) {
+        pri = pri + ethers.parseUnits('0.5', 'gwei');
+        max = max + ethers.parseUnits('1', 'gwei');
+        nonce = await deployer.getNonce('pending');
+        const tx2 = await registry.registerStrategy(
+          id,
+          smartAddr,
+          { maxPriorityFeePerGas: pri, maxFeePerGas: max, nonce } as any,
+        );
+        console.log('registerStrategy retry tx:', tx2.hash);
+        await tx2.wait();
+        console.log('Registered strategy id (retry):', id);
+      } else {
+        throw e;
+      }
+    }
   }
 }
 

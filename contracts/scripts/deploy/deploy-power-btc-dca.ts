@@ -8,7 +8,7 @@ import { ethers } from "hardhat";
  *   npx hardhat run scripts/deploy/deploy-power-btc-dca.ts --network base-sepolia
  *
  * Optional: register in StrategyRegistry (owner only)
- *   REGISTER=1 REGISTRY=0x... STRATEGY_ID=smart-btc-dca-v2 \
+ *   REGISTER=1 REGISTRY=0x... STRATEGY_ID=power-btc-dca-v2 \
  *   npx hardhat run scripts/deploy/deploy-power-btc-dca.ts --network base-sepolia
  */
 
@@ -39,9 +39,9 @@ async function main() {
     const registry = await ethers.getContractAt('StrategyRegistry', registryAddr, deployer);
     // refresh gas and nonce for registration
     const fee2 = await ethers.provider.getFeeData();
-    const pri2 = fee2.maxPriorityFeePerGas ?? ethers.parseUnits('1', 'gwei');
-    const max2 = fee2.maxFeePerGas ?? ethers.parseUnits('10', 'gwei');
-    // Use next nonce (pending)
+    let pri2 = fee2.maxPriorityFeePerGas ?? ethers.parseUnits('1', 'gwei');
+    let max2 = fee2.maxFeePerGas ?? ethers.parseUnits('10', 'gwei');
+    // Use pending nonce to avoid replacement issues
     let regNonce = await deployer.getNonce("pending");
     const send = async () => {
       const tx = await registry.registerStrategy(id, implAddr, { maxPriorityFeePerGas: pri2, maxFeePerGas: max2, nonce: regNonce } as any);
@@ -52,7 +52,19 @@ async function main() {
     try {
       await send();
     } catch (e: any) {
-      console.log('Error:', e);
+      const msg = String(e?.message || e);
+      if (msg.includes('underpriced') || msg.includes('replacement') || msg.includes('already known') || msg.includes('nonce too low')) {
+        // bump and retry
+        regNonce = await deployer.getNonce("pending");
+        pri2 = pri2 + ethers.parseUnits('0.5', 'gwei');
+        max2 = max2 + ethers.parseUnits('1', 'gwei');
+        const tx = await registry.registerStrategy(id, implAddr, { maxPriorityFeePerGas: pri2, maxFeePerGas: max2, nonce: regNonce } as any);
+        console.log('registerStrategy retry tx:', tx.hash);
+        await tx.wait();
+        console.log('Registered strategy id (retry):', id);
+      } else {
+        throw e;
+      }
     }
   }
 }
