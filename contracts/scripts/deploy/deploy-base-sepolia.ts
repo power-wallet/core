@@ -41,20 +41,32 @@ async function main() {
   console.log('SimpleDCA (template):', await dca.getAddress());
 
   // Register strategy id (updated canonical id)
-  const strategyId = ethers.id('simple-btc-dca-v1');
-  await (await registry.registerStrategy(strategyId, await dca.getAddress(), nextOverrides())).wait();
-  console.log('Registered strategy id (SimpleDCA):', strategyId);
+  const simpleId = ethers.id('simple-btc-dca-v1');
+  await (await registry.registerStrategy(simpleId, await dca.getAddress(), nextOverrides())).wait();
+  console.log('Registered strategy id (SimpleDCA) simple-btc-dca-v1:', simpleId);
 
-  // Deploy SmartBtcDca implementation template (not proxy)
-  const SmartBtcDca = await ethers.getContractFactory('SmartBtcDca');
+  // Deploy PowerBtcDcaV2 implementation template (not proxy)
+  const PowerBtcDca = await ethers.getContractFactory('PowerBtcDcaV2');
+  const power = await PowerBtcDca.deploy(nextOverrides());
+  await power.waitForDeployment();
+  console.log('PowerBtcDcaV2 (template):', await power.getAddress());
+
+  // Register PowerBtcDcaV2 strategy id
+  const powerId = ethers.id('smart-btc-dca-v2');
+  await (await registry.registerStrategy(powerId, await power.getAddress(), nextOverrides())).wait();
+  console.log('Registered strategy id (PowerBtcDcaV2) smart-btc-dca-v2:', powerId);
+
+  // Deploy SmartBtcDcaV2 implementation template (not proxy)
+  const SmartBtcDca = await ethers.getContractFactory('SmartBtcDcaV2');
   const smart = await SmartBtcDca.deploy(nextOverrides());
   await smart.waitForDeployment();
-  console.log('SmartBtcDca (template):', await smart.getAddress());
+  console.log('SmartBtcDcaV2 (template):', await smart.getAddress());
 
-  // Register SmartBtcDca strategy id
-  const smartId = ethers.id('btc-dca-power-law-v1');
+  // Register SmartBtcDcaV2 strategy id
+  const smartId = ethers.id('smart-btc-dca-v2');
   await (await registry.registerStrategy(smartId, await smart.getAddress(), nextOverrides())).wait();
-  console.log('Registered strategy id (SmartBtcDca):', smartId);
+  console.log('Registered strategy id (SmartBtcDcaV2) smart-btc-dca-v2:', smartId);
+
 
   // Deploy WalletFactory (UUPS)
   const WalletFactory = await ethers.getContractFactory('WalletFactory');

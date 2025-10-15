@@ -2,7 +2,7 @@ import { ethers, network } from "hardhat";
 import { addresses } from "../../config/addresses";
 
 /**
- * Instantiate a PowerBtcDcaV1 instance with default params and transfer ownership to USER.
+ * Instantiate a SmartBtcDcaV2 instance with default params and transfer ownership to USER.
  *
  * Usage:
  *   USER=0x... CHAIN=base-sepolia DESC="Power BTC DCA (Adaptive)" \
@@ -15,7 +15,7 @@ async function main() {
   if (!cfg) throw new Error(`No addresses for chain ${chainKey}`);
 
   const USER = process.env.USER || process.env.USER_ADDRESS;
-  const DESC = process.env.DESC || "Power BTC DCA (Adaptive)";
+  const DESC = process.env.DESC || "Smart BTC DCA (Adaptive)";
 
   // Defaults
   const risk = cfg.cbBTC || cfg.wbtc || cfg.weth;
@@ -43,11 +43,11 @@ async function main() {
   const overrides = { maxPriorityFeePerGas: basePri, maxFeePerGas: baseMax } as any;
 
   // Deploy and initialize
-  const Strategy = await ethers.getContractFactory("PowerBtcDcaV1", deployer);
+  const Strategy = await ethers.getContractFactory("SmartBtcDcaV2", deployer);
   const instance = await Strategy.deploy(overrides);
   await instance.waitForDeployment();
   const addr = await instance.getAddress();
-  console.log("Deployed PowerBtcDcaV1 instance:", addr);
+  console.log("Deployed SmartBtcDcaV2 instance:", addr);
 
   const initTx = await instance.initialize(
     risk,

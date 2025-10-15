@@ -7,17 +7,17 @@ import "../interfaces/IStrategy.sol";
 import "../utils/ABDKMath64x64.sol";
 
 /**
- * @title SmartBtcDca
+ * @title PowerBtcDcaV2
  * @notice Strategy that rebalances using a power-law BTC/USD price model with configurable bands and trade sizes.
  *         The model uses P(t) = C * d^N, computed with fixed-point math on-chain, where:
  *                  C = 9.64e-18
  *                  d is days since 2009-01-03
  *                  N = 5.8451
- *         Buys largeer amount when price is below the lower band
+ *         Buys larger amount when price is below the lower band
  *         Buys smaller amount when price is between the lower and model bands
  *         Sells when price is above the upper band
  */
-contract SmartBtcDca is IStrategy {
+contract PowerBtcDcaV2 is IStrategy {
     // ---- Minimal Ownable (initializer-style for clones) ----
     address private _owner;
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -97,8 +97,8 @@ contract SmartBtcDca is IStrategy {
         stableDecimals = IERC20Metadata(_stable).decimals();
         lastTimestamp = 0;
         _description = desc;
-        _id = "btc-dca-power-law-v1";
-        _name = "Smart BTC DCA (Power Law)";
+        _id = "power-btc-dca-v2";
+        _name = "Power BTC DCA";
 
         emit Initialized(_risk, _stable, _feed, _frequency, _lowerBps, _upperBps, _buyBpsStable, _smallBuyBpsStable, _sellBpsRisk);
     }
@@ -265,8 +265,8 @@ contract SmartBtcDca is IStrategy {
         }
         return term;
     }
-
-
 }
+
+
 
 

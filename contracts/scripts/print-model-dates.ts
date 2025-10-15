@@ -14,7 +14,7 @@ function daysSinceGenesis(ts: bigint): bigint {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  const factory = await ethers.getContractFactory("SmartBtcDca", deployer);
+  const factory = await ethers.getContractFactory("PowerBtcDcaV2", deployer);
   const smart = await factory.deploy();
 
   // Website power-law parameters

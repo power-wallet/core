@@ -37,8 +37,8 @@ npx hardhat test
 Use `--grep` with part of the test description.
 
 ```bash
-# Only the SmartBtcDca strategy tests
-npx --yes hardhat test --grep SmartBtcDca
+# Only the PowerBtcDcaV2 strategy tests
+npx --yes hardhat test --grep PowerBtcDcaV2
 
 # Run one specific case (example)
 npx --yes hardhat test --grep "buys small amount"
@@ -51,17 +51,6 @@ Enable the gas reporter by setting the env var before running tests:
 ```bash
 REPORT_GAS=true npx hardhat test
 ```
-
-## Existing test suites
-
-- `test/SmartBtcDca.test.ts`
-  - Validates buy/sell triggers for the Smart BTC DCA strategy against synthetic prices
-  - Scenarios covered:
-    - Buys when price is below the lower band
-    - Buys a smaller percentage when price is between the lower band and the model price
-    - Sells when price is above the upper band
-    - No action when price is above the model but below the upper band
-
 
 ## Notes
 

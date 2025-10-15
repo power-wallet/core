@@ -5,13 +5,13 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../interfaces/IStrategy.sol";
 
-interface IIndicatorsReader {
+interface IIndicatorsReaderV2 {
     function latestEwmaVolAnnualized(address token) external view returns (uint256 value1e8, uint256 ts);
     function latestDrawdown(address token) external view returns (uint256 value1e8, uint256 ts);
 }
 
 /**
- * @title PowerBtcDcaV1
+ * @title SmartBtcDcaV2
  * @notice Adaptive BTC DCA with weekly cadence, optional threshold rebalancing to weight bands,
  *         and a volatility/drawdown-based kicker sourced from TechnicalIndicators.
  * @dev Initialization signature (abi.encode):
@@ -30,7 +30,7 @@ interface IIndicatorsReader {
  *        string desc
  *      )
  */
-contract PowerBtcDcaV1 is IStrategy {
+contract SmartBtcDcaV2 is IStrategy {
     // ---- Minimal Ownable (initializer-style for clones) ----
     address private _owner;
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -106,8 +106,8 @@ contract PowerBtcDcaV1 is IStrategy {
         stableDecimals = IERC20Metadata(_stable).decimals();
         lastTimestamp = 0;
         _description = desc;
-        _id = "power-btc-dca-v1";
-        _name = "Power BTC DCA (Adaptive)";
+        _id = "smart-btc-dca-v2";
+        _name = "Smart BTC DCA";
 
         emit Initialized(_risk, _stable, _feed, _indicators);
     }
@@ -192,8 +192,8 @@ contract PowerBtcDcaV1 is IStrategy {
         // Read indicators
         uint256 vol1e8 = 0; uint256 dd1e8 = 0;
         if (indicators != address(0)) {
-            (vol1e8,) = IIndicatorsReader(indicators).latestEwmaVolAnnualized(riskAsset);
-            (dd1e8,) = IIndicatorsReader(indicators).latestDrawdown(riskAsset);
+            (vol1e8,) = IIndicatorsReaderV2(indicators).latestEwmaVolAnnualized(riskAsset);
+            (dd1e8,) = IIndicatorsReaderV2(indicators).latestDrawdown(riskAsset);
         }
         // kickerUSD1e8 = kKicker * vol * dd * nav
         // kKicker1e6 scaled, vol1e8, dd1e8, nav1e8 → result scale 1e8
@@ -230,11 +230,9 @@ contract PowerBtcDcaV1 is IStrategy {
     }
 
     // Owner setters
-    function setFrequency(uint256 newFrequency) external onlyOwner { require(newFrequency > 0, "freq"); frequency = newFrequency; }
+    
     function setBaseDcaStable(uint256 newBase) external onlyOwner { require(newBase > 0, "base"); baseDcaStable = newBase; }
-    function setThresholdMode(bool enabled) external onlyOwner { thresholdMode = enabled; }
-    function setIndicators(address newIndicators) external onlyOwner { indicators = newIndicators; }
-
+    function setFrequency(uint256 newFrequency) external onlyOwner { require(newFrequency > 0, "freq"); frequency = newFrequency; }
     function setBuffer(uint16 newBufferMultX) external onlyOwner {
         bufferMultX = newBufferMultX;
     }
@@ -244,11 +242,17 @@ contract PowerBtcDcaV1 is IStrategy {
         cmaxMultX = newCmaxMultX;
     }
 
+    function setThresholdMode(bool enabled) external onlyOwner { thresholdMode = enabled; }
+    
     function setRebalanceParams(uint16 newTargetBps, uint16 newBandDeltaBps, uint16 newRebalanceCapBps) external onlyOwner {
         targetBtcBps = newTargetBps;
         bandDeltaBps = newBandDeltaBps;
         rebalanceCapBps = newRebalanceCapBps;
     }
+    
+    function setIndicators(address newIndicators) external onlyOwner { indicators = newIndicators; }
 }
+
+
 
 

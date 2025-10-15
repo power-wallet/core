@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 
 /**
- * Deploy SmartBtcDca implementation (non-proxy template).
+ * Deploy SmartBtcDcaV2 implementation (non-proxy template).
  *
  * Usage:
  *   npx hardhat run scripts/deploy/deploy-smart-dca.ts --network base-sepolia
@@ -10,9 +10,11 @@ import { ethers } from 'hardhat';
  *  npx hardhat verify --network base-sepolia 0xbf88275c8FAaE73C6c0be8291b9394fAc8aD9Df8
  * 
  * Optional: register in StrategyRegistry (owner only)
- *   REGISTER=1 REGISTRY=0x53B4C7F51904b888f61859971B11ff51a8e43F80 STRATEGY_ID=btc-dca-power-law-v1 \
+ *   REGISTER=1 REGISTRY=0x53B4C7F51904b888f61859971B11ff51a8e43F80 STRATEGY_ID=smart-btc-dca-v2 \
  *   npx hardhat run scripts/deploy/deploy-smart-dca.ts --network base-sepolia
  */
+
+const STRATEGY_ID = 'smart-btc-dca-v2';
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -27,18 +29,18 @@ async function main() {
     maxFeePerGas: baseMax,
   } as any;
 
-  // Deploy SmartBtcDca template
-  const SmartBtcDca = await ethers.getContractFactory('SmartBtcDca');
+  // Deploy SmartBtcDcaV2 template
+  const SmartBtcDca = await ethers.getContractFactory('SmartBtcDcaV2');
   const smart = await SmartBtcDca.deploy(overrides);
   await smart.waitForDeployment();
   const smartAddr = await smart.getAddress();
-  console.log('SmartBtcDca (template):', smartAddr);
+  console.log('SmartBtcDcaV2 (template):', smartAddr);
 
   // Optional registration in StrategyRegistry
   if (process.env.REGISTER === '1') {
     const registryAddr = process.env.REGISTRY;
     if (!registryAddr) throw new Error('REGISTER=1 requires REGISTRY=0x...');
-    const idStr = process.env.STRATEGY_ID || 'btc-dca-power-law-v1';
+    const idStr = process.env.STRATEGY_ID || STRATEGY_ID;
     const id = idStr.startsWith('0x') && idStr.length === 66 ? idStr : ethers.id(idStr);
     const registry = await ethers.getContractAt('StrategyRegistry', registryAddr, deployer);
     const tx = await registry.registerStrategy(id, smartAddr);

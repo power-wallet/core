@@ -1,11 +1,11 @@
 import { ethers } from "hardhat";
 
 /**
- * Clone the SmartBtcDca implementation from the StrategyRegistry for a given id,
+ * Clone the PowerBtcDcaV2 implementation from the StrategyRegistry for a given id,
  * initialize it with provided params, and transfer ownership to USER_ADDRESS.
  *
  * Usage:
- *   REGISTRY=0x... STRATEGY_ID=btc-dca-power-law-v1 USER_ADDRESS=0x...
+ *   REGISTRY=0x... STRATEGY_ID=power-btc-dca-v2 USER_ADDRESS=0x...
  *   RISK=0x... STABLE=0x... FEED=0x...
  *   FREQ=604800 LOWER=5000 UPPER=10000 BUY=500 SMALLBUY=100 SELL=500 DESC="Smart BTC DCA (Power Law)"
  *   npx hardhat run scripts/manage/instantiate-strategy-from-registry.ts --network <net>
@@ -13,7 +13,7 @@ import { ethers } from "hardhat";
  * Example:
  *  USER_ADDRESS=<USER_ADDRESS> \
  *  REGISTRY=0x53B4C7F51904b888f61859971B11ff51a8e43F80 \
- *  STRATEGY_ID=btc-dca-power-law-v1 \
+ *  STRATEGY_ID=power-btc-dca-v2 \
  *  RISK=0xcbB7C0006F23900c38EB856149F799620fcb8A4a \
  *  STABLE=0x036CbD53842c5426634e7929541eC2318f3dCF7e \
  *  FEED=0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298 \
@@ -26,7 +26,7 @@ async function main() {
   console.log(`Operator: ${signer.address}`);
 
   const registryAddr = process.env.REGISTRY;
-  const idStr = process.env.STRATEGY_ID || "btc-dca-power-law-v1";
+  const idStr = process.env.STRATEGY_ID || "power-btc-dca-v2";
   const user = process.env.USER_ADDRESS;
   const risk = process.env.RISK;
   const stable = process.env.STABLE;
@@ -52,11 +52,11 @@ async function main() {
   console.log("Implementation:", impl);
 
   // Deploy a fresh instance (not a minimal proxy clone; consistent with existing flow)
-  const SmartBtcDca = await ethers.getContractFactory("SmartBtcDca", signer);
-  const instance = await SmartBtcDca.deploy();
+  const PowerBtcDcaV2 = await ethers.getContractFactory("PowerBtcDcaV2", signer);
+  const instance = await PowerBtcDcaV2.deploy();
   await instance.waitForDeployment();
   const instanceAddr = await instance.getAddress();
-  console.log("Deployed SmartBtcDca instance:", instanceAddr);
+  console.log("Deployed PowerBtcDcaV2 instance:", instanceAddr);
 
   // Fee overrides to avoid replacement-underpriced issues on back-to-back txs
   const fee = await ethers.provider.getFeeData();

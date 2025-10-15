@@ -1,16 +1,19 @@
 import { ethers } from "hardhat";
 
 /**
- * Deploy PowerBtcDcaV1 implementation (non-proxy template).
+ * Deploy PowerBtcDcaV2 implementation (non-proxy template).
  * Do NOT initialize here; WalletFactory will clone and initialize per wallet.
  *
  * Usage:
  *   npx hardhat run scripts/deploy/deploy-power-btc-dca.ts --network base-sepolia
  *
  * Optional: register in StrategyRegistry (owner only)
- *   REGISTER=1 REGISTRY=0x... STRATEGY_ID=power-btc-dca-v1 \
+ *   REGISTER=1 REGISTRY=0x... STRATEGY_ID=smart-btc-dca-v2 \
  *   npx hardhat run scripts/deploy/deploy-power-btc-dca.ts --network base-sepolia
  */
+
+const STRATEGY_ID = 'power-btc-dca-v2';
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log(`Deployer: ${deployer.address}`);
@@ -22,16 +25,16 @@ async function main() {
   let nonce = await deployer.getNonce("pending");
   const overrides = { maxPriorityFeePerGas: basePri, maxFeePerGas: baseMax, nonce } as any;
 
-  const Strategy = await ethers.getContractFactory("PowerBtcDcaV1");
+  const Strategy = await ethers.getContractFactory("PowerBtcDcaV2");
   const impl = await Strategy.deploy(overrides);
   await impl.waitForDeployment();
   const implAddr = await impl.getAddress();
-  console.log('PowerBtcDcaV1 (template):', implAddr);
+  console.log('PowerBtcDcaV2 (template):', implAddr);
 
   if (process.env.REGISTER === '1') {
     const registryAddr = process.env.REGISTRY;
     if (!registryAddr) throw new Error('REGISTER=1 requires REGISTRY=0x...');
-    const idStr = process.env.STRATEGY_ID || 'power-btc-dca-v1';
+    const idStr = process.env.STRATEGY_ID || STRATEGY_ID;
     const id = idStr.startsWith('0x') && idStr.length === 66 ? idStr : ethers.id(idStr);
     const registry = await ethers.getContractAt('StrategyRegistry', registryAddr, deployer);
     // refresh gas and nonce for registration
@@ -49,20 +52,6 @@ async function main() {
     try {
       await send();
     } catch (e: any) {
-      // const msg = String(e?.message || e);
-      // if (msg.includes('nonce too low') || msg.includes('replacement') || msg.includes('already known')) {
-        // refetch pending nonce and bump fees slightly
-      //   regNonce = await deployer.getNonce("pending");
-      //   const pri3 = pri2 + ethers.parseUnits('0.5', 'gwei');
-      //   const max3 = max2 + ethers.parseUnits('1', 'gwei');
-      //   const tx = await registry.registerStrategy(id, implAddr, { maxPriorityFeePerGas: pri3, maxFeePerGas: max3, nonce: regNonce } as any);
-      //   console.log('registerStrategy retry tx:', tx.hash);
-      //   await tx.wait();
-      //   console.log('Registered strategy id (retry):', id);
-      // } else {
-      //   throw e;
-      // }
-
       console.log('Error:', e);
     }
   }

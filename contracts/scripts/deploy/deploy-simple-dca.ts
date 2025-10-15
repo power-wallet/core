@@ -14,6 +14,8 @@ import { ethers } from 'hardhat';
  *   npx hardhat run scripts/deploy/deploy-simple-dca.ts --network base-sepolia
  */
 
+const STRATEGY_ID = 'simple-btc-dca-v1';
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log(`Deployer: ${deployer.address}`);
@@ -38,7 +40,7 @@ async function main() {
   if (process.env.REGISTER === '1') {
     const registryAddr = process.env.REGISTRY;
     if (!registryAddr) throw new Error('REGISTER=1 requires REGISTRY=0x...');
-    const idStr = process.env.STRATEGY_ID || 'simple-btc-dca-v1';
+    const idStr = process.env.STRATEGY_ID || STRATEGY_ID;
     const id = idStr.startsWith('0x') && idStr.length === 66 ? idStr : ethers.id(idStr);
     const registry = await ethers.getContractAt('StrategyRegistry', registryAddr, deployer);
     const tx = await registry.registerStrategy(id, dcaAddr);
