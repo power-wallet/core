@@ -180,28 +180,6 @@ export default function WalletDetails() {
           withdrawals,
           swaps,
         });
-        try {
-          const btcNonZeroDays = series.filter((p) => p.btcUsd > 0).length;
-          const first = series.slice(0, 2).map((p) => ({ date: p.date, btcUsd: p.btcUsd, usdcUsd: p.usdcUsd, ethUsd: p.ethUsd, totalUsd: p.totalUsd }));
-          const last = series.slice(-2).map((p) => ({ date: p.date, btcUsd: p.btcUsd, usdcUsd: p.usdcUsd, ethUsd: p.ethUsd, totalUsd: p.totalUsd }));
-          // Debug summary for troubleshooting BTC series visibility
-          console.debug('[WalletHistory][SeriesBuilt]', {
-            walletAddress,
-            chainKey,
-            createdAt: typeof createdAtTs === 'bigint' ? Number(createdAtTs) : createdAtTs,
-            stableMeta,
-            riskAssets,
-            riskMetas,
-            missingEventRisks,
-            extraRiskMetas,
-            eventCounts: { deposits: deposits.length, withdrawals: withdrawals.length, swaps: swaps.length },
-            points: series.length,
-            btcNonZeroDays,
-            sample: { first, last },
-          });
-        } catch (err) {
-          // Swallow any logging errors to avoid impacting UX
-        }
         setWalletSeries(series);
       } catch (e) {
         setWalletSeries([]);

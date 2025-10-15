@@ -214,26 +214,6 @@ export async function buildWalletHistorySeries(args: {
     out.push({ date: dk, totalUsd: total, btcQty, usdcUsd, btcUsd, ethUsd, events: enriched });
   }
 
-  try {
-    if (out.length) {
-      const first = out[0];
-      const last = out[out.length - 1];
-      console.debug('[WalletHistory][PriceDebug]', {
-        startDate,
-        endDate,
-        points: out.length,
-        btcPriceDays: btcByDate.size,
-        ethPriceDays: ethByDate.size,
-        btcFallbackCount,
-        ethFallbackCount,
-        sample: {
-          first: first ? { date: first.date, btcUsd: first.btcUsd, usdcUsd: first.usdcUsd, ethUsd: first.ethUsd, totalUsd: first.totalUsd } : null,
-          last: last ? { date: last.date, btcUsd: last.btcUsd, usdcUsd: last.usdcUsd, ethUsd: last.ethUsd, totalUsd: last.totalUsd } : null,
-        },
-      });
-    }
-  } catch {}
-
   return out;
 }
 

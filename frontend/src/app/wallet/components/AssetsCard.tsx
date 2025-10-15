@@ -104,7 +104,7 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
         ) : null
       }
 
-        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+        <Stack direction="row" spacing={2} sx={{ pt:2,mt: 'auto', alignSelf: 'flex-end', justifyContent: 'flex-end' }}>
           <Button variant="outlined" size="small" onClick={onDeposit}>Deposit</Button>
           <Button variant="outlined" size="small" onClick={onWithdraw}>Withdraw</Button>
         </Stack>
