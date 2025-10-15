@@ -71,6 +71,32 @@ export default function WalletHistoryChart({ data }: { data: WalletHistoryPoint[
     return { depositDots: dep, withdrawalDots: wit, swapBuyDotsTop: swpBuyTop, swapSellDotsTop: swpSellTop };
   }, [data, showUsdc, showEth, showBtc, hasEth]);
 
+  // Debug: Log series stats when toggling modes or asset visibility to diagnose missing BTC series
+  React.useEffect(() => {
+    try {
+      if (!Array.isArray(data) || !data.length) return;
+      const btcDays = data.filter((p) => (p as any).btcUsd > 0).length;
+      const ethDays = data.filter((p) => (p as any).ethUsd > 0).length;
+      const usdcDays = data.filter((p) => (p as any).usdcUsd > 0).length;
+      const first = data[0];
+      const last = data[data.length - 1];
+      console.debug('[WalletHistoryChart][Render]', {
+        mode,
+        showUsdc,
+        showEth,
+        showBtc,
+        points: data.length,
+        btcDays,
+        ethDays,
+        usdcDays,
+        sample: {
+          first: first ? { date: first.date, btcUsd: (first as any).btcUsd, usdcUsd: (first as any).usdcUsd, ethUsd: (first as any).ethUsd, totalUsd: (first as any).totalUsd } : null,
+          last: last ? { date: last.date, btcUsd: (last as any).btcUsd, usdcUsd: (last as any).usdcUsd, ethUsd: (last as any).ethUsd, totalUsd: (last as any).totalUsd } : null,
+        },
+      });
+    } catch {}
+  }, [data, mode, showUsdc, showEth, showBtc]);
+
   return (
     <Card variant="outlined">
       <CardContent>

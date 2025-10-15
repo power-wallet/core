@@ -63,10 +63,9 @@
         "poolFees": [100]
       },
 
-
       "power-btc-dca-v2": {
         "id": "power-btc-dca-v2",
-        "idBytes32": "",
+        "idBytes32": "0x35ab1065458923ca54e83e5793eada91ea7c2b839e74adecb712ef77b295c560",
         "name": "Power BTC DCA",
         "description": "Uses the Bitcoin power-law price model as fair BTC price to adjust buy and sell amounts, with configurable bands.",
         "stable": "usdc",
@@ -76,7 +75,7 @@
       },
       "smart-btc-dca-v2": {
         "id": "smart-btc-dca-v2",
-        "idBytes32": "",
+        "idBytes32": "0x51b7b33ebe7925dc4a735d324ea695a77d3f30e756336df447e6e48ba5c83dec",
         "name": "Smart BTC DCA",
         "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, and optional rebalancing to target bands.",
         "stable": "usdc",

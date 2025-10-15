@@ -30,11 +30,8 @@ export type WalletHistoryPoint = {
 };
 
 function toDateKey(tsSec: number): string {
-  const d = new Date(tsSec * 1000);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  // Use UTC date to align with price data and iteration keys
+  return new Date(tsSec * 1000).toISOString().split('T')[0];
 }
 
 function numFromBig(amount: bigint, decimals: number): number {
@@ -84,8 +81,8 @@ export async function buildWalletHistorySeries(args: {
   }
   events.sort((a, b) => a.ts - b.ts);
 
-  // Load daily prices (BTC, ETH) for the window
-  const { btc, eth } = await loadPriceData(startDate, endDate, 0);
+  // Load daily prices (BTC, ETH) for the window with a small lookback to ensure recent days are available
+  const { btc, eth } = await loadPriceData(startDate, endDate, 2);
   const btcByDate = new Map(btc.map((p) => [p.date, p.close]));
   const ethByDate = new Map(eth.map((p) => [p.date, p.close]));
 
@@ -108,6 +105,8 @@ export async function buildWalletHistorySeries(args: {
 
   // Iterate day by day
   const out: WalletHistoryPoint[] = [];
+  let btcFallbackCount = 0;
+  let ethFallbackCount = 0;
   const start = new Date(startDate);
   const end = new Date(endDate);
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -151,12 +150,26 @@ export async function buildWalletHistorySeries(args: {
     let btcQty = 0;
     let btcUsd = 0;
     let ethUsd = 0;
-    for (const r of risks) {
-      const qty = numFromBig(riskBals.get(r.address) || BigInt(0), r.decimals);
+    // Iterate over current balances by token address to ensure we include tokens seen only in events/swaps
+    for (const [addr, bal] of riskBals.entries()) {
+      if (bal === BigInt(0)) continue;
+      const meta = addrToMeta.get(addr.toLowerCase());
+      if (!meta) continue;
+      const qty = numFromBig(bal, meta.decimals);
       if (qty === 0) continue;
-      const key = mapSymbolToFeedKey(r.symbol);
+      const key = mapSymbolToFeedKey(meta.symbol);
       if (!key) continue;
-      const px = key === 'BTC' ? btcByDate.get(dk) : ethByDate.get(dk);
+      let px = key === 'BTC' ? btcByDate.get(dk) : ethByDate.get(dk);
+      if (px === undefined) {
+        // Fallback to previous day's close if today's price isn't available yet
+        const prev = new Date(d);
+        prev.setDate(prev.getDate() - 1);
+        const prevKey = prev.toISOString().split('T')[0];
+        px = key === 'BTC' ? btcByDate.get(prevKey) : ethByDate.get(prevKey);
+        if (px !== undefined) {
+          if (key === 'BTC') btcFallbackCount++; else ethFallbackCount++;
+        }
+      }
       if (key === 'BTC') btcQty += qty;
       if (px !== undefined) {
         const usd = qty * px;
@@ -200,6 +213,26 @@ export async function buildWalletHistorySeries(args: {
 
     out.push({ date: dk, totalUsd: total, btcQty, usdcUsd, btcUsd, ethUsd, events: enriched });
   }
+
+  try {
+    if (out.length) {
+      const first = out[0];
+      const last = out[out.length - 1];
+      console.debug('[WalletHistory][PriceDebug]', {
+        startDate,
+        endDate,
+        points: out.length,
+        btcPriceDays: btcByDate.size,
+        ethPriceDays: ethByDate.size,
+        btcFallbackCount,
+        ethFallbackCount,
+        sample: {
+          first: first ? { date: first.date, btcUsd: first.btcUsd, usdcUsd: first.usdcUsd, ethUsd: first.ethUsd, totalUsd: first.totalUsd } : null,
+          last: last ? { date: last.date, btcUsd: last.btcUsd, usdcUsd: last.usdcUsd, ethUsd: last.ethUsd, totalUsd: last.totalUsd } : null,
+        },
+      });
+    }
+  } catch {}
 
   return out;
 }

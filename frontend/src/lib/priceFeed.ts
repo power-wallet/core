@@ -87,9 +87,11 @@ export async function loadPriceData(startDate: string, endDate: string, lookback
   const startMs = lookbackStart.getTime();
   const endMs = new Date(endDate).getTime();
 
+  const btcTailStartStr = lastBtcLocalDate ? addDays(lastBtcLocalDate, 1) : lookbackStartStr;
+  const ethTailStartStr = lastEthLocalDate ? addDays(lastEthLocalDate, 1) : lookbackStartStr;
   const [btcTail, ethTail] = await Promise.all([
-    needBtcTail ? fetchBinanceKlines('BTCUSDT', '1d', Math.max(new Date(addDays(lastBtcLocalDate || lookbackStartStr, 1)).getTime(), startMs), endMs) : Promise.resolve<PriceData[]>([]),
-    needEthTail ? fetchBinanceKlines('ETHUSDT', '1d', Math.max(new Date(addDays(lastEthLocalDate || lookbackStartStr, 1)).getTime(), startMs), endMs) : Promise.resolve<PriceData[]>([]),
+    needBtcTail ? fetchBinanceKlines('BTCUSDT', '1d', Math.max(new Date(btcTailStartStr).getTime(), startMs), endMs) : Promise.resolve<PriceData[]>([]),
+    needEthTail ? fetchBinanceKlines('ETHUSDT', '1d', Math.max(new Date(ethTailStartStr).getTime(), startMs), endMs) : Promise.resolve<PriceData[]>([]),
   ]);
 
   return { btc: mergeUnique(btcLocalWindow, btcTail), eth: mergeUnique(ethLocalWindow, ethTail) };
