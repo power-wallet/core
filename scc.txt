@@ -1,17 +1,16 @@
 ───────────────────────────────────────────────────────────────────────────────
 Language                 Files     Lines   Blanks  Comments     Code Complexity
 ───────────────────────────────────────────────────────────────────────────────
-TypeScript                 101     15066     1554       657    12855       2944
-Solidity                    15      2524      376       415     1733        339
+TypeScript                 103     15420     1582       672    13166       3048
+Solidity                    15      2537      377       415     1745        344
 JavaScript                   2       159       15         5      139         18
 TOML                         1         9        2         0        7          0
 ───────────────────────────────────────────────────────────────────────────────
-Total                      119     17758     1947      1077    14734       3301
+Total                      121     18125     1976      1092    15057       3410
 ───────────────────────────────────────────────────────────────────────────────
-Estimated Cost to Develop (organic) $455,336
-Estimated Schedule Effort (organic) 10.20 months
-Estimated People Required (organic) 3.97
+Estimated Cost to Develop (organic) $465,822
+Estimated Schedule Effort (organic) 10.29 months
+Estimated People Required (organic) 4.02
 ───────────────────────────────────────────────────────────────────────────────
-Processed 749964 bytes, 0.750 megabytes (SI)
+Processed 770112 bytes, 0.770 megabytes (SI)
 ───────────────────────────────────────────────────────────────────────────────
-
