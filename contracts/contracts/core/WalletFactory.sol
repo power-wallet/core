@@ -75,8 +75,7 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
             strategyInstance
         );
 
-        // Bind the wallet as the authorized caller on the strategy if supported
-        // Optional: ignore failure for strategies that don't implement it
+        // Bind the wallet as the authorized caller on the strategy
         (bool okAuth,) = strategyInstance.call(abi.encodeWithSignature("setAuthorizedWallet(address)", address(wallet)));
         require(okAuth, "setAuthorizedWallet failed");
 
@@ -109,6 +108,22 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         // ok; // silence unused
 
         address[] storage list = userWallets[msg.sender];
+        uint256 n = list.length;
+        for (uint256 i = 0; i < n; i++) {
+            if (list[i] == walletAddr) {
+                if (i != n - 1) {
+                    list[i] = list[n - 1];
+                }
+                list.pop();
+                return;
+            }
+        }
+        revert("wallet not found");
+    }
+
+    // Owner-only administrative removal without closure checks
+    function adminDeleteWallet(address user, address walletAddr) external onlyOwner {
+        address[] storage list = userWallets[user];
         uint256 n = list.length;
         for (uint256 i = 0; i < n; i++) {
             if (list[i] == walletAddr) {

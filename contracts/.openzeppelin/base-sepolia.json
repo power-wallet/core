@@ -1473,6 +1473,169 @@
           ]
         }
       }
+    },
+    "99b4d14669c3f3b61494dcfaaa27bfd51729b1bcfdb9d1afaf16eca066e0cb90": {
+      "address": "0x50118c53688645E3730Af24637B61278cE5B9228",
+      "txHash": "0x377afbe9494f423dfbc1a52ddf07266db001b0312ef088c9a535fe210db95e01",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "registry",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(StrategyRegistry)4451",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:14"
+          },
+          {
+            "label": "userWallets",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_array(t_address)dyn_storage)",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:17"
+          },
+          {
+            "label": "swapRouter",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:18"
+          },
+          {
+            "label": "uniswapV3Factory",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_address",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:19"
+          },
+          {
+            "label": "users",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_array(t_address)dyn_storage",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:23"
+          },
+          {
+            "label": "hasCreatedWallet",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:24"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "WalletFactory",
+            "src": "contracts/core/WalletFactory.sol:27"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)136_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)76_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_contract(StrategyRegistry)4451": {
+            "label": "contract StrategyRegistry",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_array(t_address)dyn_storage)": {
+            "label": "mapping(address => address[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
     }
   }
 }
