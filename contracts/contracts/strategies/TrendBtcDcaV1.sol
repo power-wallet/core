@@ -126,7 +126,7 @@ contract TrendBtcDcaV1 is IStrategy {
         dcaBoostMultiplier = _dcaBoostMultiplier;
         minCashStable = _minCashStable;
         minSpendStable = _minSpendStable;
-        inDcaMode = false; // start out of DCA mode
+        inDcaMode = true; // start in DCA mode to DCA until uptrend resumes
 
         riskDecimals = IERC20Metadata(_risk).decimals();
         stableDecimals = IERC20Metadata(_stable).decimals();

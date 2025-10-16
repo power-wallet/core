@@ -54,9 +54,10 @@ export const addresses: Record<string, ChainAddresses> = {
     faucet: "0x2718B8da434e4De40B05f85bf33B47B1fCa192C0",
     
     strategies: {
-      'simple-btc-dca-v1': '0x97ee87073A5a430006020A60fC8F6190Fc9Fe082', // deployed SimpleDCA on Base Sepolia
-      'power-btc-dca-v2': '0x508Fd840B7bDEF406585CC89b717D93B53996DA1',
-      'smart-btc-dca-v2': '0xcD0745beF87FC9f1CAF741E831cfF6621302bDE5'
+      'simple-btc-dca-v1': '0x251cc6A7B70BD87F4Dc12cf5A9AF88A2410c1aFf', // deployed SimpleDCA on Base Sepolia
+      'power-btc-dca-v2': '0x24b3DC2D7b68C69cE28A072c82a03e17C49C9973',
+      'smart-btc-dca-v2': '0xcD0745beF87FC9f1CAF741E831cfF6621302bDE5',
+      'trend-btc-dca-v1': '0xdACeB46A231b41730F984d0A4EAf3Ff3d67fC84D'
     }
   },
 

@@ -76,6 +76,8 @@ describe("TrendBtcDcaV1", () => {
 
   it("sells all BTC when trend exits up and not in DCA mode", async () => {
     const { strat, btcFeed, usdc, cbBTC } = await deployFixture();
+    // explicitly start not in DCA mode to allow SELL branch
+    await strat.setInDcaMode(false);
     // push price down well below dn threshold
     await btcFeed.updateAnswer(80_000_00000000n);
     const riskBal = 1_000_000_000n;
@@ -143,8 +145,8 @@ describe("TrendBtcDcaV1", () => {
 
   it("enters DCA mode after exit signal (sell all) then DCAs on next eval", async () => {
     const { strat, btcFeed, usdc, cbBTC } = await deployFixture();
-
-    // start out of DCA mode
+    // start not in DCA mode to observe SELL -> DCA transition
+    await strat.setInDcaMode(false);
     expect(await strat.inDcaMode()).to.eq(false);
 
     // Step 1: trend exit → expect SELL all risk
@@ -161,12 +163,10 @@ describe("TrendBtcDcaV1", () => {
     expect(actions[0].tokenIn).to.eq(cbBTC.target);
     expect(actions[0].amountIn).to.eq(riskBal);
 
-    // Emulate wallet performing SELL then marking execution with context, which toggles DCA mode
+    // Emulate wallet performing SELL; remains in DCA mode
     await strat.onRebalanceExecuted([
       { tokenIn: await cbBTC.getAddress(), tokenOut: await usdc.getAddress(), amountIn: riskBal }
     ]);
-
-    // should be in DCA mode now
     expect(await strat.inDcaMode()).to.eq(true);
 
     // Step 2: still below uptrend, should DCA at base 5% (not discounted enough)
@@ -181,6 +181,24 @@ describe("TrendBtcDcaV1", () => {
     expect(need).to.eq(true);
     // 5% of 1,000 = 50
     expect(actions[0].tokenIn).to.eq(usdc.target);
+    expect(actions[0].amountIn).to.eq(50_000_000n);
+  });
+
+  it("on start below trend with stable-only, should DCA base 5%", async () => {
+    const { strat, btcFeed, usdc, cbBTC } = await deployFixture();
+    // Start is in DCA mode by default; set price modestly below SMA (< 15% discount)
+    await btcFeed.updateAnswer(98_000_00000000n);
+    const stableBal = 1_000_000_000n; // 1,000 USDC
+    const [need, actions] = await strat.shouldRebalance.staticCall(
+      usdc.target,
+      [cbBTC.target],
+      stableBal,
+      [0n]
+    );
+    expect(need).to.eq(true);
+    expect(actions.length).to.eq(1);
+    expect(actions[0].tokenIn).to.eq(usdc.target);
+    // 5% of 1,000 = 50
     expect(actions[0].amountIn).to.eq(50_000_000n);
   });
 });
