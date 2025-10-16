@@ -422,6 +422,56 @@ export default function PortfolioPage() {
         ],
       }) as `0x${string}`;
     }
+    if (selectedStrategyId === 'trend-btc-dca-v1') {
+      const feed = addressesForChain.btcUsdPriceFeed as `0x${string}`;
+      const indicators = (addressesForChain as any)?.technicalIndicators as `0x${string}` | undefined;
+      const freqSec = 5n * 24n * 3600n; // 5 days
+      const smaLen = 50;                // SMA50
+      const hystBps = 150;              // 1.5%
+      const slopeLookbackDays = 14;     // 14 days
+      const dcaPctBps = 500;            // 5%
+      const discountBelowSmaPct = 15;   // 15%
+      const dcaBoostMultiplier = 2;     // 2x
+      const minCashStable = 1n * 1_000_000n; // $1 in 6d
+      const minSpendStable = 1n * 1_000_000n;  // $1 in 6d
+      return encodeFunctionData({
+        abi: [
+          { type: 'function', name: 'initialize', stateMutability: 'nonpayable', inputs: [
+            { name: '_risk', type: 'address' },
+            { name: '_stable', type: 'address' },
+            { name: '_btcFeed', type: 'address' },
+            { name: '_indicators', type: 'address' },
+            { name: '_frequency', type: 'uint256' },
+            { name: '_smaLen', type: 'uint16' },
+            { name: '_hystBps', type: 'uint16' },
+            { name: '_slopeLookbackDays', type: 'uint16' },
+            { name: '_dcaPctBps', type: 'uint16' },
+            { name: '_discountBelowSmaPct', type: 'uint16' },
+            { name: '_dcaBoostMultiplier', type: 'uint16' },
+            { name: '_minCashStable', type: 'uint256' },
+            { name: '_minSpendStable', type: 'uint256' },
+            { name: 'desc', type: 'string' },
+          ], outputs: [] },
+        ],
+        functionName: 'initialize',
+        args: [
+          cbBTC as `0x${string}`,
+          usdc as `0x${string}`,
+          feed,
+          (indicators || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+          freqSec,
+          smaLen,
+          hystBps,
+          slopeLookbackDays,
+          dcaPctBps,
+          discountBelowSmaPct,
+          dcaBoostMultiplier,
+          minCashStable,
+          minSpendStable,
+          strategyPreset.description,
+        ],
+      }) as `0x${string}`;
+    }
     return null;
   })();
   

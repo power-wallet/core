@@ -21,7 +21,7 @@ export default function About() {
             About Power Wallet
           </Typography>
           <Typography variant="h6" color="text.secondary" paragraph>
-            The Future of Smart, On-Chain Investing
+            Bitcoin accumulation strategies on autopilot
           </Typography>
         </Box>
 

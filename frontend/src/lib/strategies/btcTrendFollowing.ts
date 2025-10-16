@@ -34,9 +34,9 @@ const DEFAULT_DCA_PCT_WHEN_BEARISH = 0.05; // 5% base DCA
 const DEFAULT_DISCOUNT_BELOW_SMA_PCT = 15; // boost when price ≥15% below SMA
 const DEFAULT_DCA_BOOST_MULTIPLIER = 2; // 2x DCA when discounted
 const DEFAULT_FEE_PCT = 0.003; // 0.3%
-const DEFAULT_MIN_CASH_USD = 100; // only DCA if we have at least this much USDC
+const DEFAULT_MIN_CASH_USD = 1; // only DCA if we have at least this much USDC
 const DEFAULT_MIN_SPEND_USD = 1; // minimum spend per DCA
-const DEFAULT_DCA_MODE = false;
+const DEFAULT_DCA_MODE = true;
 
 export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;

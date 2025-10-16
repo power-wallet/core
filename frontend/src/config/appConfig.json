@@ -35,7 +35,7 @@
         "id": "simple-btc-dca-v1",
         "idBytes32": "0xc6b7ecee70fee10e980eb5533cf3266256d80c190859cb747fd382754e908f70",
         "name": "Simple BTC DCA",
-        "description": "Dollar-cost average from into cbBTC on a set cadence.",
+        "description": "The OG accumulator: dollar‑cost average into BTC on a set cadence.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
@@ -46,7 +46,7 @@
         "id": "btc-dca-power-law-v1",
         "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
         "name": "Power BTC DCA",
-        "description": "Uses the Bitcoin power-law price model as fair BTC price to adjust buy and sell amounts, with configurable bands.",
+        "description": "DCA strategy with a mean reversion twist. Uses the Bitcoin power-law price model to buy more below trend and trim above.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
@@ -56,7 +56,7 @@
         "id": "power-btc-dca-v1",
         "idBytes32": "0x8d7df25bcf3ed36f86688d470ce2bbaf412f5789ed0e10a1a481d9ef3f38893a",
         "name": "Smart BTC DCA",
-        "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, and optional rebalancing to target bands.",
+        "description": "An adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, and optional rebalancing to target bands.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
@@ -67,7 +67,7 @@
         "id": "power-btc-dca-v2",
         "idBytes32": "0x35ab1065458923ca54e83e5793eada91ea7c2b839e74adecb712ef77b295c560",
         "name": "Power BTC DCA",
-        "description": "Uses the Bitcoin power-law price model as fair BTC price to adjust buy and sell amounts, with configurable bands.",
+        "description": "DCA strategy with a mean reversion twist. Uses the Bitcoin power-law price model to buy more below trend and trim above.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
@@ -77,13 +77,22 @@
         "id": "smart-btc-dca-v2",
         "idBytes32": "0x51b7b33ebe7925dc4a735d324ea695a77d3f30e756336df447e6e48ba5c83dec",
         "name": "Smart BTC DCA",
-        "description": "Adaptive BTC DCA strategy designed to buy the dip. Includes volatility/drawdown kicker, and optional rebalancing to target bands.",
+        "description": "An adaptive BTC DCA that buys dips more aggressively, with a volatility/drawdown kicker and optional band rebalancing.",
+        "stable": "usdc",
+        "risk": ["cbBTC"],
+        "priceFeeds": ["btcUsdPriceFeed"],
+        "poolFees": [100]
+      },
+      "trend-btc-dca-v1": {
+        "id": "trend-btc-dca-v1",
+        "idBytes32": "0x546ecbd44cc6cccca7236adf69c69a0d0c7132b5ddd3886d72f22e0e811ff31b",
+        "name": "Trend BTC DCA",
+        "description": "A strategy that steadily accumulates below trend, and goes all‑in when the trend is up.",
         "stable": "usdc",
         "risk": ["cbBTC"],
         "priceFeeds": ["btcUsdPriceFeed"],
         "poolFees": [100]
       }
-
     }
   },
   "base": {
@@ -117,27 +126,6 @@
         "rebalancer": ""
       }
     },
-    "strategies": {
-      "simple-btc-dca-v1": {
-        "id": "simple-btc-dca-v1",
-        "idBytes32": "0xc6b7ecee70fee10e980eb5533cf3266256d80c190859cb747fd382754e908f70",
-        "name": "Simple BTC DCA",
-        "description": "Dollar-cost average from into cbBTC on a set cadence.",
-        "stable": "usdc",
-        "risk": ["cbBTC"],
-        "priceFeeds": ["btcUsdPriceFeed"],
-        "poolFees": [100]
-      },
-      "btc-dca-power-law-v1": {
-        "id": "btc-dca-power-law-v1",
-        "idBytes32": "0xc5d30a7fcc128c83fd01066a09f7fd55b82bab515bdb9780ec7f17526f4f418b",
-        "name": "Power BTC DCA",
-        "description": "Rebalance using the Bitcoin power-law price model as fair BTC price, with configurable bands and trade sizes.",
-        "stable": "usdc",
-        "risk": ["cbBTC"],
-        "priceFeeds": ["btcUsdPriceFeed"],
-        "poolFees": [100]
-      }
-    }
+    "strategies": {}
   }
 }

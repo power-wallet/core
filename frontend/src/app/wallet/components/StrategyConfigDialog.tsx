@@ -6,13 +6,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import ConfigSimpleDcaV1 from '../strategies/ConfigSimpleDcaV1';
 import ConfigPowerBtcDcaV2 from '../strategies/ConfigSmartBtcDcaV1';
 import ConfigSmartBtcDcaV2 from '../strategies/ConfigPowerBtcDcaV1';
+import ConfigTrendBtcDcaV1 from '../strategies/ConfigTrendBtcDcaV1';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   isMobile: boolean;
   chainId: number;
-  content: 'simple' | 'smart' | 'power' | 'unknown';
+  content: 'simple' | 'smart' | 'power' | 'trend' | 'unknown';
   strategyAddr?: `0x${string}`;
   dcaAmount?: bigint;
   freq?: bigint;
@@ -57,8 +58,10 @@ export default function StrategyConfigDialog({ open, onClose, isMobile, chainId,
           <ConfigPowerBtcDcaV2 strategyAddr={strategyAddr} chainId={chainId} />
         ) : content === 'smart' && strategyAddr ? (
           <ConfigSmartBtcDcaV2 strategyAddr={strategyAddr} chainId={chainId} stableSymbol={stableSymbol || 'USDC'} stableDecimals={stableDecimals ?? 6} />
+        ) : content === 'trend' && strategyAddr ? (
+          <ConfigTrendBtcDcaV1 strategyAddr={strategyAddr} chainId={chainId} />
         ) : (
-          <Typography variant="body2" color="text.secondary">This strategy is not yet configurable in the app.</Typography>
+          <Typography sx={{ textAlign: 'center', mt: 4 }} variant="body1" color="text.secondary">This strategy is not yet configurable in the app.</Typography>
         )}
       </DialogContent>
       {!isMobile ? (

@@ -96,7 +96,7 @@ export default function ConfigSimpleDcaV1({ strategyAddr, chainId, stableSymbol,
         </Stack>
       </Box>
       <Box>
-        <Typography variant="caption">DCA Frequency (days)</Typography>
+        <Typography variant="caption">DCA Cadence (days)</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <TextField
             size="small"

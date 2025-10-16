@@ -84,8 +84,8 @@ export default function Home() {
                 gutterBottom
                 sx={{ opacity: 0.95, mb: 4, fontSize: { xs: '1.25rem', md: '1.5rem' } }}
               >
-                Smarter Bitcoin Investing
-              </Typography>
+              Bitcoin accumulation on autopilot
+            </Typography>
               <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0 }}>
                 <li>
                   <Typography variant="body1"><strong>Power up</strong> your Bitcoin investments with proven DCA strategies automated on-chain.</Typography>

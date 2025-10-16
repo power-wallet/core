@@ -570,7 +570,8 @@ export default function WalletDetails() {
 
         const content = matchedId === 'simple-btc-dca-v1' ? 'simple' :
             ['btc-dca-power-law-v1', 'power-btc-dca-v2'].includes(matchedId ?? '') ? 'power' :
-            ['power-btc-dca-v1', 'smart-btc-dca-v2'].includes(matchedId ?? '') ? 'smart' : 'unknown';
+            ['power-btc-dca-v1', 'smart-btc-dca-v2'].includes(matchedId ?? '') ? 'smart' :
+            (matchedId === 'trend-btc-dca-v1' ? 'trend' : 'unknown');
 
         const stableMeta = stableKey ? (appConfig as any)[chainKey].assets[Object.keys((appConfig as any)[chainKey].assets).find(k => k.toLowerCase() === String(stableKey).toLowerCase()) as string] : null;
         return (

@@ -33,6 +33,7 @@ const ADDR = {
     'simple-btc-dca-v1': String(addrChain.strategies['simple-btc-dca-v1'] || ''),
     'power-btc-dca-v2': String(addrChain.strategies['power-btc-dca-v2'] || ''),
     'smart-btc-dca-v2': String(addrChain.strategies['smart-btc-dca-v2'] || ''),
+    'trend-btc-dca-v1': String(addrChain.strategies['trend-btc-dca-v1'] || ''),
   },
 } as const;
 
@@ -325,11 +326,19 @@ export default function SmartContractsPage() {
 
             <Section title="Simple BTC DCA"
               address={ADDR.strategies['simple-btc-dca-v1']}
-              blurb="Simple DCA Strategy into BTC that invests a fixed amount of USDC at a fixed frequency." />
+              blurb="The OG accumulator: dollar‑cost average into BTC on a set cadence." />
+
+            <Section title="Power BTC DCA"
+              address={ADDR.strategies['power-btc-dca-v2']}
+              blurb="DCA strategy with a mean reversion twist. Uses the Bitcoin power-law price model to buy more below trend and trim above." />
 
             <Section title="Smart BTC DCA"
-              address={ADDR.strategies['power-btc-dca-v2']}
-              blurb="Advanced DCA Strategy into BTC with optimized buy and sell amounts, based on the Bitcoin Power Law price model." />
+              address={ADDR.strategies['smart-btc-dca-v2']}
+              blurb="An adaptive BTC DCA that buys dips more aggressively, with a volatility/drawdown kicker and optional band rebalancing." />
+
+            <Section title="Trend BTC DCA"
+              address={ADDR.strategies['trend-btc-dca-v1']}
+              blurb="A strategy that steadily accumulates below trend, and goes all‑in when the trend is up." />
 
             <Section title="Technical Indicators"
               address={ADDR.technicalIndicators}

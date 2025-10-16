@@ -63,7 +63,7 @@ export default function StrategyCard({ strategyName, description, strategyAddr, 
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption">Frequency</Typography>
+            <Typography variant="caption">Cadence</Typography>
             <Typography variant="body1">{frequency ? `${Number(frequency) / 86400} d` : '-'}</Typography>
           </Box>
         </Stack>

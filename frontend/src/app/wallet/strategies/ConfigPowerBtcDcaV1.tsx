@@ -87,7 +87,7 @@ export default function ConfigSmartBtcDcaV2({ strategyAddr, chainId, stableSymbo
             Configure your base buy size and cadence. The buffer keeps a USDC reserve equal to buffer × base DCA before spending extra.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-            <TextField fullWidth label="DCA Frequency (days)" sx={{ width: { xs: '100%', sm: 180 } }} size="small" type="number" value={days} onChange={(e) => setDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} />
+            <TextField fullWidth label="DCA Cadence (days)" sx={{ width: { xs: '100%', sm: 180 } }} size="small" type="number" value={days} onChange={(e) => setDays(e.target.value)} inputProps={{ min: 1, max: 60, step: 1 }} />
             <Button sx={{ p: 1 }} variant="outlined" size="small" onClick={() => exec('setFrequency', [BigInt(Math.floor(Number(days || '0')) * 86400)], () => refetchFreq?.())} disabled={busy === 'setFrequency'}>
               {busy === 'setFrequency' ? (<><CircularProgress size={14} sx={{ mr: 1 }} /> Updating…</>) : 'Update'}
             </Button>
