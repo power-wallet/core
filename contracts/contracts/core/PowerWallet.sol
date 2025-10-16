@@ -294,9 +294,9 @@ contract PowerWallet is Ownable, AutomationCompatibleInterface, ReentrancyGuard 
             _executeSwap(actions[i]);
         }
         
-        // Post-exec hook: onRebalanceExecutedWithContext(IStrategy.SwapAction[])
-        (bool ok,) = strategy.call(abi.encodeWithSignature("onRebalanceExecutedWithContext((address,address,uint256)[])", actions));
-        require(ok, "onRebalanceExecutedWithContext failed");
+        // Post-exec hook: onRebalanceExecuted(IStrategy.SwapAction[])
+        (bool ok,) = strategy.call(abi.encodeWithSignature("onRebalanceExecuted((address,address,uint256)[])", actions));
+        require(ok, "onRebalanceExecuted failed");
     }
 
     // Close wallet: sweep funds to owner and disable operations permanently

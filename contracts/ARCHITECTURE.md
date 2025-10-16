@@ -78,7 +78,6 @@ This document describes the on-chain architecture for the PowerWallet protocol. 
   - Pure decision engines returning one or more `SwapAction`s when rebalancing is needed.
   - `SimpleDCA`: buys a fixed stable amount into one risk asset on a fixed cadence.
   - `SmartBtcDca`: banded power‑law BTC model; buys more below model, small buys near model, sells above upper band. Uses `ABDKMath64x64` for fixed‑point math and Chainlink BTC/USD feed.
-  - Optional hook: `IStrategyExecutionHook.onRebalanceExecuted()` to update internal state (e.g., timestamps) post-trade.
 
 - TechnicalIndicators (UUPS, AutomationCompatible):
   - Stores daily close prices per token, calculates SMA, RSI, Wilder's RSI, and ETH/BTC RSI.

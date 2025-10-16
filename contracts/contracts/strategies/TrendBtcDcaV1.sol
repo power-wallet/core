@@ -218,7 +218,7 @@ contract TrendBtcDcaV1 is IStrategy {
     }
 
     // richer hook: wallet can pass executed actions as context
-    function onRebalanceExecutedWithContext(SwapAction[] calldata actions) external {
+    function onRebalanceExecuted(SwapAction[] calldata actions) external {
         require(msg.sender == authorizedWallet, "unauthorized");
         
         lastTimestamp = block.timestamp;

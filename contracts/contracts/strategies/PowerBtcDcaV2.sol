@@ -171,7 +171,7 @@ contract PowerBtcDcaV2 is IStrategy {
         return (false, actions);
     }
 
-    function onRebalanceExecutedWithContext(SwapAction[] calldata /*actions*/) external {
+    function onRebalanceExecuted(SwapAction[] calldata /*actions*/) external {
         require(msg.sender == authorizedWallet, "unauthorized");
         
         lastTimestamp = block.timestamp;

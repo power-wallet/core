@@ -78,7 +78,7 @@ contract SimpleDCA is IStrategy {
     }
 
     // V2 hook receiving actions; here we only update cadence gate
-    function onRebalanceExecutedWithContext(SwapAction[] calldata /*actions*/) external {
+    function onRebalanceExecuted(SwapAction[] calldata /*actions*/) external {
         require(msg.sender == authorizedWallet, "unauthorized");
         
         lastTimestamp = block.timestamp;

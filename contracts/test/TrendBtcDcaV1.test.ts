@@ -162,7 +162,7 @@ describe("TrendBtcDcaV1", () => {
     expect(actions[0].amountIn).to.eq(riskBal);
 
     // Emulate wallet performing SELL then marking execution with context, which toggles DCA mode
-    await strat.onRebalanceExecutedWithContext([
+    await strat.onRebalanceExecuted([
       { tokenIn: await cbBTC.getAddress(), tokenOut: await usdc.getAddress(), amountIn: riskBal }
     ]);
 

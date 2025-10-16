@@ -221,7 +221,7 @@ describe("SmartBtcDcaV2", function () {
     const riskBal = 0n;
     const first = await strat.shouldRebalance(await usdc.getAddress(), [await cbBTC.getAddress()], stableBal, [riskBal]);
     expect(first[0]).to.eq(true);
-    await (await strat.onRebalanceExecutedWithContext([])).wait();
+    await (await strat.onRebalanceExecuted([])).wait();
     const second = await strat.shouldRebalance(await usdc.getAddress(), [await cbBTC.getAddress()], stableBal, [riskBal]);
     expect(second[0]).to.eq(false);
   });

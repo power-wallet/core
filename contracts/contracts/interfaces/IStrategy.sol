@@ -18,10 +18,8 @@ interface IStrategy {
         uint256 stableBalance,
         uint256[] calldata riskBalances
     ) external view returns (bool needsRebalance, SwapAction[] memory actions);
-}
 
-interface IStrategyExecutionHook {
-    function onRebalanceExecuted() external;
+    function onRebalanceExecuted(SwapAction[] calldata /*actions*/) external;
 }
 
 
