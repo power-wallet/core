@@ -18,17 +18,17 @@ import type {
 
 // Default strategy parameters (from Python)
 const DEFAULT_PARAMETERS: StrategyParameters = {
-  rsi_bars: 8,
-  eth_btc_rsi_bars: 5,
-  bearish_rsi_entry: 65,
-  bearish_rsi_exit: 70,
-  bullish_rsi_entry: 80,
-  bullish_rsi_exit: 65,
-  regime_filter_ma_length: 200,
+  rsiBars: 8,
+  ethBtcRsiBars: 5,
+  bearishRsiEntry: 65,
+  bearishRsiExit: 70,
+  bullishRsiEntry: 80,
+  bullishRsiExit: 65,
+  regimeFilterMaLength: 200,
   allocation: 0.98,
-  rebalance_threshold: 0.275,
-  momentum_exponent: 3.5,
-  trading_fee: 0.0030,
+  rebalanceThreshold: 0.275,
+  momentumExponent: 3.5,
+  tradingFee: 0.0030,
 };
 
 /**
@@ -82,11 +82,11 @@ export async function runSimulation(
   const allEthPrices = allDates.map((d: string) => ethMap.get(d)!);
   
   // Calculate indicators on ALL data (including lookback period)
-  const allBtcRsi = calculateRSI(allBtcPrices, parameters.rsi_bars);
-  const allEthRsi = calculateRSI(allEthPrices, parameters.rsi_bars);
-  const allBtcSma = calculateSMA(allBtcPrices, parameters.regime_filter_ma_length);
+  const allBtcRsi = calculateRSI(allBtcPrices, parameters.rsiBars);
+  const allEthRsi = calculateRSI(allEthPrices, parameters.rsiBars);
+  const allBtcSma = calculateSMA(allBtcPrices, parameters.regimeFilterMaLength);
   const allEthBtcRatio = calculateRatio(allEthPrices, allBtcPrices);
-  const allEthBtcRsi = calculateRSI(allEthBtcRatio, parameters.eth_btc_rsi_bars);
+  const allEthBtcRsi = calculateRSI(allEthBtcRatio, parameters.ethBtcRsiBars);
   
   // Now extract just the backtest period
   const dates = allDates;
@@ -108,7 +108,7 @@ export async function runSimulation(
   
   // Initialize BTC HODL benchmark
   const btcStartPrice = btcPrices[startIdx];
-  const btcHodlQty = (initialCapital * (1.0 - parameters.trading_fee)) / btcStartPrice;
+  const btcHodlQty = (initialCapital * (1.0 - parameters.tradingFee)) / btcStartPrice;
   
   const trades: Trade[] = [];
   const rsiSignals: DailyRsiSignals[] = [];
@@ -157,8 +157,8 @@ export async function runSimulation(
     const sma = btcSma[i];
     const isBullish = isNaN(sma) ? true : btcPrice > sma;
     
-    const rsiEntry = isBullish ? parameters.bullish_rsi_entry : parameters.bearish_rsi_entry;
-    const rsiExit = isBullish ? parameters.bullish_rsi_exit : parameters.bearish_rsi_exit;
+    const rsiEntry = isBullish ? parameters.bullishRsiEntry : parameters.bearishRsiEntry;
+    const rsiExit = isBullish ? parameters.bullishRsiExit : parameters.bearishRsiExit;
     
     // Check for entry/exit signals
     const btcRsiNow = btcRsi[i];
@@ -174,8 +174,8 @@ export async function runSimulation(
     let ethMom = isNaN(ebRsi) ? 0.5 : (ebRsi / 100.0) + 0.5;
     let btcMom = isNaN(ebRsi) ? 0.5 : (1.0 - (ebRsi / 100.0)) + 0.5;
     
-    ethMom = Math.pow(ethMom, parameters.momentum_exponent);
-    btcMom = Math.pow(btcMom, parameters.momentum_exponent);
+    ethMom = Math.pow(ethMom, parameters.momentumExponent);
+    btcMom = Math.pow(btcMom, parameters.momentumExponent);
     
     // Determine target weights
     let wBtc = btcMom;
@@ -220,25 +220,25 @@ export async function runSimulation(
     // Rebalance function
     const rebalance = (pos: Position, targetValue: number, price: number) => {
       const delta = targetValue - pos.value;
-      if (Math.abs(delta) < parameters.rebalance_threshold * totalEquity) {
+      if (Math.abs(delta) < parameters.rebalanceThreshold * totalEquity) {
         return;
       }
       
       let fee = 0;
       if (delta > 0) {
         // Buy
-        const totalCost = delta * (1.0 + parameters.trading_fee);
+        const totalCost = delta * (1.0 + parameters.tradingFee);
         let actualDelta = delta;
         
         if (totalCost > cash) {
-          actualDelta = cash / (1.0 + parameters.trading_fee);
-          if (Math.abs(actualDelta) < parameters.rebalance_threshold * totalEquity) {
+          actualDelta = cash / (1.0 + parameters.tradingFee);
+          if (Math.abs(actualDelta) < parameters.rebalanceThreshold * totalEquity) {
             return;
           }
         }
         
-        const qty = (actualDelta * (1.0 - parameters.trading_fee)) / price;
-        fee = actualDelta * parameters.trading_fee;
+        const qty = (actualDelta * (1.0 - parameters.tradingFee)) / price;
+        fee = actualDelta * parameters.tradingFee;
         pos.quantity += qty;
         cash -= (actualDelta + fee);
         
@@ -262,9 +262,9 @@ export async function runSimulation(
         const sellValue = -delta;
         const qty = Math.min(pos.quantity, sellValue / price);
         const actualValue = qty * price;
-        fee = actualValue * parameters.trading_fee;
+        fee = actualValue * parameters.tradingFee;
         pos.quantity -= qty;
-        cash += actualValue * (1.0 - parameters.trading_fee);
+        cash += actualValue * (1.0 - parameters.tradingFee);
         
         // Update position value immediately
         pos.value = pos.quantity * price;

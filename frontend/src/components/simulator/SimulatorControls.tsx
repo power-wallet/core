@@ -17,11 +17,7 @@ import {
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { DEFAULT_PARAMETERS as SIMPLE_DEFAULTS } from '@/lib/strategies/simpleBtcDca';
-import { DEFAULT_PARAMETERS as SMART_DEFAULTS } from '@/lib/strategies/smartBtcDca';
-import { DEFAULT_PARAMETERS as POWER_DEFAULTS } from '@/lib/strategies/powerBtcDca';
-import { DEFAULT_PARAMETERS as TREND_DEFAULTS } from '@/lib/strategies/btcTrendFollowing';
-import { DEFAULT_PARAMETERS as MOM_DEFAULTS } from '@/lib/strategies/btcEthMomentum';
+import { loadStrategy } from '@/lib/strategies/registry';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 interface SimulatorControlsProps {
@@ -74,16 +70,21 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
   }, [strategy, startDate, endDate, initialCapital, strategyOptions]);
   // Ensure options object has an entry for the selected strategy with defaults
   useEffect(() => {
-    let defaults: Record<string, any> = {};
-    if (strategy === 'simple-btc-dca') defaults = SIMPLE_DEFAULTS as any;
-    if (strategy === 'smart-btc-dca') defaults = SMART_DEFAULTS as any;
-    if (strategy === 'power-btc-dca') defaults = POWER_DEFAULTS as any;
-    if (strategy === 'trend-btc-dca') defaults = TREND_DEFAULTS as any;
-    if (strategy === 'btc-eth-momentum') defaults = MOM_DEFAULTS as any;
-    setStrategyOptions(prev => {
-      if (prev && prev[strategy]) return prev;
-      return { ...prev, [strategy]: defaults };
-    });
+    let cancelled = false;
+    (async () => {
+      try {
+        const strat = await loadStrategy(strategy as any);
+        const defaults = strat.getDefaultParameters();
+        if (cancelled) return;
+        setStrategyOptions(prev => {
+          if (prev && prev[strategy]) return prev;
+          return { ...prev, [strategy]: defaults };
+        });
+      } catch (_) {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
   }, [strategy]);
 
   // Validate dates
@@ -263,14 +264,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
           <Divider sx={{ my: 2, borderColor: '#2D2D2D' }} />
           <Typography variant="subtitle1" sx={{ color: '#D1D5DB', mb: 2 }}>Options</Typography>
           {(() => {
-            // Choose defaults by strategy id
-            let defaults: Record<string, any> = {};
-            if (strategy === 'simple-btc-dca') defaults = SIMPLE_DEFAULTS as any;
-            if (strategy === 'smart-btc-dca') defaults = SMART_DEFAULTS as any;
-            if (strategy === 'power-btc-dca') defaults = POWER_DEFAULTS as any;
-            if (strategy === 'trend-btc-dca') defaults = TREND_DEFAULTS as any;
-            if (strategy === 'btc-eth-momentum') defaults = MOM_DEFAULTS as any;
-
+            const defaults: Record<string, any> = strategyOptions?.[strategy] ?? {};
             const current = strategyOptions?.[strategy] ?? defaults;
 
             const labelize = (k: string) => k

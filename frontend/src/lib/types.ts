@@ -99,15 +99,15 @@ export interface DailyRsiSignals {
 }
 
 export interface StrategyParameters {
-  rsi_bars: number;
-  eth_btc_rsi_bars: number;
-  bearish_rsi_entry: number;
-  bearish_rsi_exit: number;
-  bullish_rsi_entry: number;
-  bullish_rsi_exit: number;
-  regime_filter_ma_length: number;
+  rsiBars: number;
+  ethBtcRsiBars: number;
+  bearishRsiEntry: number;
+  bearishRsiExit: number;
+  bullishRsiEntry: number;
+  bullishRsiExit: number;
+  regimeFilterMaLength: number;
   allocation: number;
-  rebalance_threshold: number;
-  momentum_exponent: number;
-  trading_fee: number;
+  rebalanceThreshold: number;
+  momentumExponent: number;
+  tradingFee: number;
 }

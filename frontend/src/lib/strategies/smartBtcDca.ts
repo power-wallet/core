@@ -10,22 +10,23 @@ export interface Strategy {
     endDate: string,
     options: { prices: { btc: PriceData[] } }
   ) => Promise<SimulationResult>;
+  getDefaultParameters: () => Record<string, any>;
 }
 
 // Centralized default parameters (adapted from adaptive_dca_btc.py)
 export const DEFAULT_PARAMETERS = {
-  lookbackDays: 30,           // rolling realized variance window
-  ewmaLambdaDaily: 0.94,      // EWMA lambda
-  baseDcaUsdc: 100.0,          // daily base DCA
   evalIntervalDays: 7,        // how often to evaluate trading rules (default weekly)
+  baseDcaUsdc: 100.0,         // daily base DCA
+  minTradeUsd: 1.0,           // minimum trade to execute/record
+  lookbackDays: 30,           // rolling realized variance window
+  kKicker: 0.05,              // vol/drawdown sizing coefficient
+  winsorizeAbsRet: 0.20,      // clip abs daily log return
+  ewmaLambdaDaily: 0.94,      // EWMA lambda
+  bufferMult: 9.0,            // days of base DCA to keep as USDC buffer
+  cmaxMult: 3.0,              // cap extra buy per day = cmax_mult * base_dca
+  thresholdMode: true,        // optional true threshold rebalancing
   targetBtcWeight: 0.80,      // target BTC weight
   bandDelta: 0.10,            // ±10% band around target
-  kKicker: 0.05,              // vol/drawdown sizing coefficient
-  cmaxMult: 3.0,              // cap extra buy per day = cmax_mult * base_dca
-  bufferMult: 9.0,            // days of base DCA to keep as USDC buffer
-  minTradeUsd: 1.0,           // minimum trade to execute/record
-  winsorizeAbsRet: 0.20,      // clip abs daily log return
-  thresholdMode: true,        // optional true threshold rebalancing
   rebalanceCapFrac: 0.05,     // cap single rebalance to 5% NAV
   tradingFee: 0.003,          // 0.3% fee assumption for BTC HODL benchmark
 };
@@ -295,6 +296,7 @@ const strategy: Strategy = {
   id: 'smart-btc-dca',
   name: 'Smart BTC DCA',
   run,
+  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

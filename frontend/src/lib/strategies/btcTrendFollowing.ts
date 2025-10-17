@@ -24,22 +24,24 @@ export interface Strategy {
       slopeLookbackDays?: number; // SMA slope lookback (default 14)
     }
   ) => Promise<SimulationResult>;
+  getDefaultParameters: () => Record<string, any>;
 }
 
 // Centralized default parameters for the strategy
 export const DEFAULT_PARAMETERS = {
   evalIntervalDays: 5,        // evaluate roughly weekly
-  feePct: 0.003,              // 0.3%
-  // DCA configuration
-  dcaPctWhenBearish: 0.05,    // 5% base DCA
-  discountBelowSmaPct: 15,    // boost when price ≥15% below SMA
-  dcaBoostMultiplier: 2,      // 2x DCA when discounted
-  minCashUsd: 1,              // only DCA if we have at least this much USDC
-  minSpendUsd: 1,             // minimum spend per DCA
+  dcaMode: true,              // start in DCA mode
   // Trend filter configuration
   hystBps: 150,               // 1.5% hysteresis band
   slopeLookbackDays: 14,      // slope window
-  dcaMode: true,              // start in DCA mode
+  // DCA configuration
+  dcaPctWhenBearish: 0.05,    // 5% base DCA
+  dcaBoostMultiplier: 2,      // 2x DCA when discounted
+  discountBelowSmaPct: 15,    // boost when price ≥15% below SMA
+  minCashUsd: 1,              // only DCA if we have at least this much USDC
+  minSpendUsd: 1,             // minimum spend per DCA
+
+  feePct: 0.003,              // 0.3%
 };
 
 const SMA_LENGTH = 50; // SMA period for trend (kept constant for charting consistency)
@@ -243,6 +245,7 @@ const strategy: Strategy = {
   id: 'trend-btc-dca',
   name: 'Trend BTC DCA (SMA50, weekly)',
   run,
+  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

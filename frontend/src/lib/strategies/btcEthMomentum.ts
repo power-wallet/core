@@ -13,20 +13,21 @@ export interface Strategy {
     endDate: string,
     options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
   ) => Promise<SimulationResult>;
+  getDefaultParameters: () => Record<string, any>;
 }
 
 export const DEFAULT_PARAMETERS: StrategyParameters = {
-  rsi_bars: 8,
-  eth_btc_rsi_bars: 5,
-  bearish_rsi_entry: 65,
-  bearish_rsi_exit: 70,
-  bullish_rsi_entry: 80,
-  bullish_rsi_exit: 65,
-  regime_filter_ma_length: 200,
-  allocation: 0.98,
-  rebalance_threshold: 0.275,
-  momentum_exponent: 3.5,
-  trading_fee: 0.0030,
+  rsiBars: 8,                    // RSI lookback (days) for BTC and ETH
+  ethBtcRsiBars: 5,              // RSI lookback (days) for ETH/BTC price ratio
+  bearishRsiEntry: 65,           // Entry RSI threshold in bear regime (cross above to enter)
+  bearishRsiExit: 70,            // Exit RSI threshold in bear regime (cross below to exit)
+  bullishRsiEntry: 80,           // Entry RSI threshold in bull regime (cross above to enter)
+  bullishRsiExit: 65,            // Exit RSI threshold in bull regime (cross below to exit)
+  regimeFilterMaLength: 200,     // BTC SMA length (days) to define bull/bear regime
+  allocation: 0.98,              // Fraction of equity investable in risk assets (rest kept as cash)
+  rebalanceThreshold: 0.275,     // Min |target-current| as fraction of total equity to trigger a trade
+  momentumExponent: 3.5,         // Nonlinearity applied to ETH/BTC momentum weights
+  tradingFee: 0.0030,            // Per-trade fee (0.30%) applied to buys and sells
 };
 
 function calculateCAGR(startValue: number, endValue: number, startDate: string, endDate: string): number {
@@ -46,32 +47,32 @@ export async function run(
   endDate: string,
   options: {
     prices: { btc?: PriceData[]; eth?: PriceData[] };
-    // Keep the momentum strategy key names consistent with StrategyParameters (snake_case)
-    rsi_bars?: number;
-    eth_btc_rsi_bars?: number;
-    bearish_rsi_entry?: number;
-    bearish_rsi_exit?: number;
-    bullish_rsi_entry?: number;
-    bullish_rsi_exit?: number;
-    regime_filter_ma_length?: number;
+    // Momentum strategy parameters (camelCase to match other strategies)
+    rsiBars?: number;
+    ethBtcRsiBars?: number;
+    bearishRsiEntry?: number;
+    bearishRsiExit?: number;
+    bullishRsiEntry?: number;
+    bullishRsiExit?: number;
+    regimeFilterMaLength?: number;
     allocation?: number;
-    rebalance_threshold?: number;
-    momentum_exponent?: number;
-    trading_fee?: number;
+    rebalanceThreshold?: number;
+    momentumExponent?: number;
+    tradingFee?: number;
   }
 ): Promise<SimulationResult> {
   const parameters: StrategyParameters = {
-    rsi_bars: Math.max(1, Math.floor(options.rsi_bars ?? DEFAULT_PARAMETERS.rsi_bars)),
-    eth_btc_rsi_bars: Math.max(1, Math.floor(options.eth_btc_rsi_bars ?? DEFAULT_PARAMETERS.eth_btc_rsi_bars)),
-    bearish_rsi_entry: options.bearish_rsi_entry ?? DEFAULT_PARAMETERS.bearish_rsi_entry,
-    bearish_rsi_exit: options.bearish_rsi_exit ?? DEFAULT_PARAMETERS.bearish_rsi_exit,
-    bullish_rsi_entry: options.bullish_rsi_entry ?? DEFAULT_PARAMETERS.bullish_rsi_entry,
-    bullish_rsi_exit: options.bullish_rsi_exit ?? DEFAULT_PARAMETERS.bullish_rsi_exit,
-    regime_filter_ma_length: Math.max(1, Math.floor(options.regime_filter_ma_length ?? DEFAULT_PARAMETERS.regime_filter_ma_length)),
+    rsiBars: Math.max(1, Math.floor(options.rsiBars ?? DEFAULT_PARAMETERS.rsiBars)),
+    ethBtcRsiBars: Math.max(1, Math.floor(options.ethBtcRsiBars ?? DEFAULT_PARAMETERS.ethBtcRsiBars)),
+    bearishRsiEntry: options.bearishRsiEntry ?? DEFAULT_PARAMETERS.bearishRsiEntry,
+    bearishRsiExit: options.bearishRsiExit ?? DEFAULT_PARAMETERS.bearishRsiExit,
+    bullishRsiEntry: options.bullishRsiEntry ?? DEFAULT_PARAMETERS.bullishRsiEntry,
+    bullishRsiExit: options.bullishRsiExit ?? DEFAULT_PARAMETERS.bullishRsiExit,
+    regimeFilterMaLength: Math.max(1, Math.floor(options.regimeFilterMaLength ?? DEFAULT_PARAMETERS.regimeFilterMaLength)),
     allocation: Math.min(1, Math.max(0, options.allocation ?? DEFAULT_PARAMETERS.allocation)),
-    rebalance_threshold: Math.max(0, options.rebalance_threshold ?? DEFAULT_PARAMETERS.rebalance_threshold),
-    momentum_exponent: Math.max(0, options.momentum_exponent ?? DEFAULT_PARAMETERS.momentum_exponent),
-    trading_fee: Math.max(0, options.trading_fee ?? DEFAULT_PARAMETERS.trading_fee),
+    rebalanceThreshold: Math.max(0, options.rebalanceThreshold ?? DEFAULT_PARAMETERS.rebalanceThreshold),
+    momentumExponent: Math.max(0, options.momentumExponent ?? DEFAULT_PARAMETERS.momentumExponent),
+    tradingFee: Math.max(0, options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee),
   };
   const { btc: btcData = [], eth: ethData = [] } = options.prices;
 
@@ -83,11 +84,11 @@ export async function run(
   const btcPrices = dates.map(d => btcMap.get(d)!);
   const ethPrices = dates.map(d => ethMap.get(d)!);
 
-  const btcRsi = calculateRSI(btcPrices, parameters.rsi_bars);
-  const ethRsi = calculateRSI(ethPrices, parameters.rsi_bars);
-  const btcSma = calculateSMA(btcPrices, parameters.regime_filter_ma_length);
+  const btcRsi = calculateRSI(btcPrices, parameters.rsiBars);
+  const ethRsi = calculateRSI(ethPrices, parameters.rsiBars);
+  const btcSma = calculateSMA(btcPrices, parameters.regimeFilterMaLength);
   const ethBtcRatio = calculateRatio(ethPrices, btcPrices);
-  const ethBtcRsi = calculateRSI(ethBtcRatio, parameters.eth_btc_rsi_bars);
+  const ethBtcRsi = calculateRSI(ethBtcRatio, parameters.ethBtcRsiBars);
 
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in data');
@@ -97,7 +98,7 @@ export async function run(
   const ethPos: Position = { symbol: 'ETH', quantity: 0, value: 0, lastPrice: 0 };
 
   const btcStartPrice = btcPrices[startIdx];
-  const btcHodlQty = (initialCapital * (1.0 - parameters.trading_fee)) / btcStartPrice;
+  const btcHodlQty = (initialCapital * (1.0 - parameters.tradingFee)) / btcStartPrice;
 
   const trades: Trade[] = [];
   const rsiSignals: DailyRsiSignals[] = [];
@@ -131,8 +132,8 @@ export async function run(
 
     const sma = btcSma[i];
     const isBullish = isNaN(sma) ? true : btcPrice > sma;
-    const rsiEntry = isBullish ? parameters.bullish_rsi_entry : parameters.bearish_rsi_entry;
-    const rsiExit = isBullish ? parameters.bullish_rsi_exit : parameters.bearish_rsi_exit;
+    const rsiEntry = isBullish ? parameters.bullishRsiEntry : parameters.bearishRsiEntry;
+    const rsiExit = isBullish ? parameters.bullishRsiExit : parameters.bearishRsiExit;
 
     const btcRsiNow = btcRsi[i];
     const ethRsiNow = ethRsi[i];
@@ -145,8 +146,8 @@ export async function run(
     const ebRsi = ethBtcRsi[i];
     let ethMom = isNaN(ebRsi) ? 0.5 : (ebRsi / 100.0) + 0.5;
     let btcMom = isNaN(ebRsi) ? 0.5 : (1.0 - (ebRsi / 100.0)) + 0.5;
-    ethMom = Math.pow(ethMom, parameters.momentum_exponent);
-    btcMom = Math.pow(btcMom, parameters.momentum_exponent);
+    ethMom = Math.pow(ethMom, parameters.momentumExponent);
+    btcMom = Math.pow(btcMom, parameters.momentumExponent);
 
     let wBtc = btcMom; let wEth = ethMom;
     if (btcOpen) { if (crossedBelow(btcRsiNow, btcRsiPrev, rsiExit)) { wBtc = 0; } } else { if (!crossedAbove(btcRsiNow, btcRsiPrev, rsiEntry)) { wBtc = 0; } }
@@ -161,24 +162,24 @@ export async function run(
 
     const rebalance = (pos: Position, targetValue: number, price: number) => {
       const delta = targetValue - pos.value;
-      if (Math.abs(delta) < parameters.rebalance_threshold * totalEquity) { return; }
+      if (Math.abs(delta) < parameters.rebalanceThreshold * totalEquity) { return; }
       let fee = 0;
       if (delta > 0) {
-        const totalCost = delta * (1.0 + parameters.trading_fee);
+        const totalCost = delta * (1.0 + parameters.tradingFee);
         let actualDelta = delta;
         if (totalCost > cash) {
-          actualDelta = cash / (1.0 + parameters.trading_fee);
-          if (Math.abs(actualDelta) < parameters.rebalance_threshold * totalEquity) { return; }
+          actualDelta = cash / (1.0 + parameters.tradingFee);
+          if (Math.abs(actualDelta) < parameters.rebalanceThreshold * totalEquity) { return; }
         }
-        const qty = (actualDelta * (1.0 - parameters.trading_fee)) / price;
-        fee = actualDelta * parameters.trading_fee;
+        const qty = (actualDelta * (1.0 - parameters.tradingFee)) / price;
+        fee = actualDelta * parameters.tradingFee;
         pos.quantity += qty; cash -= (actualDelta + fee);
         pos.value = pos.quantity * price; pos.lastPrice = price;
         trades.push({ date, symbol: pos.symbol, side: 'BUY', price, quantity: qty, value: actualDelta, fee, portfolioValue: cash + btcPos.value + ethPos.value });
       } else {
         const sellValue = -delta; const qty = Math.min(pos.quantity, sellValue / price);
-        const actualValue = qty * price; fee = actualValue * parameters.trading_fee;
-        pos.quantity -= qty; cash += actualValue * (1.0 - parameters.trading_fee);
+        const actualValue = qty * price; fee = actualValue * parameters.tradingFee;
+        pos.quantity -= qty; cash += actualValue * (1.0 - parameters.tradingFee);
         pos.value = pos.quantity * price; pos.lastPrice = price;
         trades.push({ date, symbol: pos.symbol, side: 'SELL', price, quantity: qty, value: actualValue, fee, portfolioValue: cash + btcPos.value + ethPos.value });
       }
@@ -265,6 +266,7 @@ const strategy: Strategy = {
   id: 'btc-eth-momentum',
   name: 'BTC-ETH Momentum RSI',
   run,
+  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

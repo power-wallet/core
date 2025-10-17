@@ -11,6 +11,7 @@ export interface Strategy {
     endDate: string,
     options: { prices: { btc: PriceData[] } }
   ) => Promise<SimulationResult>;
+  getDefaultParameters: () => Record<string, any>;
 }
 
 // Power law model: P(t) = C * d^n, with d = days since 2009-01-03
@@ -19,15 +20,15 @@ const N = 5.845;
 
 // Centralized default parameters for the strategy
 export const DEFAULT_PARAMETERS = {
-  tradingFee: 0.003,                  // 0.3% fee assumption
   tradeIntervalDays: 7,               // evaluate weekly
-  usdcReserveFrac: 0.02,              // keep 2% USDC reserve
-  btcReserveFrac: 0.10,               // keep 10% BTC reserve
   buyPctBelowLower: 0.05,             // buy 5% of available USDC below lower band
   buyPctBetweenLowerAndModel: 0.01,   // buy 1% between lower band and model
   sellPctAboveUpper: 0.05,            // sell 5% of BTC above upper band
+  usdcReserveFrac: 0.02,              // keep 2% USDC reserve
+  btcReserveFrac: 0.10,               // keep 10% BTC reserve
   upperBandMult: 2.0,                 // upper band = model * 2
   lowerBandMult: 0.5,                 // lower band = model * 0.5
+  tradingFee: 0.003,                  // 0.3% fee assumption
 };
 
 function daysSinceGenesis(dateStr: string): number {
@@ -246,6 +247,7 @@ const strategy: Strategy = {
   id: 'power-btc-dca',
   name: 'Power BTC DCA',
   run,
+  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

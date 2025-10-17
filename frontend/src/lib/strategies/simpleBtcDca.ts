@@ -12,6 +12,7 @@ export interface Strategy {
     endDate: string,
     options: { prices: { btc: PriceData[] } }
   ) => Promise<SimulationResult>;
+  getDefaultParameters: () => Record<string, any>;
 }
 
 // Centralized default parameters for the strategy
@@ -157,6 +158,7 @@ const strategy: Strategy = {
   id: 'simple-btc-dca',
   name: 'Simple BTC DCA',
   run,
+  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

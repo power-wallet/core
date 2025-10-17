@@ -11,6 +11,7 @@ export interface Strategy {
     endDate: string,
     options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
   ) => Promise<SimulationResult>;
+  getDefaultParameters: () => Record<string, any>;
 }
 
 // Chart identifiers used by StrategyCharts to determine which charts to render
@@ -51,5 +52,22 @@ async function getPowerDcaStrategy() {
 }
 
 // runStrategy moved to lib/simulator.ts
+
+export async function loadStrategy(id: StrategyId): Promise<Strategy> {
+  switch (id) {
+    case 'btc-eth-momentum':
+      return await getMomentumStrategy();
+    case 'simple-btc-dca':
+      return await getSimpleDcaStrategy();
+    case 'power-btc-dca':
+      return await getDcaStrategy();
+    case 'smart-btc-dca':
+      return await getPowerDcaStrategy();
+    case 'trend-btc-dca':
+      return await getTrendFollowingStrategy();
+    default:
+      throw new Error(`Unknown strategy id: ${id}`);
+  }
+}
 
 
