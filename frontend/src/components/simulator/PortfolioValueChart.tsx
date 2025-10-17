@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, Typography, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Brush } from 'recharts';
 import type { SimulationResult } from '@/lib/types';
 
 interface Props { result: SimulationResult }
@@ -81,6 +81,14 @@ const PortfolioValueChart: React.FC<Props> = ({ result }) => {
             <Legend wrapperStyle={{ color:'#D1D5DB', cursor:'pointer' }} onClick={(e:any)=>{ const k=getLegendKey(e); if(k==='strategy'||k==='Strategy') setShowStrategy(v=>!v); if(k==='hodl'||k==='BTC HODL') setShowHodl(v=>!v); }} />
             <Line type="monotone" dataKey="strategy" name="Strategy" stroke="#3B82F6" strokeWidth={2} dot={false} hide={!showStrategy} />
             <Line type="monotone" dataKey="hodl" name="BTC HODL" stroke="#FB923C" strokeWidth={2} dot={false} strokeDasharray="5 5" hide={!showHodl} />
+            <Brush
+              dataKey="date"
+              stroke="#F59E0B"
+              fill="#0F172A"
+              travellerWidth={8}
+              height={24}
+              tickFormatter={(v)=>new Date(v).toLocaleDateString('en-US',{month:'short',year:'2-digit'})}
+            />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

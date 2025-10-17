@@ -1,5 +1,22 @@
 ## Project Journal (Last 14 Days)
 
+### 2025-10-17
+- Consolidated strategy parameter defaults and naming across the frontend strategies; introduced parameter configuration UI and refactors around default param handling.
+- Added per-chart zoom via Recharts Brush for better performance on long intervals; removed global range slider. Minor copy and metrics updates.
+
+### 2025-10-16
+- Added Trend BTC DCA strategy (and related upgrades), including contract hooks and wallet management improvements (onlyOwner un-register).
+- Polished UI (button alignment, naming), and expanded strategy set and rebalance context handling.
+
+### 2025-10-15
+- Fixed assets chart rendering; improved transaction fee handling with priority fee controls. Unified strategy naming.
+
+### 2025-10-14
+- Introduced and iterated on Trend BTC DCA; improved wallet history charts and annotations; UI copy tweaks and moved faucet info to asset card.
+
+### 2025-10-13
+- Portfolio and wallet UX improvements: sorting, pagination/visibility in modals, “max” actions, config detail; refined chart formatting and UI polish.
+
 ### 2025-10-12
 Shipped the new Power DCA strategy end-to-end, including simulator refactors and UI wiring. Added volatility and drawdown indicators, balances in the account modal, and a Close Wallet component. Also introduced Python implementations for two strategies, polished wallet page structure, and minor UX copy/icon updates.
 

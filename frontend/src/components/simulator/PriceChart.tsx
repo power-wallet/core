@@ -12,7 +12,8 @@ import {
   Legend, 
   ResponsiveContainer,
   Scatter,
-  ComposedChart
+  ComposedChart,
+  Brush
 } from 'recharts';
 import type { SimulationResult } from '@/lib/types';
 
@@ -295,6 +296,14 @@ const PriceChart: React.FC<PriceChartProps> = ({ result }) => {
                 name="ETH Sell"
               />
             )}
+            <Brush
+              dataKey="date"
+              stroke="#F59E0B"
+              fill="#0F172A"
+              travellerWidth={8}
+              height={24}
+              tickFormatter={(v)=>new Date(v).toLocaleDateString('en-US',{month:'short',year:'2-digit'})}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>

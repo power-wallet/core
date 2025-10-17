@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, Typography } from '@mui/material';
-import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ReferenceLine, Brush } from 'recharts';
 import type { SimulationResult } from '@/lib/types';
 
 interface Props { result: SimulationResult }
@@ -71,6 +71,14 @@ const PortfolioAllocationChart: React.FC<Props> = ({ result }) => {
             {percentData.some(d => (d.ETH || 0) > 0) && (
               <Area type="monotone" dataKey="ETH" name="ETH" stackId="1" stroke="#9CA3AF" fill="#9CA3AF" fillOpacity={0.6} hide={!showETH} />
             )}
+            <Brush
+              dataKey="date"
+              stroke="#F59E0B"
+              fill="#0F172A"
+              travellerWidth={8}
+              height={24}
+              tickFormatter={(v)=>new Date(v).toLocaleDateString('en-US',{month:'short',year:'2-digit'})}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </CardContent>
