@@ -46,18 +46,18 @@ export async function run(
   endDate: string,
   options: {
     prices: { btc: PriceData[] };
-    lookbackDays?: number;
-    ewmaLambdaDaily?: number;
-    baseDcaUsdc?: number;
     evalIntervalDays?: number;
+    baseDcaUsdc?: number;
+    minTradeUsd?: number;
+    lookbackDays?: number;
+    kKicker?: number;
+    winsorizeAbsRet?: number;
+    ewmaLambdaDaily?: number;
+    bufferMult?: number;
+    cmaxMult?: number;
+    thresholdMode?: boolean;
     targetBtcWeight?: number;
     bandDelta?: number;
-    kKicker?: number;
-    cmaxMult?: number;
-    bufferMult?: number;
-    minTradeUsd?: number;
-    winsorizeAbsRet?: number;
-    thresholdMode?: boolean;
     rebalanceCapFrac?: number;
     tradingFee?: number;
   }
