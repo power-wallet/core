@@ -26,29 +26,35 @@ export interface Strategy {
   ) => Promise<SimulationResult>;
 }
 
-const DEFAULT_EVAL_INTERVAL_DAYS = 5; // evaluate roughly weekly
-const SMA_LENGTH = 50; // SMA period for trend
-const DEFAULT_SLOPE_LOOKBACK_DAYS = 14; // slope window
-const DEFAULT_HYST_BPS = 150; // 1.5% hysteresis band
-const DEFAULT_DCA_PCT_WHEN_BEARISH = 0.05; // 5% base DCA
-const DEFAULT_DISCOUNT_BELOW_SMA_PCT = 15; // boost when price ≥15% below SMA
-const DEFAULT_DCA_BOOST_MULTIPLIER = 2; // 2x DCA when discounted
-const DEFAULT_FEE_PCT = 0.003; // 0.3%
-const DEFAULT_MIN_CASH_USD = 1; // only DCA if we have at least this much USDC
-const DEFAULT_MIN_SPEND_USD = 1; // minimum spend per DCA
-const DEFAULT_DCA_MODE = true;
+// Centralized default parameters for the strategy
+const DEFAULT_PARAMETERS = {
+  eval_interval_days: 5,        // evaluate roughly weekly
+  fee_pct: 0.003,               // 0.3%
+  // DCA configuration
+  dca_pct_when_bearish: 0.05,   // 5% base DCA
+  discount_below_sma_pct: 15,   // boost when price ≥15% below SMA
+  dca_boost_multiplier: 2,      // 2x DCA when discounted
+  min_cash_usd: 1,              // only DCA if we have at least this much USDC
+  min_spend_usd: 1,             // minimum spend per DCA
+  // Trend filter configuration
+  hyst_bps: 150,                // 1.5% hysteresis band
+  slope_lookback_days: 14,      // slope window
+  dca_mode: true,               // start in DCA mode
+};
+
+const SMA_LENGTH = 50; // SMA period for trend (kept constant for charting consistency)
 
 export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
-  const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_DCA_PCT_WHEN_BEARISH));
-  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_EVAL_INTERVAL_DAYS));
-  const feePct = options.feePct ?? DEFAULT_FEE_PCT;
-  const discountBelowSmaPct = Math.max(0, options.discountBelowSmaPct ?? DEFAULT_DISCOUNT_BELOW_SMA_PCT);
-  const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_DCA_BOOST_MULTIPLIER);
-  const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_MIN_CASH_USD);
-  const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_MIN_SPEND_USD);
-  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_HYST_BPS));
-  const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_SLOPE_LOOKBACK_DAYS));
+  const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_PARAMETERS.dca_pct_when_bearish));
+  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.eval_interval_days));
+  const feePct = options.feePct ?? DEFAULT_PARAMETERS.fee_pct;
+  const discountBelowSmaPct = Math.max(0, options.discountBelowSmaPct ?? DEFAULT_PARAMETERS.discount_below_sma_pct);
+  const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_PARAMETERS.dca_boost_multiplier);
+  const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_PARAMETERS.min_cash_usd);
+  const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_PARAMETERS.min_spend_usd);
+  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_PARAMETERS.hyst_bps));
+  const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_PARAMETERS.slope_lookback_days));
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
@@ -57,13 +63,13 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
   let usdc = initialCapital;
   let btcQty = 0;
-  let inDcaMode = DEFAULT_DCA_MODE;
+  let inDcaMode = DEFAULT_PARAMETERS.dca_mode;
   const trades: Trade[] = [];
   const dailyPerformance: DailyPerformance[] = [];
 
   // Benchmark HODL BTC
   const btcStartPrice = prices[startIdx];
-  const btcHodlQty = (initialCapital * (1.0 - 0.003)) / btcStartPrice;
+  const btcHodlQty = (initialCapital * (1.0 - feePct)) / btcStartPrice;
 
   let maxPortfolioValue = initialCapital;
   let maxBtcHodlValue = initialCapital;

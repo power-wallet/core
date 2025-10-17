@@ -114,11 +114,11 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
                   '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
                 }}
               >
-                <MenuItem value="simple-btc-dca">Simple BTC DCA - Fixed</MenuItem>
-                <MenuItem value="smart-btc-dca">Smart BTC DCA - Adaptive</MenuItem>
-                <MenuItem value="power-btc-dca">Power BTC DCA - Power Law</MenuItem>
-                <MenuItem value="trend-btc-dca">Trend BTC DCA - Trend Following</MenuItem>
-                <MenuItem value="btc-eth-momentum">BTC-ETH Momentum RSI</MenuItem>
+                <MenuItem value="simple-btc-dca">Simple (Basic DCA)</MenuItem>
+                <MenuItem value="smart-btc-dca">Smart (Buy the Dip)</MenuItem>
+                <MenuItem value="power-btc-dca">Power (Mean Reversion Twist)</MenuItem>
+                <MenuItem value="trend-btc-dca">Trend (Trend Following)</MenuItem>
+                <MenuItem value="btc-eth-momentum">Momentun (BTC-ETH Strategy)</MenuItem>
               </TextField>
             </Grid>
 

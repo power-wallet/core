@@ -17,6 +17,19 @@ export interface Strategy {
 const C = 9.65e-18; // 9.65 × 10^-18
 const N = 5.845;
 
+// Centralized default parameters for the strategy
+const DEFAULT_PARAMETERS = {
+  trading_fee: 0.003,                  // 0.3% fee assumption
+  trade_interval_days: 7,              // evaluate weekly
+  usdc_reserve_frac: 0.02,             // keep 2% USDC reserve
+  btc_reserve_frac: 0.10,              // keep 10% BTC reserve
+  buy_pct_below_lower: 0.05,           // buy 5% of available USDC below lower band
+  buy_pct_between_lower_and_model: 0.01, // buy 1% between lower band and model
+  sell_pct_above_upper: 0.05,          // sell 5% of BTC above upper band
+  upper_band_mult: 2.0,                // upper band = model * 2
+  lower_band_mult: 0.5,                // lower band = model * 0.5
+};
+
 function daysSinceGenesis(dateStr: string): number {
   const genesis = new Date('2009-01-03T00:00:00Z').getTime();
   const d = new Date(dateStr + 'T00:00:00Z').getTime();
@@ -38,8 +51,28 @@ function calculateCAGR(startValue: number, endValue: number, startDate: string, 
   return Math.pow(endValue / startValue, 1 / years) - 1.0;
 }
 
-export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: {
+  prices: { btc: PriceData[] };
+  trading_fee?: number;
+  trade_interval_days?: number;
+  usdc_reserve_frac?: number;
+  btc_reserve_frac?: number;
+  buy_pct_below_lower?: number;
+  buy_pct_between_lower_and_model?: number;
+  sell_pct_above_upper?: number;
+  upper_band_mult?: number;
+  lower_band_mult?: number;
+}): Promise<SimulationResult> {
   const btcData = options.prices.btc;
+  const tradingFee = options.trading_fee ?? DEFAULT_PARAMETERS.trading_fee;
+  const tradeIntervalDays = Math.max(1, Math.floor(options.trade_interval_days ?? DEFAULT_PARAMETERS.trade_interval_days));
+  const usdcReserveFrac = Math.max(0, options.usdc_reserve_frac ?? DEFAULT_PARAMETERS.usdc_reserve_frac);
+  const btcReserveFrac = Math.max(0, options.btc_reserve_frac ?? DEFAULT_PARAMETERS.btc_reserve_frac);
+  const buyPctBelowLower = Math.max(0, options.buy_pct_below_lower ?? DEFAULT_PARAMETERS.buy_pct_below_lower);
+  const buyPctBetweenLowerAndModel = Math.max(0, options.buy_pct_between_lower_and_model ?? DEFAULT_PARAMETERS.buy_pct_between_lower_and_model);
+  const sellPctAboveUpper = Math.max(0, options.sell_pct_above_upper ?? DEFAULT_PARAMETERS.sell_pct_above_upper);
+  const upperMult = Math.max(0, options.upper_band_mult ?? DEFAULT_PARAMETERS.upper_band_mult);
+  const lowerMult = Math.max(0, options.lower_band_mult ?? DEFAULT_PARAMETERS.lower_band_mult);
 
   // Align to range and compute model and bands
   const dates = btcData.map(d => d.date);
@@ -56,7 +89,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
   // Benchmark HODL BTC
   const btcStartPrice = prices[startIdx];
-  const btcHodlQty = (initialCapital * (1.0 - 0.003)) / btcStartPrice; // reuse 0.3% fee assumption
+  const btcHodlQty = (initialCapital * (1.0 - tradingFee)) / btcStartPrice; // reuse fee assumption
 
   let maxPortfolioValue = initialCapital;
   let maxBtcHodlValue = initialCapital;
@@ -67,8 +100,8 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     const prev = new Date(dates[i - 1]);
     const curr = new Date(dates[i]);
     const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
-    // Trade if at least 7 days since last trade index tracked
-    return diffDays >= 7;
+    // Trade if at least configured days since last trade index tracked
+    return diffDays >= tradeIntervalDays;
   };
 
   let lastTradeIndex = startIdx;
@@ -88,55 +121,55 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     btcPrice: prices[startIdx],
     ethPrice: 0,
     btcModel: modelPriceUSD(dates[startIdx]),
-    btcUpperBand: modelPriceUSD(dates[startIdx]) * 2,
-    btcLowerBand: modelPriceUSD(dates[startIdx]) * 0.5,
+    btcUpperBand: modelPriceUSD(dates[startIdx]) * upperMult,
+    btcLowerBand: modelPriceUSD(dates[startIdx]) * lowerMult,
   });
 
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
     const btcPrice = prices[i];
     const model = modelPriceUSD(date);
-    const upper = model * 2;
-    const lower = model * 0.5;
+    const upper = model * upperMult;
+    const lower = model * lowerMult;
 
     // Update portfolio value
     const btcValue = btcQty * btcPrice;
     const totalEquity = usdc + btcValue;
 
-    // Weekly trading rule
+    // Trading rule (evaluated on configured cadence)
     let traded = false;
-    if ((i - lastTradeIndex) >= 7 || shouldTradeOnIndex(i)) {
-      // Keep 2% USDC reserve, 10% BTC reserve
-      const usdcSpendable = Math.max(0, totalEquity * 0.98 - btcValue);
-      const btcSpendableQty = Math.max(0, btcQty - (totalEquity * 0.10) / btcPrice);
+    if ((i - lastTradeIndex) >= tradeIntervalDays || shouldTradeOnIndex(i)) {
+      // Keep configured reserves
+      const usdcSpendable = Math.max(0, totalEquity * (1 - usdcReserveFrac) - btcValue);
+      const btcSpendableQty = Math.max(0, btcQty - (totalEquity * btcReserveFrac) / btcPrice);
 
       if (btcPrice < lower && usdc > 0) {
-        // BUY 5% of available USDC when below lower band
-        const buyAmount = Math.min(usdc * 0.05, usdcSpendable);
+        // BUY configured % of available USDC when below lower band
+        const buyAmount = Math.min(usdc * buyPctBelowLower, usdcSpendable);
         if (buyAmount > 0) {
-          const fee = buyAmount * 0.003;
-          const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;
+          const fee = buyAmount * tradingFee;
+          const qty = (buyAmount * (1.0 - tradingFee)) / btcPrice;
           btcQty += qty; usdc -= (buyAmount + fee);
           trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: buyAmount, fee, portfolioValue: usdc + btcQty * btcPrice });
           traded = true; lastTradeIndex = i;
         }
       } else if (btcPrice >= lower && btcPrice <= model && usdc > 0) {
-        // BUY 1% of available USDC when between lower band and model price (small DCA)
-        const buyAmount = Math.min(usdc * 0.01, usdcSpendable);
+        // BUY configured % when between lower band and model price (small DCA)
+        const buyAmount = Math.min(usdc * buyPctBetweenLowerAndModel, usdcSpendable);
         if (buyAmount > 0) {
-          const fee = buyAmount * 0.003;
-          const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;
+          const fee = buyAmount * tradingFee;
+          const qty = (buyAmount * (1.0 - tradingFee)) / btcPrice;
           btcQty += qty; usdc -= (buyAmount + fee);
           trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: buyAmount, fee, portfolioValue: usdc + btcQty * btcPrice });
           traded = true; lastTradeIndex = i;
         }
       } else if (btcPrice > upper && btcQty > 0) {
-        // SELL 5% of available BTC
-        const qtyToSell = Math.min(btcQty * 0.05, btcSpendableQty);
+        // SELL configured % of available BTC
+        const qtyToSell = Math.min(btcQty * sellPctAboveUpper, btcSpendableQty);
         if (qtyToSell > 0) {
           const gross = qtyToSell * btcPrice;
-          const fee = gross * 0.003;
-          btcQty -= qtyToSell; usdc += gross * (1.0 - 0.003);
+          const fee = gross * DEFAULT_PARAMETERS.trading_fee;
+          btcQty -= qtyToSell; usdc += gross * (1.0 - DEFAULT_PARAMETERS.trading_fee);
           trades.push({ date, symbol: 'BTC', side: 'SELL', price: btcPrice, quantity: qtyToSell, value: gross, fee, portfolioValue: usdc + btcQty * btcPrice });
           traded = true; lastTradeIndex = i;
         }

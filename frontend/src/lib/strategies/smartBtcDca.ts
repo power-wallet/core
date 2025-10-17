@@ -12,8 +12,8 @@ export interface Strategy {
   ) => Promise<SimulationResult>;
 }
 
-// Defaults adapted from adaptive_dca_btc.py
-const DEFAULTS = {
+// Centralized default parameters (adapted from adaptive_dca_btc.py)
+const DEFAULT_PARAMETERS = {
   lookbackDays: 30,           // rolling realized variance window
   ewmaLambdaDaily: 0.94,      // EWMA lambda
   baseDcaUsdc: 100.0,          // daily base DCA
@@ -27,6 +27,7 @@ const DEFAULTS = {
   winsorizeAbsRet: 0.20,      // clip abs daily log return
   thresholdMode: true,        // optional true threshold rebalancing
   rebalanceCapFrac: 0.05,     // cap single rebalance to 5% NAV
+  tradingFee: 0.003,          // 0.3% fee assumption for BTC HODL benchmark
 };
 
 function calculateCAGR(startValue: number, endValue: number, startDate: string, endDate: string): number {
@@ -42,9 +43,39 @@ export async function run(
   initialCapital: number,
   startDate: string,
   endDate: string,
-  options: { prices: { btc: PriceData[] } }
+  options: {
+    prices: { btc: PriceData[] };
+    lookbackDays?: number;
+    ewmaLambdaDaily?: number;
+    baseDcaUsdc?: number;
+    evalIntervalDays?: number;
+    targetBtcWeight?: number;
+    bandDelta?: number;
+    kKicker?: number;
+    cmaxMult?: number;
+    bufferMult?: number;
+    minTradeUsd?: number;
+    winsorizeAbsRet?: number;
+    thresholdMode?: boolean;
+    rebalanceCapFrac?: number;
+    tradingFee?: number;
+  }
 ): Promise<SimulationResult> {
   const btcData = options.prices.btc;
+  const lookbackDays = Math.max(1, Math.floor(options.lookbackDays ?? DEFAULT_PARAMETERS.lookbackDays));
+  const ewmaLambdaDaily = options.ewmaLambdaDaily ?? DEFAULT_PARAMETERS.ewmaLambdaDaily;
+  const baseDcaUsdc = Math.max(0, options.baseDcaUsdc ?? DEFAULT_PARAMETERS.baseDcaUsdc);
+  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.evalIntervalDays));
+  const targetBtcWeight = Math.min(1, Math.max(0, options.targetBtcWeight ?? DEFAULT_PARAMETERS.targetBtcWeight));
+  const bandDelta = Math.min(1, Math.max(0, options.bandDelta ?? DEFAULT_PARAMETERS.bandDelta));
+  const kKicker = Math.max(0, options.kKicker ?? DEFAULT_PARAMETERS.kKicker);
+  const cmaxMult = Math.max(0, options.cmaxMult ?? DEFAULT_PARAMETERS.cmaxMult);
+  const bufferMult = Math.max(0, options.bufferMult ?? DEFAULT_PARAMETERS.bufferMult);
+  const minTradeUsd = Math.max(0, options.minTradeUsd ?? DEFAULT_PARAMETERS.minTradeUsd);
+  const winsorizeAbsRet = Math.max(0, options.winsorizeAbsRet ?? DEFAULT_PARAMETERS.winsorizeAbsRet);
+  const thresholdMode = options.thresholdMode ?? DEFAULT_PARAMETERS.thresholdMode;
+  const rebalanceCapFrac = Math.min(1, Math.max(0, options.rebalanceCapFrac ?? DEFAULT_PARAMETERS.rebalanceCapFrac));
+  const tradingFee = Math.max(0, options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee);
   const dates = btcData.map(d => d.date);
   const closes = btcData.map(d => d.close);
   const startIdx = dates.findIndex(d => d >= startDate);
@@ -58,7 +89,7 @@ export async function run(
 
   // Benchmark HODL
   const btcStartPrice = closes[startIdx];
-  const btcHodlQty = (initialCapital * (1.0 - 0.003)) / btcStartPrice;
+  const btcHodlQty = (initialCapital * (1.0 - tradingFee)) / btcStartPrice;
 
   const trades: Trade[] = [];
   const dailyPerformance: DailyPerformance[] = [];
@@ -70,7 +101,7 @@ export async function run(
   const warmup: number[] = [];
 
   // Buffer target (USDC)
-  const bufferTarget = DEFAULTS.bufferMult * DEFAULTS.baseDcaUsdc;
+  const bufferTarget = bufferMult * baseDcaUsdc;
 
   // Running peak for drawdown
   let runningPeak = closes[startIdx];
@@ -95,7 +126,7 @@ export async function run(
   // Evaluation cadence state
   const toDate = (s: string) => new Date(s + 'T00:00:00Z');
   let nextEvalDate = toDate(dates[startIdx]);
-  nextEvalDate.setDate(nextEvalDate.getDate() + DEFAULTS.evalIntervalDays);
+  nextEvalDate.setDate(nextEvalDate.getDate() + evalIntervalDays);
 
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
@@ -110,14 +141,14 @@ export async function run(
     let r = 0;
     if (prevClose != null && prevClose > 0) {
       r = Math.log(price / prevClose);
-      const w = DEFAULTS.winsorizeAbsRet;
+      const w = winsorizeAbsRet;
       if (r > w) r = w; else if (r < -w) r = -w;
     }
     prevClose = price;
 
     // Rolling RV update over lookbackDays
     const r2 = r * r;
-    if (buf.length === DEFAULTS.lookbackDays) {
+    if (buf.length === lookbackDays) {
       sumR2 -= buf[0];
       buf.shift();
     }
@@ -125,13 +156,13 @@ export async function run(
     sumR2 += r2;
 
     // EWMA update (after brief warmup)
-    if (warmup.length < Math.min(10, Math.floor(DEFAULTS.lookbackDays / 3))) {
+    if (warmup.length < Math.min(10, Math.floor(lookbackDays / 3))) {
       warmup.push(r2);
-      if (warmup.length === Math.min(10, Math.floor(DEFAULTS.lookbackDays / 3))) {
+      if (warmup.length === Math.min(10, Math.floor(lookbackDays / 3))) {
         ewmaSigma2 = warmup.reduce((a, b) => a + b, 0) / warmup.length;
       }
     } else {
-      const lam = DEFAULTS.ewmaLambdaDaily;
+      const lam = ewmaLambdaDaily;
       ewmaSigma2 = lam * ewmaSigma2 + (1 - lam) * r2;
     }
 
@@ -144,18 +175,18 @@ export async function run(
     const nav = usdc + btcQty * price;
     const btcValue = btcQty * price;
     const wBtc = nav > 0 ? btcValue / nav : 0;
-    const wMinus = Math.max(0, DEFAULTS.targetBtcWeight - DEFAULTS.bandDelta);
-    const wPlus = Math.min(1, DEFAULTS.targetBtcWeight + DEFAULTS.bandDelta);
+    const wMinus = Math.max(0, targetBtcWeight - bandDelta);
+    const wPlus = Math.min(1, targetBtcWeight + bandDelta);
 
     // Evaluate trading rules only on evaluation days
     if (currDate >= nextEvalDate) {
       // Threshold-mode optional rebalancing to band boundary
-      if (DEFAULTS.thresholdMode && nav > 0) {
+      if (thresholdMode && nav > 0) {
         if (wBtc > wPlus) {
           const targetBtcValue = wPlus * nav;
           const excessUsd = Math.max(0, btcValue - targetBtcValue);
-          let tradeUsd = Math.min(excessUsd, DEFAULTS.rebalanceCapFrac * nav);
-          if (tradeUsd >= DEFAULTS.minTradeUsd && price > 0) {
+          let tradeUsd = Math.min(excessUsd, rebalanceCapFrac * nav);
+          if (tradeUsd >= minTradeUsd && price > 0) {
             let qty = tradeUsd / price;
             qty = Math.min(qty, btcQty);
             tradeUsd = qty * price;
@@ -166,8 +197,8 @@ export async function run(
         } else if (wBtc < wMinus) {
           const targetBtcValue = wMinus * nav;
           const shortfallUsd = Math.max(0, targetBtcValue - btcValue);
-          const tradeUsd = Math.min(shortfallUsd, usdc, DEFAULTS.rebalanceCapFrac * nav);
-          if (tradeUsd >= DEFAULTS.minTradeUsd && price > 0) {
+          const tradeUsd = Math.min(shortfallUsd, usdc, rebalanceCapFrac * nav);
+          if (tradeUsd >= minTradeUsd && price > 0) {
             const qty = tradeUsd / price;
             btcQty += qty;
             usdc -= tradeUsd;
@@ -183,24 +214,24 @@ export async function run(
           const dd = ((portfolioValue / maxPortfolioValue) - 1.0) * 100;
           const hodlDD = ((btcHodlValue / maxBtcHodlValue) - 1.0) * 100;
           dailyPerformance.push({ date, cash: usdc, btcQty, ethQty: 0, btcValue: btcQty * price, ethValue: 0, totalValue: portfolioValue, btcHodlValue, drawdown: dd, btcHodlDrawdown: hodlDD, btcPrice: price, ethPrice: 0 });
-          nextEvalDate.setDate(nextEvalDate.getDate() + DEFAULTS.evalIntervalDays);
+          nextEvalDate.setDate(nextEvalDate.getDate() + evalIntervalDays);
           continue;
         }
       }
 
       // Buy-only logic (base DCA + volatility kicker)
       const availableToSpend = Math.max(0, usdc - bufferTarget);
-      const baseBuy = Math.min(DEFAULTS.baseDcaUsdc, usdc);
+      const baseBuy = Math.min(baseDcaUsdc, usdc);
       let buyBudget = baseBuy;
       // Kicker scaled by volatility and drawdown
-      let extraBuy = DEFAULTS.kKicker * sigmaAnn * drawdown * nav;
-      const extraCap = DEFAULTS.cmaxMult * DEFAULTS.baseDcaUsdc;
+      let extraBuy = kKicker * sigmaAnn * drawdown * nav;
+      const extraCap = cmaxMult * baseDcaUsdc;
       extraBuy = Math.min(extraBuy, extraCap);
       extraBuy = Math.min(extraBuy, availableToSpend);
       buyBudget += Math.max(0, extraBuy);
 
       const buyUsd = Math.min(usdc, buyBudget);
-      if (buyUsd >= DEFAULTS.minTradeUsd && price > 0) {
+      if (buyUsd >= minTradeUsd && price > 0) {
         const qty = buyUsd / price;
         btcQty += qty;
         usdc -= buyUsd;
@@ -208,7 +239,7 @@ export async function run(
       }
 
       // Advance next evaluation date
-      nextEvalDate.setDate(nextEvalDate.getDate() + DEFAULTS.evalIntervalDays);
+      nextEvalDate.setDate(nextEvalDate.getDate() + evalIntervalDays);
     }
 
     // Daily performance

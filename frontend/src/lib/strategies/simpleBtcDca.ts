@@ -14,11 +14,18 @@ export interface Strategy {
   ) => Promise<SimulationResult>;
 }
 
-const DCA_AMOUNT = 100; // USDC per buy
-const DCA_INTERVAL_DAYS = 7; // weekly
+// Centralized default parameters for the strategy
+const DEFAULT_PARAMETERS = {
+  dca_amount: 100,          // USDC per buy
+  dca_interval_days: 7,     // weekly
+  trading_fee: 0.003,       // 0.3% trading fee assumption
+};
 
-export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] } }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaAmount?: number; dcaIntervalDays?: number; tradingFee?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
+  const dcaAmount = Math.max(0, options.dcaAmount ?? DEFAULT_PARAMETERS.dca_amount);
+  const dcaIntervalDays = Math.max(1, Math.floor(options.dcaIntervalDays ?? DEFAULT_PARAMETERS.dca_interval_days));
+  const feePct = options.tradingFee ?? DEFAULT_PARAMETERS.trading_fee;
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
@@ -32,14 +39,14 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
   // Benchmark HODL BTC
   const btcStartPrice = prices[startIdx];
-  const btcHodlQty = (initialCapital * (1.0 - 0.003)) / btcStartPrice;
+  const btcHodlQty = (initialCapital * (1.0 - feePct)) / btcStartPrice;
 
   let maxPortfolioValue = initialCapital;
   let maxBtcHodlValue = initialCapital;
 
   const toDate = (s: string) => new Date(s + 'T00:00:00Z');
   let nextBuyDate = toDate(dates[startIdx]);
-  nextBuyDate.setDate(nextBuyDate.getDate() + DCA_INTERVAL_DAYS);
+  nextBuyDate.setDate(nextBuyDate.getDate() + dcaIntervalDays);
 
   // Initial day
   dailyPerformance.push({
@@ -63,13 +70,13 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
     // DCA buy if due and cash available
     const currDate = toDate(date);
-    if (usdc >= DCA_AMOUNT && currDate >= nextBuyDate) {
-      const buyAmount = Math.min(DCA_AMOUNT, usdc);
-      const fee = buyAmount * 0.003;
-      const qty = (buyAmount * (1.0 - 0.003)) / btcPrice;
+    if (usdc >= dcaAmount && currDate >= nextBuyDate) {
+      const buyAmount = Math.min(dcaAmount, usdc);
+      const fee = buyAmount * feePct;
+      const qty = (buyAmount * (1.0 - feePct)) / btcPrice;
       btcQty += qty; usdc -= (buyAmount + fee);
       trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: buyAmount, fee, portfolioValue: usdc + btcQty * btcPrice });
-      nextBuyDate.setDate(nextBuyDate.getDate() + DCA_INTERVAL_DAYS);
+      nextBuyDate.setDate(nextBuyDate.getDate() + dcaIntervalDays);
     }
 
     const btcValue = btcQty * btcPrice;

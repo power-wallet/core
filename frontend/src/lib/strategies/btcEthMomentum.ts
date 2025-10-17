@@ -44,9 +44,34 @@ export async function run(
   initialCapital: number,
   startDate: string,
   endDate: string,
-  options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
+  options: {
+    prices: { btc?: PriceData[]; eth?: PriceData[] };
+    rsi_bars?: number;
+    eth_btc_rsi_bars?: number;
+    bearish_rsi_entry?: number;
+    bearish_rsi_exit?: number;
+    bullish_rsi_entry?: number;
+    bullish_rsi_exit?: number;
+    regime_filter_ma_length?: number;
+    allocation?: number;
+    rebalance_threshold?: number;
+    momentum_exponent?: number;
+    trading_fee?: number;
+  }
 ): Promise<SimulationResult> {
-  const parameters = DEFAULT_PARAMETERS;
+  const parameters: StrategyParameters = {
+    rsi_bars: Math.max(1, Math.floor(options.rsi_bars ?? DEFAULT_PARAMETERS.rsi_bars)),
+    eth_btc_rsi_bars: Math.max(1, Math.floor(options.eth_btc_rsi_bars ?? DEFAULT_PARAMETERS.eth_btc_rsi_bars)),
+    bearish_rsi_entry: options.bearish_rsi_entry ?? DEFAULT_PARAMETERS.bearish_rsi_entry,
+    bearish_rsi_exit: options.bearish_rsi_exit ?? DEFAULT_PARAMETERS.bearish_rsi_exit,
+    bullish_rsi_entry: options.bullish_rsi_entry ?? DEFAULT_PARAMETERS.bullish_rsi_entry,
+    bullish_rsi_exit: options.bullish_rsi_exit ?? DEFAULT_PARAMETERS.bullish_rsi_exit,
+    regime_filter_ma_length: Math.max(1, Math.floor(options.regime_filter_ma_length ?? DEFAULT_PARAMETERS.regime_filter_ma_length)),
+    allocation: Math.min(1, Math.max(0, options.allocation ?? DEFAULT_PARAMETERS.allocation)),
+    rebalance_threshold: Math.max(0, options.rebalance_threshold ?? DEFAULT_PARAMETERS.rebalance_threshold),
+    momentum_exponent: Math.max(0, options.momentum_exponent ?? DEFAULT_PARAMETERS.momentum_exponent),
+    trading_fee: Math.max(0, options.trading_fee ?? DEFAULT_PARAMETERS.trading_fee),
+  };
   const { btc: btcData = [], eth: ethData = [] } = options.prices;
 
   const btcMap = new Map(btcData.map(d => [d.date, d.close] as const));
