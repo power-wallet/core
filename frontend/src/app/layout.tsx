@@ -8,8 +8,8 @@ import GATracking from './ga-tracking';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Power Wallet - Smart Bitcoin DCA Investing',
-  description: 'On-chain wallet for smart investing in Bitcoin and digital assets',
+  title: 'Power Wallet - Bitcoin accumulation strategies on auto-pilot',
+  description: 'Automated Bitcoin investing strategies that help you accumulate more BTC over time, securely in your own on-chain wallets.',
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

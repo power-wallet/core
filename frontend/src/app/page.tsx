@@ -91,7 +91,7 @@ export default function Home() {
                   <Typography variant="body1"><strong>Power up</strong> your Bitcoin investments with proven DCA strategies automated on-chain.</Typography>
                 </li>
                 <li>
-                  <Typography variant="body1">Stack more Bitcoin with the benefits of <strong>automated risk management</strong>.</Typography>
+                  <Typography variant="body1">Stack more Bitcoin with the benefits of <strong>built-in risk management</strong>.</Typography>
                 </li>
                 <li>
                   <Typography variant="body1">Maintain <strong>full custody</strong> with blockchain-based secure, transparent, verifiable execution. </Typography>
