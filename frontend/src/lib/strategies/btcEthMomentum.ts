@@ -15,7 +15,7 @@ export interface Strategy {
   ) => Promise<SimulationResult>;
 }
 
-const DEFAULT_PARAMETERS: StrategyParameters = {
+export const DEFAULT_PARAMETERS: StrategyParameters = {
   rsi_bars: 8,
   eth_btc_rsi_bars: 5,
   bearish_rsi_entry: 65,
@@ -46,6 +46,7 @@ export async function run(
   endDate: string,
   options: {
     prices: { btc?: PriceData[]; eth?: PriceData[] };
+    // Keep the momentum strategy key names consistent with StrategyParameters (snake_case)
     rsi_bars?: number;
     eth_btc_rsi_bars?: number;
     bearish_rsi_entry?: number;

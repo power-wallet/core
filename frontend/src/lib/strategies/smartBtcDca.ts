@@ -13,7 +13,7 @@ export interface Strategy {
 }
 
 // Centralized default parameters (adapted from adaptive_dca_btc.py)
-const DEFAULT_PARAMETERS = {
+export const DEFAULT_PARAMETERS = {
   lookbackDays: 30,           // rolling realized variance window
   ewmaLambdaDaily: 0.94,      // EWMA lambda
   baseDcaUsdc: 100.0,          // daily base DCA

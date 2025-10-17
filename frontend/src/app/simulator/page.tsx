@@ -45,7 +45,8 @@ export default function SimulatorPage() {
         params.initialCapital,
         params.startDate,
         params.endDate,
-        prices
+        prices,
+        params.options?.[params.strategy] || params.options || undefined
       );
       setResult(simulationResult);
     } catch (err) {

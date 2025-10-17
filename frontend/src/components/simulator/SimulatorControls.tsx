@@ -11,7 +11,17 @@ import {
   Typography,
   MenuItem,
   CircularProgress,
+  Collapse,
+  IconButton,
+  Divider,
 } from '@mui/material';
+import TuneIcon from '@mui/icons-material/Tune';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { DEFAULT_PARAMETERS as SIMPLE_DEFAULTS } from '@/lib/strategies/simpleBtcDca';
+import { DEFAULT_PARAMETERS as SMART_DEFAULTS } from '@/lib/strategies/smartBtcDca';
+import { DEFAULT_PARAMETERS as POWER_DEFAULTS } from '@/lib/strategies/powerBtcDca';
+import { DEFAULT_PARAMETERS as TREND_DEFAULTS } from '@/lib/strategies/btcTrendFollowing';
+import { DEFAULT_PARAMETERS as MOM_DEFAULTS } from '@/lib/strategies/btcEthMomentum';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 interface SimulatorControlsProps {
@@ -24,6 +34,7 @@ export interface SimulationParams {
   startDate: string;
   endDate: string;
   initialCapital: number;
+  options?: Record<string, any>;
 }
 
 const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; onStrategyChange: (id: string) => void }> = ({ onRunSimulation, isLoading, strategy, onStrategyChange }) => {
@@ -32,6 +43,8 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
   const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [initialCapital, setInitialCapital] = useState(10000);
   const [error, setError] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [strategyOptions, setStrategyOptions] = useState<Record<string, any>>({});
 
   // Load saved settings once on mount (client only)
   useEffect(() => {
@@ -42,6 +55,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
         if (saved?.startDate) setStartDate(saved.startDate);
         if (saved?.endDate) setEndDate(saved.endDate);
         if (typeof saved?.initialCapital === 'number') setInitialCapital(saved.initialCapital);
+        if (saved?.options && typeof saved.options === 'object') setStrategyOptions(saved.options);
       }
     } catch (_) {
       // ignore
@@ -52,12 +66,25 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
-      const payload = { strategy, startDate, endDate, initialCapital };
+      const payload = { strategy, startDate, endDate, initialCapital, options: strategyOptions };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (_) {
       // ignore
     }
-  }, [strategy, startDate, endDate, initialCapital]);
+  }, [strategy, startDate, endDate, initialCapital, strategyOptions]);
+  // Ensure options object has an entry for the selected strategy with defaults
+  useEffect(() => {
+    let defaults: Record<string, any> = {};
+    if (strategy === 'simple-btc-dca') defaults = SIMPLE_DEFAULTS as any;
+    if (strategy === 'smart-btc-dca') defaults = SMART_DEFAULTS as any;
+    if (strategy === 'power-btc-dca') defaults = POWER_DEFAULTS as any;
+    if (strategy === 'trend-btc-dca') defaults = TREND_DEFAULTS as any;
+    if (strategy === 'btc-eth-momentum') defaults = MOM_DEFAULTS as any;
+    setStrategyOptions(prev => {
+      if (prev && prev[strategy]) return prev;
+      return { ...prev, [strategy]: defaults };
+    });
+  }, [strategy]);
 
   // Validate dates
   useEffect(() => {
@@ -83,6 +110,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
       startDate,
       endDate,
       initialCapital,
+      options: strategyOptions,
     });
   };
 
@@ -188,7 +216,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Button
                 type="submit"
                 variant="contained"
@@ -207,7 +235,19 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
                   },
                 }}
               >
-                {isLoading ? 'Running Simulation...' : 'Run Simulation'}
+                {isLoading ? 'Running Simulation...' : 'Simulate'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outlined"
+                size="medium"
+                onClick={() => setShowAdvanced(v => !v)}
+                startIcon={<TuneIcon />}
+                endIcon={<ExpandMoreIcon sx={{ transform: showAdvanced ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />}
+                sx={{ borderColor: '#2D2D2D', color: '#D1D5DB', textTransform: 'none' }}
+              >
+                Options
               </Button>
               
               {error && (
@@ -218,6 +258,81 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
             </Grid>
           </Grid>
         </form>
+
+        <Collapse in={showAdvanced} timeout="auto" unmountOnExit>
+          <Divider sx={{ my: 2, borderColor: '#2D2D2D' }} />
+          <Typography variant="subtitle1" sx={{ color: '#D1D5DB', mb: 2 }}>Options</Typography>
+          {(() => {
+            // Choose defaults by strategy id
+            let defaults: Record<string, any> = {};
+            if (strategy === 'simple-btc-dca') defaults = SIMPLE_DEFAULTS as any;
+            if (strategy === 'smart-btc-dca') defaults = SMART_DEFAULTS as any;
+            if (strategy === 'power-btc-dca') defaults = POWER_DEFAULTS as any;
+            if (strategy === 'trend-btc-dca') defaults = TREND_DEFAULTS as any;
+            if (strategy === 'btc-eth-momentum') defaults = MOM_DEFAULTS as any;
+
+            const current = strategyOptions?.[strategy] ?? defaults;
+
+            const labelize = (k: string) => k
+              .replace(/([a-z])([A-Z])/g, '$1 $2')
+              .replace(/^\w/, c => c.toUpperCase());
+
+            const handleField = (key: string, val: any) => {
+              setStrategyOptions((prev) => ({ ...prev, [strategy]: { ...(prev?.[strategy] ?? {}), [key]: val } }));
+            };
+
+            return (
+              <Grid container spacing={2}>
+                {Object.entries(defaults).map(([key, val]) => (
+                  <Grid item xs={12} sm={6} md={4} key={key}>
+                    {typeof val === 'boolean' ? (
+                      <TextField
+                        select
+                        fullWidth
+                        label={labelize(key)}
+                        value={String(current[key] ?? val)}
+                        onChange={(e) => handleField(key, e.target.value === 'true')}
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            color: 'white',
+                            '& fieldset': { borderColor: '#2D2D2D' },
+                            '&:hover fieldset': { borderColor: '#F59E0B' },
+                            '&.Mui-focused fieldset': { borderColor: '#F59E0B' },
+                          },
+                          '& .MuiInputLabel-root': { color: '#D1D5DB' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
+                        }}
+                      >
+                        <MenuItem value="true">True</MenuItem>
+                        <MenuItem value="false">False</MenuItem>
+                      </TextField>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label={labelize(key)}
+                        value={Number(current[key] ?? val)}
+                        onChange={(e) => handleField(key, Number(e.target.value))}
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            color: 'white',
+                            '& fieldset': { borderColor: '#2D2D2D' },
+                            '&:hover fieldset': { borderColor: '#F59E0B' },
+                            '&.Mui-focused fieldset': { borderColor: '#F59E0B' },
+                          },
+                          '& .MuiInputLabel-root': { color: '#D1D5DB' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
+                        }}
+                      />
+                    )}
+                  </Grid>
+                ))}
+              </Grid>
+            );
+          })()}
+        </Collapse>
       </CardContent>
     </Card>
   );

@@ -27,34 +27,34 @@ export interface Strategy {
 }
 
 // Centralized default parameters for the strategy
-const DEFAULT_PARAMETERS = {
-  eval_interval_days: 5,        // evaluate roughly weekly
-  fee_pct: 0.003,               // 0.3%
+export const DEFAULT_PARAMETERS = {
+  evalIntervalDays: 5,        // evaluate roughly weekly
+  feePct: 0.003,              // 0.3%
   // DCA configuration
-  dca_pct_when_bearish: 0.05,   // 5% base DCA
-  discount_below_sma_pct: 15,   // boost when price ≥15% below SMA
-  dca_boost_multiplier: 2,      // 2x DCA when discounted
-  min_cash_usd: 1,              // only DCA if we have at least this much USDC
-  min_spend_usd: 1,             // minimum spend per DCA
+  dcaPctWhenBearish: 0.05,    // 5% base DCA
+  discountBelowSmaPct: 15,    // boost when price ≥15% below SMA
+  dcaBoostMultiplier: 2,      // 2x DCA when discounted
+  minCashUsd: 1,              // only DCA if we have at least this much USDC
+  minSpendUsd: 1,             // minimum spend per DCA
   // Trend filter configuration
-  hyst_bps: 150,                // 1.5% hysteresis band
-  slope_lookback_days: 14,      // slope window
-  dca_mode: true,               // start in DCA mode
+  hystBps: 150,               // 1.5% hysteresis band
+  slopeLookbackDays: 14,      // slope window
+  dcaMode: true,              // start in DCA mode
 };
 
 const SMA_LENGTH = 50; // SMA period for trend (kept constant for charting consistency)
 
-export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number; dcaMode?: boolean }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
-  const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_PARAMETERS.dca_pct_when_bearish));
-  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.eval_interval_days));
-  const feePct = options.feePct ?? DEFAULT_PARAMETERS.fee_pct;
-  const discountBelowSmaPct = Math.max(0, options.discountBelowSmaPct ?? DEFAULT_PARAMETERS.discount_below_sma_pct);
-  const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_PARAMETERS.dca_boost_multiplier);
-  const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_PARAMETERS.min_cash_usd);
-  const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_PARAMETERS.min_spend_usd);
-  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_PARAMETERS.hyst_bps));
-  const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_PARAMETERS.slope_lookback_days));
+  const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_PARAMETERS.dcaPctWhenBearish));
+  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.evalIntervalDays));
+  const feePct = options.feePct ?? DEFAULT_PARAMETERS.feePct;
+  const discountBelowSmaPct = Math.max(0, options.discountBelowSmaPct ?? DEFAULT_PARAMETERS.discountBelowSmaPct);
+  const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_PARAMETERS.dcaBoostMultiplier);
+  const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_PARAMETERS.minCashUsd);
+  const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_PARAMETERS.minSpendUsd);
+  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_PARAMETERS.hystBps));
+  const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_PARAMETERS.slopeLookbackDays));
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
@@ -63,7 +63,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
   let usdc = initialCapital;
   let btcQty = 0;
-  let inDcaMode = DEFAULT_PARAMETERS.dca_mode;
+  let inDcaMode = options.dcaMode ?? DEFAULT_PARAMETERS.dcaMode;
   const trades: Trade[] = [];
   const dailyPerformance: DailyPerformance[] = [];
 

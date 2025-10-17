@@ -428,33 +428,42 @@ export async function runStrategy(
   initialCapital: number,
   startDate: string,
   endDate: string,
-  prices: { btc: PriceData[]; eth: PriceData[] }
+  prices: { btc: PriceData[]; eth: PriceData[] },
+  options?: Record<string, any>
 ): Promise<SimulationResult> {
   switch (strategyId) {
     case 'btc-eth-momentum': {
       const mod = await import('@/lib/strategies/btcEthMomentum');
+      const o = options || {};
       return mod.default.run(initialCapital, startDate, endDate, { 
         prices: { 
           btc: prices.btc, 
           eth: prices.eth || [] 
-        } 
+        },
+        ...o
       });
     }
     case 'simple-btc-dca': {
       const mod = await import('@/lib/strategies/simpleBtcDca');
-      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+      const o = options || {};
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc }, ...o });
     }
     case 'power-btc-dca': {
       const mod = await import('@/lib/strategies/powerBtcDca');
-      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+      const o = options || {};
+      // Power accepts snake_case keys already; pass through
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc }, ...o });
     }
     case 'smart-btc-dca': {
       const mod = await import('@/lib/strategies/smartBtcDca');
-      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+      const o = options || {};
+      // Smart uses camelCase keys already; pass through
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc }, ...o });
     }
     case 'trend-btc-dca': {
       const mod = await import('@/lib/strategies/btcTrendFollowing');
-      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc } });
+      const o = options || {};
+      return mod.default.run(initialCapital, startDate, endDate, { prices: { btc: prices.btc }, ...o });
     }
     default:
       throw new Error(`Unknown strategy: ${strategyId}`);

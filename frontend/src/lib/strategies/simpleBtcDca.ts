@@ -15,17 +15,17 @@ export interface Strategy {
 }
 
 // Centralized default parameters for the strategy
-const DEFAULT_PARAMETERS = {
-  dca_amount: 100,          // USDC per buy
-  dca_interval_days: 7,     // weekly
-  trading_fee: 0.003,       // 0.3% trading fee assumption
+export const DEFAULT_PARAMETERS = {
+  dcaAmount: 100,          // USDC per buy
+  dcaIntervalDays: 7,      // weekly
+  tradingFee: 0.003,       // 0.3% trading fee assumption
 };
 
 export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaAmount?: number; dcaIntervalDays?: number; tradingFee?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
-  const dcaAmount = Math.max(0, options.dcaAmount ?? DEFAULT_PARAMETERS.dca_amount);
-  const dcaIntervalDays = Math.max(1, Math.floor(options.dcaIntervalDays ?? DEFAULT_PARAMETERS.dca_interval_days));
-  const feePct = options.tradingFee ?? DEFAULT_PARAMETERS.trading_fee;
+  const dcaAmount = Math.max(0, options.dcaAmount ?? DEFAULT_PARAMETERS.dcaAmount);
+  const dcaIntervalDays = Math.max(1, Math.floor(options.dcaIntervalDays ?? DEFAULT_PARAMETERS.dcaIntervalDays));
+  const feePct = options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee;
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
