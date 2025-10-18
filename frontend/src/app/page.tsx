@@ -10,11 +10,14 @@ import {
   Card,
   CardContent,
   Stack,
+  IconButton,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SecurityIcon from '@mui/icons-material/Security';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -43,6 +46,17 @@ export default function Home() {
       description: 'Optimize your Bitcoin and digital asset returns, manage risk so you can enjoy a peace of mind.',
     },
   ];
+
+  const steps = [
+    { step: 1, title: 'Create a Power Wallet', desc: 'Deploy your new on‑chain smart wallet in seconds.' },
+    { step: 2, title: 'Pick a DCA Strategy', desc: 'Choose between Pure, Power, Smart, or Trend based on your goals.' },
+    { step: 3, title: 'Deposit USDC', desc: 'Fund your wallet with USDC to start investing.' },
+    { step: 4, title: 'Enjoy a peace of mind', desc: 'Let your strategy execute on‑chain while you enjoy a peace of mind.' },
+  ];
+
+  const [stepIndex, setStepIndex] = React.useState(0);
+  const nextStep = React.useCallback(() => setStepIndex((i) => (i + 1) % steps.length), [steps.length]);
+  const prevStep = React.useCallback(() => setStepIndex((i) => (i - 1 + steps.length) % steps.length), [steps.length]);
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
@@ -445,6 +459,85 @@ export default function Home() {
           </Stack>
         </Container>
       </Box>
+      
+      {/* Our Tech Section */}
+      <Box sx={{ pt: { xs: 6, md: 8 }, pb: { xs: 2, md: 2 }, bgcolor: 'background.default' }}>
+        <Container maxWidth="lg">
+          <Typography variant="h3" textAlign="center" fontWeight="bold" sx={{ mb: 1, fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
+            Our Tech
+          </Typography>
+          <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 4, maxWidth: 720, mx: 'auto' }}>
+            Power Wallet is built on the Base blockchain, with Chainlink Automation, Coinbase Smart Wallet, Uniswap V3, cbBTC and USDC.
+          </Typography>
+
+          {/* Mobile: horizontal scroller */}
+          <Box sx={{
+            display: { xs: 'flex', md: 'none' },
+            gap: 3,
+            overflowX: 'auto',
+            px: 1,
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch'
+          }}>
+            {[
+              { src: '/img/tech/base.jpeg', alt: 'Base blockchain' },
+              { src: '/img/tech/coinbase-smart-wallet.jpeg', alt: 'Coinbase Smart Wallet' },
+              { src: '/img/tech/cbbtc.jpeg', alt: 'cbBTC' },
+              { src: '/img/tech/chainlink-automation.jpeg', alt: 'Chainlink Automation' },
+              { src: '/img/tech/uniswap.jpeg', alt: 'Uniswap' },
+            ].map((t) => (
+              <Box key={t.src} sx={{
+                minWidth: 180,
+                scrollSnapAlign: 'start',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                bgcolor: 'background.paper'
+              }}>
+                <Image
+                  src={t.src}
+                  alt={t.alt}
+                  width={240}
+                  height={120}
+                  style={{ maxHeight: 80, objectFit: 'contain', width: '100%', filter: 'grayscale(10%)', opacity: 0.9 }}
+                />
+              </Box>
+            ))}
+          </Box>
+
+          {/* Desktop: wrapped row */}
+          <Box sx={{
+            display: { xs: 'none', md: 'flex' },
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { src: '/img/tech/base.jpeg', alt: 'Base blockchain' },
+              { src: '/img/tech/coinbase-smart-wallet.jpeg', alt: 'Coinbase Smart Wallet' },
+              { src: '/img/tech/cbbtc.jpeg', alt: 'cbBTC' },
+              { src: '/img/tech/chainlink-automation.jpeg', alt: 'Chainlink Automation' },
+              { src: '/img/tech/uniswap.jpeg', alt: 'Uniswap' },
+            ].map((t) => (
+              <Box key={t.src} sx={{ p: 0 }}>
+                <Image
+                  src={t.src}
+                  alt={t.alt}
+                  width={280}
+                  height={120}
+                  style={{ maxHeight: 88, objectFit: 'contain', width: '100%', opacity: 0.9 }}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Container>
+      </Box>
+
     </Box>
   );
 }
