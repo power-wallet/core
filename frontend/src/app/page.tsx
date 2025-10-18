@@ -16,6 +16,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   // Avoid runtime media queries for typography to prevent hydration flicker.
@@ -301,12 +302,24 @@ export default function Home() {
                       {s.title}
                     </Typography>
                     <Box sx={{
-                      height: 80,
+                      height: 100,
                       mb: 2,
                       borderRadius: 1,
-                      bgcolor: 'rgba(245, 158, 11, 0.12)',
-                      border: '1px dashed rgba(245, 158, 11, 0.45)'
-                    }} />
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'rgba(255,255,255,0.04)',
+                      border: '1px dashed rgba(255,255,255,0.18)'
+                    }}>
+                      <Image
+                        src={`/img/strategies/${s.key}.png`}
+                        alt={`${s.title} illustration`}
+                        width={800}
+                        height={240}
+                        style={{ objectFit: 'contain', width: '100%', height: '100%' }}
+                      />
+                    </Box>
                     <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>{s.desc}</Typography>
                   </CardContent>
                   <Box sx={{ px: 2, pb: 2 }}>
@@ -357,12 +370,24 @@ export default function Home() {
                   <Typography variant="overline" color="primary">{d.step < 4 ? `Step ${d.step}` : 'Done'}</Typography>
                   <Typography variant="h6" component="h3" gutterBottom fontWeight="bold">{d.title}</Typography>
                   <Box sx={{
-                    height: 120,
+                    height: 140,
                     mb: 2,
                     borderRadius: 1,
-                    bgcolor: 'rgba(255,255,255,0.03)',
-                    border: '1px dashed rgba(255,255,255,0.12)'
-                  }} />
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'rgba(255,255,255,0.04)',
+                    border: '1px dashed rgba(255,255,255,0.18)'
+                  }}>
+                    <Image
+                      src={`/img/getstarted/step-${d.step}.png`}
+                      alt={`${d.title} illustration`}
+                      width={800}
+                      height={260}
+                      style={{ objectFit: 'contain', width: '100%', height: '100%' }}
+                    />
+                  </Box>
                   <Typography variant="body2" color="text.secondary">{d.desc}</Typography>
                 </CardContent>
               </Card>

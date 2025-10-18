@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Container, Box, Typography, Alert, AlertTitle, Card, CardContent, Collapse, Button, IconButton } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -11,7 +12,7 @@ import { runStrategy } from '@/lib/simulator';
 import { loadPriceData } from '@/lib/priceFeed';
 import type { SimulationResult } from '@/lib/types';
 
-export default function SimulatorPage() {
+function SimulatorPageInner() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -489,5 +490,13 @@ export default function SimulatorPage() {
         )}
       </Container>
     </Box>
+  );
+}
+
+export default function SimulatorPage() {
+  return (
+    <Suspense fallback={<Box sx={{ p: 3 }}><Container maxWidth="xl"><Typography variant="body2" color="text.secondary">Loading simulator…</Typography></Container></Box>}>
+      <SimulatorPageInner />
+    </Suspense>
   );
 }
