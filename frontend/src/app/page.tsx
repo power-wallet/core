@@ -154,7 +154,7 @@ export default function Home() {
       </Box>
 
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ pt: { xs: 6, md: 7 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 7 } }}>
         <Typography
           variant="h3"
           component="h2"
@@ -213,98 +213,118 @@ export default function Home() {
         </Grid>
       </Container>
       
-      {/* Our Strategies Section */}
-      <Container maxWidth="lg" sx={{ pt: { xs: 6, md: 7 } }}>
-        <Typography
-          variant="h3"
-          component="h2"
-          textAlign="center"
-          gutterBottom
-          fontWeight="bold"
-          sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}
-        >
-          Our Strategies
-        </Typography>
-        <Typography
-          variant="body1"
-          textAlign="center"
-          color="text.secondary"
-          sx={{ mb: 6, maxWidth: 720, mx: 'auto' }}
-        >
-          Four disciplined, on‑chain DCA approaches designed for different preferences. Pick the one that fits your goals and risk appetite.
-        </Typography>
+      {/* Our Strategies Section (with gradient background) */}
+      <Box
+        sx={{
+          background: 'linear-gradient(135deg, #1A1A1A 0%, #2D1B0E 100%)',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 70% 40%, rgba(245, 158, 11, 0.18) 0%, transparent 55%)',
+            pointerEvents: 'none',
+          },
+          color: 'white',
+          py: { xs: 6, md: 8 },
+        }}
+      >
+        <Container maxWidth="lg">
+          <Typography
+            variant="h3"
+            component="h2"
+            textAlign="center"
+            gutterBottom
+            fontWeight="bold"
+            sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}
+          >
+            Our Strategies
+          </Typography>
+          <Typography
+            variant="body1"
+            textAlign="center"
+            sx={{ mb: 6, mt: 2, maxWidth: 720, mx: 'auto', opacity: 0.9 }}
+          >
+            Four disciplined, on‑chain DCA approaches designed for different preferences. Pick the one that fits your goals and risk appetite.
+          </Typography>
 
-        <Grid container spacing={4}>
-          {[
-            {
-              key: 'pure',
-              title: 'Pure DCA',
-              subtitle: 'Set‑and‑forget accumulation',
-              desc: 'Buy a fixed amount on a fixed cadence. Best for long‑term believers who are price insensitive and prefer simplicity.',
-            },
-            {
-              key: 'power',
-              title: 'Power DCA',
-              subtitle: 'Power‑law fair‑value trend',
-              desc: 'Scale buys below bitcoin power-law model price and trim above. Ideal for mean‑reversion believers seeking efficiency.',
-            },
-            {
-              key: 'smart',
-              title: 'Smart DCA',
-              subtitle: 'Buy the dip and rebalance',
-              desc: 'Adaptive buys and sells based on volatility and drawdown, with optional threshold rebalancing to a BTC weight band.',
-            },
-            {
-              key: 'trend',
-              title: 'Trend DCA',
-              subtitle: 'Trend aligned accumulation',
-              desc: 'All‑in BTC in confirmed uptrends, gentle DCA in downtrends, boosted buys when well below trend.',
-            },
-          ].map((s, i) => (
-            <Grid item xs={12} sm={6} md={3} key={s.key}>
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
-                  transition: 'transform 0.3s, box-shadow 0.3s',
-                  '&:hover': { transform: 'translateY(-6px)', boxShadow: 5 },
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="overline" color="primary" sx={{ letterSpacing: 0.6 }}>
-                    {s.subtitle}
-                  </Typography>
-                  <Typography variant="h6" component="h3" gutterBottom fontWeight="bold">
-                    {s.title}
-                  </Typography>
-                  <Box sx={{
-                    height: 80,
-                    mb: 2,
-                    borderRadius: 1,
-                    bgcolor: 'rgba(245, 158, 11, 0.10)',
-                    border: '1px dashed rgba(245, 158, 11, 0.35)'
-                  }} />
-                  <Typography variant="body2" color="text.secondary">{s.desc}</Typography>
-                </CardContent>
-                <Box sx={{ px: 2, pb: 2 }}>
-                  <Link href={`/simulator?strategy=${s.key}`} passHref style={{ textDecoration: 'none' }}>
-                    <Button fullWidth variant="outlined" size="small" sx={{ borderColor: 'primary.main', color: 'primary.main' }}>
-                      Try in Simulator
-                    </Button>
-                  </Link>
-                </Box>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+          <Grid container spacing={4}>
+            {[
+              {
+                key: 'pure',
+                title: 'Pure DCA',
+                subtitle: 'Set‑and‑forget accumulation',
+                desc: 'Buy a fixed amount on a fixed cadence. Best for long‑term believers who are price insensitive and prefer simplicity.',
+              },
+              {
+                key: 'power',
+                title: 'Power DCA',
+                subtitle: 'Power‑law fair‑value trend',
+                desc: 'Scale buys below bitcoin power-law model price and trim above. Ideal for mean‑reversion believers seeking efficiency.',
+              },
+              {
+                key: 'smart',
+                title: 'Smart DCA',
+                subtitle: 'Buy the dip and rebalance',
+                desc: 'Adaptive buys and sells based on volatility and drawdown, with optional threshold rebalancing to a BTC weight band.',
+              },
+              {
+                key: 'trend',
+                title: 'Trend DCA',
+                subtitle: 'Trend aligned accumulation',
+                desc: 'All‑in BTC in confirmed uptrends, gentle DCA in downtrends, boosted buys when well below trend.',
+              },
+            ].map((s, i) => (
+              <Grid item xs={12} sm={6} md={3} key={s.key}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: '1px solid',
+                    borderColor: 'rgba(255,255,255,0.15)',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))',
+                    backdropFilter: 'blur(2px)',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                    '&:hover': { transform: 'translateY(-6px)', boxShadow: 8 },
+                  }}
+                >
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Typography variant="overline" color="primary" sx={{ letterSpacing: 0.6 }}>
+                      {s.subtitle}
+                    </Typography>
+                    <Typography variant="h6" component="h3" gutterBottom fontWeight="bold" sx={{ color: 'white' }}>
+                      {s.title}
+                    </Typography>
+                    <Box sx={{
+                      height: 80,
+                      mb: 2,
+                      borderRadius: 1,
+                      bgcolor: 'rgba(245, 158, 11, 0.12)',
+                      border: '1px dashed rgba(245, 158, 11, 0.45)'
+                    }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>{s.desc}</Typography>
+                  </CardContent>
+                  <Box sx={{ px: 2, pb: 2 }}>
+                    <Link href={`/simulator?strategy=${s.key}`} passHref style={{ textDecoration: 'none' }}>
+                      <Button fullWidth variant="outlined" size="small" sx={{ borderColor: 'primary.main', color: 'primary.main' }}>
+                        Try in Simulator
+                      </Button>
+                    </Link>
+                  </Box>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
 
-      {/* How It Works Section */}
-      <Container maxWidth="lg" sx={{ pt: { xs: 6, md: 7 }, pb: { xs: 6, md: 7 } }}>
+      {/* How to Get Started Section */}
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 7 } }}>
         <Typography
           variant="h3"
           component="h2"
@@ -319,7 +339,7 @@ export default function Home() {
           variant="body1"
           textAlign="center"
           color="text.secondary"
-          sx={{ mb: 6, maxWidth: 720, mx: 'auto' }}
+          sx={{ mb: 6, mt: 2, maxWidth: 720, mx: 'auto' }}
         >
           Get started in 3 simple step, and start bitcoin accumulation on autopilot today.
         </Typography>
