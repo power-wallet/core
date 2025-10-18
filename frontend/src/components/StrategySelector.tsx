@@ -33,10 +33,10 @@ export default function StrategySelector({
         Select the Bitcoin accumulation strategy you want to use with your wallet
       </Typography>
       <ToggleButtonGroup exclusive size="small" value={selectedStrategyId} onChange={(_, v) => v && onChangeStrategy(v)}>
-        <ToggleButton value="simple-btc-dca-v1">Simple DCA</ToggleButton>
-        <ToggleButton value="power-btc-dca-v2">Power DCA</ToggleButton>
-        <ToggleButton value="smart-btc-dca-v2">Smart DCA</ToggleButton>
-        <ToggleButton value="trend-btc-dca-v1">Trend DCA</ToggleButton>
+        <ToggleButton value="simple-btc-dca-v1">Pure</ToggleButton>
+        <ToggleButton value="power-btc-dca-v2">Power</ToggleButton>
+        <ToggleButton value="smart-btc-dca-v2">Smart</ToggleButton>
+        <ToggleButton value="trend-btc-dca-v1">Trend</ToggleButton>
       </ToggleButtonGroup>
       {description ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pb: 1 }}>

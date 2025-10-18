@@ -151,8 +151,8 @@ export default function FaucetPage() {
   }, [lastClaimAt, cooldownSec]);
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="sm">
+    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh'}}>
+      <Container maxWidth="sm" sx={{ py: 3 }}>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h4" component="h1" fontWeight="bold">USDC Faucet</Typography>
           <Typography variant="body1" color="text.secondary">Claim testnet USDC on Base Sepolia - For Power Wallet users only.</Typography>

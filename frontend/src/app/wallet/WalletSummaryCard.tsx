@@ -50,11 +50,7 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
     const days = Math.round(Number(f) / 86400);
     return `${days}d`;
   })();
-  const isSimple = (() => {
-    const onChainId = String(strategyIdStr || '').trim();
-    if (onChainId === 'simple-btc-dca-v1') return true;
-    return displayName === 'Simple BTC DCA';
-  })();
+
 
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>
@@ -80,7 +76,7 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
             <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Strategy</Typography>
             <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-              {displayName} {isSimple ? `- ${dcaAmountDisplay} ${freqDays}` : `- ${freqDays}`}
+              {displayName} {dcaAmount ? `- ${dcaAmountDisplay} ${freqDays}` : `- ${freqDays}`}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>

@@ -305,7 +305,9 @@ export default function WalletDetails() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
+  <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
+
+    <Container maxWidth="lg" sx={{ py: 3 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
       <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
         <a
@@ -670,6 +672,7 @@ export default function WalletDetails() {
         <Button color="error" variant="outlined" onClick={() => setCloseOpen(true)}>Close Wallet</Button>
       </Box>
     </Container>
+  </Box>
   );
 }
 

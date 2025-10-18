@@ -4,8 +4,8 @@ import Client from './Client';
 
 export default function PoolsPage() {
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="lg">
+    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
+      <Container maxWidth="lg" sx={{ py: 3 }}>
         <Suspense fallback={null}>
           <Client />
         </Suspense>

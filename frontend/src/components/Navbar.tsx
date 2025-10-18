@@ -22,6 +22,7 @@ import { useAccount, useChainId } from 'wagmi';
 import { getChainKey } from '@/config/networks';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import WalletConnectModal from './WalletConnectModal';
 import LogoIcon from './LogoIcon';
 
@@ -39,6 +40,8 @@ const Navbar = () => {
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const isBaseSepolia = chainId === 84532;
+  const pathname = usePathname();
+  const showConnect = pathname !== '/';
 
   const shortAddress = React.useMemo(() => {
     if (!address) return '';
@@ -86,24 +89,26 @@ const Navbar = () => {
             </Link>
           </ListItem>
         ) : null}
-        <ListItem disablePadding>
-          <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            startIcon={isConnected && address ? (
-              <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                <Jazzicon diameter={16} seed={jsNumberForAddress(address)} />
-              </Box>
-            ) : (
-              <AccountBalanceWalletIcon />
-            )}
-            onClick={() => setWalletModalOpen(true)}
-            sx={{ mx: 2, my: 1 }}
-          >
-            {isConnected ? shortAddress : 'Connect Wallet'}
-          </Button>
-        </ListItem>
+        {showConnect && (
+          <ListItem disablePadding>
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              startIcon={isConnected && address ? (
+                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <Jazzicon diameter={16} seed={jsNumberForAddress(address)} />
+                </Box>
+              ) : (
+                <AccountBalanceWalletIcon />
+              )}
+              onClick={() => setWalletModalOpen(true)}
+              sx={{ mx: 2, my: 1 }}
+            >
+              {isConnected ? shortAddress : 'Connect Wallet'}
+            </Button>
+          </ListItem>
+        )}
       </List>
     </Box>
   );
@@ -169,28 +174,30 @@ const Navbar = () => {
               ) : null}
             </Box>
 
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={isConnected && address ? (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <Jazzicon diameter={20} seed={jsNumberForAddress(address)} />
-                </Box>
-              ) : (
-                <AccountBalanceWalletIcon />
-              )}
-              onClick={() => setWalletModalOpen(true)}
-              sx={{
-                display: { xs: 'none', md: 'inline-flex' },
-                background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
-                boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
-                '&:hover': {
-                  boxShadow: '0 6px 20px rgba(245, 158, 11, 0.5)',
-                },
-              }}
-            >
-              {isConnected ? shortAddress : 'Connect Wallet'}
-            </Button>
+            {showConnect && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={isConnected && address ? (
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <Jazzicon diameter={20} seed={jsNumberForAddress(address)} />
+                  </Box>
+                ) : (
+                  <AccountBalanceWalletIcon />
+                )}
+                onClick={() => setWalletModalOpen(true)}
+                sx={{
+                  display: { xs: 'none', md: 'inline-flex' },
+                  background: 'linear-gradient(45deg, #F59E0B 30%, #FB923C 90%)',
+                  boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
+                  '&:hover': {
+                    boxShadow: '0 6px 20px rgba(245, 158, 11, 0.5)',
+                  },
+                }}
+              >
+                {isConnected ? shortAddress : 'Connect Wallet'}
+              </Button>
+            )}
           </Toolbar>
         </Container>
       </AppBar>

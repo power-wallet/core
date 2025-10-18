@@ -503,7 +503,7 @@ export default function Client() {
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
       <Container maxWidth="lg">
         {!poolAddress ? (
           <Typography variant="body2" color="text.secondary">No pool address provided. Go back to{' '}<MuiLink href="/contracts">Smart Contracts</MuiLink>.</Typography>

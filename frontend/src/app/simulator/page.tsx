@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Container, Box, Typography, Alert, AlertTitle, Card, CardContent, Collapse, Button, IconButton } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import SimulatorControls, { type SimulationParams } from '@/components/simulator/SimulatorControls';
@@ -16,17 +17,41 @@ export default function SimulatorPage() {
   const [error, setError] = useState<string | null>(null);
   const [showOverview, setShowOverview] = useState(false);
   const [strategyId, setStrategyId] = useState<string>('smart-btc-dca');
+  const searchParams = useSearchParams();
 
-  // Load saved strategy on mount
+  const mapParamToStrategyId = (p?: string): string | undefined => {
+    if (!p) return undefined;
+    const key = p.toLowerCase();
+    const map: Record<string, string> = {
+      // friendly ids
+      pure: 'simple-btc-dca',
+      power: 'power-btc-dca',
+      smart: 'smart-btc-dca',
+      trend: 'trend-btc-dca',
+      // explicit versioned ids
+      'simple-btc-dca-v1': 'simple-btc-dca',
+      'power-btc-dca-v2': 'power-btc-dca',
+      'smart-btc-dca-v2': 'smart-btc-dca',
+      'trend-btc-dca-v1': 'trend-btc-dca',
+    };
+    return map[key];
+  };
+
+  // Determine initial strategy: URL param > saved local setting > default
   useEffect(() => {
     try {
+      const fromParam = mapParamToStrategyId(searchParams.get('strategy') || undefined);
+      if (fromParam) {
+        setStrategyId(fromParam);
+        return;
+      }
       const raw = typeof window !== 'undefined' ? localStorage.getItem('simulator:settings') : null;
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved?.strategy) setStrategyId(saved.strategy);
       }
     } catch {}
-  }, []);
+  }, [searchParams]);
 
   // Clear previous result when switching strategy so Overview reflects selection
   useEffect(() => {
@@ -118,7 +143,7 @@ export default function SimulatorPage() {
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh'}}>
       <Container maxWidth="xl">
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">

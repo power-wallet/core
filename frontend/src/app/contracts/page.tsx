@@ -287,7 +287,7 @@ export default function SmartContractsPage() {
   );
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh', py: 4 }}>
       <Container maxWidth="lg">
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">Smart Contracts</Typography>
@@ -324,7 +324,7 @@ export default function SmartContractsPage() {
               address={(cfg.pools as any)['USDC-cbBTC']?.rebalancer || ''}
               blurb="Periodically rebalances the assets in the cbBTC/USDC pool, and aligns the pool exchange rate to the Chainlink BTC/USD oracle price." />
 
-            <Section title="Simple BTC DCA"
+            <Section title="Pure BTC DCA"
               address={ADDR.strategies['simple-btc-dca-v1']}
               blurb="The OG accumulator: dollar‑cost average into BTC on a set cadence." />
 

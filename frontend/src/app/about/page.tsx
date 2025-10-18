@@ -100,7 +100,7 @@ export default function About() {
                   to optimize returns and manage risk. <br/>
                   Examples include:
                   <ul>
-                    <li>Simple DCA: The OG accumulator, buys with a fixed amount of USDC at a fixed cadence, no matter what.</li>
+                    <li>Pure DCA: The OG accumulator, buys with a fixed amount of USDC at a fixed cadence, no matter what.</li>
                     <li>
                       Smart DCA: Optimized BTC accumulation, guided by the &nbsp;
                       <Box component="a" 

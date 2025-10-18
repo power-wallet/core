@@ -576,7 +576,9 @@ export default function PortfolioPage() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 3 }}>
+  <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
+
+    <Container maxWidth="lg" sx={{ py: 3 }} >
       {/* Portfolio Summary */}
       {portfolioTotals.totalUsd > 0 ? (
         <>
@@ -642,5 +644,6 @@ export default function PortfolioPage() {
         </Alert>
       </Snackbar>
     </Container>
+  </Box>
   );
 }
