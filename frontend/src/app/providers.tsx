@@ -59,7 +59,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowNetworkPrompt(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSwitchToBase}>Switch to Base</Button>
+          <Button variant="contained" onClick={handleSwitchToBase}>Switch to Base Mainnet</Button>
           <Button variant="outlined" onClick={handleSwitchToSepolia}>Switch to Base Sepolia</Button>
         </DialogActions>
       </Dialog>

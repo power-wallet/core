@@ -21,6 +21,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LaunchIcon from '@mui/icons-material/Launch';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import AddIcon from '@mui/icons-material/Add';
 import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { getChainKey } from '@/config/networks';
@@ -159,10 +160,12 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
           sx: {
             borderRadius: 2,
             backgroundImage: 'none',
+            mx: { xs: 1, sm: 2 },
+            width: { xs: 'calc(100% - 16px)', sm: 'auto' },
           }
         }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 1.25, sm: 2 } }}>
           <Box display="flex" alignItems="center" justifyContent="space-between">
             <Typography variant="h6" component="div" fontWeight="bold">
               {isConnected ? 'Connected Wallet' : 'Connect Wallet'}
@@ -173,7 +176,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
           </Box>
         </DialogTitle>
 
-        <DialogContent>
+        <DialogContent sx={{ px: { xs: 1.5, sm: 3 }, pt: { xs: 1.25, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
           {isConnected ? (
             <Box>
               <Card variant="outlined" sx={{ mb: 2, p: 0 }}>
@@ -264,8 +267,8 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                             </Typography>
                             <Box sx={{ mt: 1 }}>
                               {chainId && chainId == baseSepolia.id && (
-                                <Button size="small" variant="outlined" onClick={toggleBaseNetwork}>
-                                  {chainId === baseSepolia.id ? 'Switch to Base' : 'Switch to Base Sepolia'}
+                                <Button size="small" variant="outlined" startIcon={<SwapHorizIcon fontSize="small" />} onClick={toggleBaseNetwork}>
+                                  {chainId === baseSepolia.id ? 'Switch to Base Mainnet' : 'Switch to Base Sepolia'}
                                 </Button>
                               )}
                             </Box>

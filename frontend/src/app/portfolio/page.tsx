@@ -299,7 +299,11 @@ export default function PortfolioPage() {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Stack spacing={2} alignItems="center" textAlign="center">
-          <Typography color="warning">Power Wallet is not available on {chainName}. Please switch to Base Sepolia Testnet.</Typography>
+          <Typography color="text.primary">
+            Power Wallet is not available on {chainName}. 
+            <br />
+            Please switch to Base Sepolia Testnet.
+          </Typography>
           <Button variant="contained" onClick={async () => {
             await ensureOnPrimaryChain(chainId, (args: any) => switchChainAsync(args as any));
           }}>

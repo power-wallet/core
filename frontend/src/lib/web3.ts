@@ -9,7 +9,7 @@ export const PRIMARY_APP_CHAIN = baseSepolia;
 export function getFriendlyChainName(chainId?: number): string {
   if (!chainId) return '';
   if (Number(chainId) === 1) return 'Ethereum mainnet';
-  if (Number(chainId) === 8453) return 'Base';
+  if (Number(chainId) === 8453) return 'Base Mainnet';
   if (Number(chainId) === 84532) return 'Base Sepolia';
   return `Chain ${chainId}`;
 }
