@@ -11,7 +11,10 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { switchOrAddPrimaryChain, isOnPrimaryAppChain, getFriendlyChainName } from '@/lib/web3';
+import { switchOrAddPrimaryChain, isSupportedChain } from '@/lib/web3';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { base, baseSepolia } from 'wagmi/chains';
+import '@coinbase/onchainkit/styles.css';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -25,30 +28,39 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const [showNetworkPrompt, setShowNetworkPrompt] = useState(false);
 
     useEffect(() => {
-      if (isConnected && currentChainId && !isOnPrimaryAppChain(currentChainId)) {
+      if (isConnected && currentChainId && !isSupportedChain(currentChainId)) {
         setShowNetworkPrompt(true);
       } else {
         setShowNetworkPrompt(false);
       }
     }, [isConnected, currentChainId]);
 
-    const handleSwitchNetwork = async () => {
+    const handleSwitchToSepolia = async () => {
       const ok = await switchOrAddPrimaryChain((args: any) => switchChainAsync(args as any));
       if (ok) setShowNetworkPrompt(false);
     };
 
+    const handleSwitchToBase = async () => {
+      try {
+        await switchChainAsync({ chainId: base.id });
+        setShowNetworkPrompt(false);
+      } catch (_) {
+        // no-op; user can still switch via wallet UI
+      }
+    };
+
     return (
       <Dialog open={showNetworkPrompt} onClose={() => setShowNetworkPrompt(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Switch to Base Sepolia Testnet?</DialogTitle>
+        <DialogTitle>Switch network?</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            Power Wallet is not live on the <b>Base</b> mainnet chain yet, but you can experience an early version on the <b>Base Sepolia</b> Testnet. <br />
-            Do you want to switch to the Base Sepolia Testnet?
+            Power Wallet supports <b>Base</b> (mainnet) for fiat onramp and <b>Base Sepolia</b> for testnet demo. Choose a network to switch to.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowNetworkPrompt(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleSwitchNetwork}>Switch Network</Button>
+          <Button variant="contained" onClick={handleSwitchToBase}>Switch to Base</Button>
+          <Button variant="outlined" onClick={handleSwitchToSepolia}>Switch to Base Sepolia</Button>
         </DialogActions>
       </Dialog>
     );
@@ -59,6 +71,24 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <CssBaseline />
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
+          <OnchainKitProvider
+            chain={base}
+            apiKey={process.env.NEXT_PUBLIC_CDP_API_KEY}
+            projectId={process.env.NEXT_PUBLIC_CDP_PROJECT_ID}
+            config={{
+              appearance: {
+                name: 'Power Wallet',
+                logo: '/img/logo/logo.png',
+                mode: 'auto',
+                theme: 'default',
+              },
+              wallet: {
+                display: 'modal',
+                termsUrl: 'https://powerwallet.finance/terms',
+                privacyUrl: 'https://powerwallet.finance/privacy',
+              },
+            }}
+          >
           {showNotice && (
             <div style={{ width: '100%', position: 'relative', background: 'rgb(135, 56, 56)', color: '#FFFFFF', fontSize: 12, padding: '6px 32px 6px 12px', textAlign: 'center', borderBottom: '1px solid rgba(239, 68, 68, 0.25)' }}>
               This project is in early development and available for demo on the Base Sepolia testnet.
@@ -71,6 +101,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           <NetworkGuard />
           {children}
           <Footer />
+          </OnchainKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

@@ -187,8 +187,7 @@ export default function Home() {
           sx={{ mb: 6, maxWidth: 740, mx: 'auto' }}
         >
           Fear, greed and lack of discipline prevent do-it-yourself investors from building real wealth.
-          Power Wallet fixes that. Our automated, secure and transparent Bitcoin accumulation strategies 
-          help you avoid common mistakes, so you can be a successful long-term investor.
+          Power Wallet fixes that, so you can be a more successful long-term investor.
         </Typography>
 
         <Grid container spacing={4}>

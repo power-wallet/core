@@ -24,7 +24,7 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import AddIcon from '@mui/icons-material/Add';
 import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { getChainKey } from '@/config/networks';
-import { baseSepolia } from 'wagmi/chains';
+import { baseSepolia, base } from 'wagmi/chains';
 import { getFriendlyChainName, switchOrAddPrimaryChain } from '@/lib/web3';
 import { getViemChain } from '@/config/networks';
 import appConfig from '@/config/appConfig.json';
@@ -46,6 +46,8 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const [copied, setCopied] = React.useState(false);
   const [usdc, setUsdc] = React.useState<bigint | null>(null);
   const [usdcDecimals, setUsdcDecimals] = React.useState<number>(6);
+  const [reloadNonce, setReloadNonce] = React.useState<number>(0);
+  // removed extra funding modal; we open popup directly
 
   const explorerBase = (appConfig as any)[getChainKey(chainId)]?.explorer as string | undefined;
 
@@ -75,7 +77,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
     }
     readUsdc();
     return () => { cancelled = true; };
-  }, [address, chainId]);
+  }, [address, chainId, reloadNonce]);
 
   const formatEth = (wei?: bigint) => {
     if (wei == null) return '-';
@@ -94,6 +96,13 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
 
   const handleSwitchNetwork = async () => {
     await switchOrAddPrimaryChain((args: any) => switchChainAsync(args as any));
+  };
+
+  const toggleBaseNetwork = async () => {
+    try {
+      const target = chainId === baseSepolia.id ? base : baseSepolia;
+      await switchChainAsync({ chainId: target.id });
+    } catch {}
   };
 
   const handleConnect = async (connector: any) => {
@@ -196,18 +205,73 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatUsdc(usdc)}</Typography>
                               <Typography variant="body2" color="text.secondary">USDC</Typography>
                             </Stack>
+
+                            {isConnected && chainId === base.id && (
+                              <Stack direction="row" spacing={1} alignItems="baseline" sx={{ minWidth: 120 }}>
+                                <Box sx={{ mt: 2 }}>
+                                  <Button
+                                    variant="contained"
+                                    size="small"
+                                    onClick={async () => {
+                                      try {
+                                        const mod = await import('@coinbase/onchainkit/fund');
+                                        const url = mod.getCoinbaseSmartWalletFundUrl();
+                                        const w = 480, h = 720;
+                                        const dualScreenLeft = window.screenLeft ?? (window as any).screenX ?? 0;
+                                        const dualScreenTop = window.screenTop ?? (window as any).screenY ?? 0;
+                                        const width = window.innerWidth ?? document.documentElement.clientWidth ?? screen.width;
+                                        const height = window.innerHeight ?? document.documentElement.clientHeight ?? screen.height;
+                                        const left = Math.max(0, (width - w) / 2 + dualScreenLeft);
+                                        const top = Math.max(0, (height - h) / 2 + dualScreenTop);
+                                        const popup = window.open(
+                                          url,
+                                          '_blank',
+                                          `scrollbars=yes,width=${w},height=${h},top=${top},left=${left}`
+                                        );
+                                        if (popup) {
+                                          const interval = window.setInterval(() => {
+                                            if (popup.closed) {
+                                              window.clearInterval(interval);
+                                              setReloadNonce((n) => n + 1);
+                                            }
+                                          }, 750);
+                                        }
+                                      } catch {}
+                                    }}
+                                  >
+                                    Buy USDC
+                                  </Button>
+                                </Box>
+                              </Stack>
+                            )}
+
                           </Stack>
                         </Box>
                       )}
                     </Box>
-                    <Box sx={{ mt: { xs: 1, sm: 0 }, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+
+                  </Box>
+
+                  <Box sx={{ mt: 4, display: 'flex', gap: 3, flexWrap: 'wrap' , alignContent: 'center'}}>
                       {networkName && (
-                        <Box sx={{ mt: 0.5 }}>
-                          <Typography variant="subtitle2" color="text.secondary">Network</Typography>
-                          <Typography variant="body2">{networkName}</Typography>
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Network
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 2, alignContent: 'center', alignItems: 'baseline' }}>
+                            <Typography variant="body2">
+                              {networkName}
+                            </Typography>
+                            <Box sx={{ mt: 1 }}>
+                              {chainId && chainId == baseSepolia.id && (
+                                <Button size="small" variant="outlined" onClick={toggleBaseNetwork}>
+                                  {chainId === baseSepolia.id ? 'Switch to Base' : 'Switch to Base Sepolia'}
+                                </Button>
+                              )}
+                            </Box>
+                          </Box>
                         </Box>
-                      )}
-                    </Box>
+                    )}
                   </Box>
 
                   {chainId && chainId !== baseSepolia.id && (
@@ -313,6 +377,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
           )}
         </DialogContent>
       </Dialog>
+      {/* No extra onramp modal; popup is opened directly */}
       <Snackbar open={copied} autoHideDuration={2000} onClose={() => setCopied(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={() => setCopied(false)} severity="success" sx={{ width: '100%' }}>
           Address copied to clipboard

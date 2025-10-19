@@ -201,7 +201,8 @@ function SimulatorPageInner() {
                         <ul style={{ margin: 0, paddingLeft: 18 }}>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Power law model defines a fair-value curve P(t) with two bands: lower = 0.5×model, upper = 2×model.
+                              The Bitcoin power-law model defines a fair-value price as P(t) = 9.64e-18 * d^5.8451, where d is days since 2009-01-03. <br/>
+                              We define two bands: lower = 0.5×model, upper = 2×model.
                             </Typography>
                           </li>
                           <li>
