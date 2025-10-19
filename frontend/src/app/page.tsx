@@ -12,7 +12,7 @@ import {
   Stack,
   IconButton,
 } from '@mui/material';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import SecurityIcon from '@mui/icons-material/Security';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -41,7 +41,7 @@ export default function Home() {
       description: 'All transactions happen on-chain. Fully auditable, secure, and transparent.',
     },
     {
-      icon: <TrendingUpIcon sx={{ fontSize: 48 }} />,
+      icon: <LightbulbIcon sx={{ fontSize: 48 }} />,
       title: 'Smart Investing',
       description: 'Optimize your Bitcoin and digital asset returns, manage risk so you can enjoy a peace of mind.',
     },
@@ -184,9 +184,11 @@ export default function Home() {
           variant="body1"
           textAlign="center"
           color="text.secondary"
-          sx={{ mb: 6, maxWidth: 600, mx: 'auto' }}
+          sx={{ mb: 6, maxWidth: 740, mx: 'auto' }}
         >
-          Experience the future of Bitcoin investing with smart, on-chain wallets that accumulate Bitcoin and rebalance your portfolio for you.
+          Fear, greed and lack of discipline prevent do-it-yourself investors from building real wealth.
+          Power Wallet fixes that. Our automated, secure and transparent Bitcoin accumulation strategies 
+          help you avoid common mistakes, so you can be a successful long-term investor.
         </Typography>
 
         <Grid container spacing={4}>

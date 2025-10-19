@@ -135,6 +135,7 @@ export default function FaucetPage() {
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, message: 'Claim confirmed', severity: 'success' });
       setAmount('');
+      refreshAfterTx();
     } catch (e: any) {
       setToast({ open: true, message: e?.shortMessage || e?.message || 'Claim failed', severity: 'error' });
     } finally {
@@ -143,6 +144,31 @@ export default function FaucetPage() {
   };
 
   const [myUsdcBalance, setMyUsdcBalance] = React.useState<bigint | undefined>(undefined);
+  const [totalClaimedOverride, setTotalClaimedOverride] = React.useState<bigint | undefined>(undefined);
+  const [totalClaimedByOverride, setTotalClaimedByOverride] = React.useState<bigint | undefined>(undefined);
+
+  const refreshAfterTx = React.useCallback(() => {
+    setTimeout(async () => {
+      try {
+        if (usdcAddr) {
+          const faucetBal = await client.readContract({ address: usdcAddr as `0x${string}`, abi: ERC20_READ_ABI as any, functionName: 'balanceOf', args: [FAUCET as `0x${string}`] }) as bigint;
+          setUsdcBalance(faucetBal);
+          if (address) {
+            const myBal = await client.readContract({ address: usdcAddr as `0x${string}`, abi: ERC20_READ_ABI as any, functionName: 'balanceOf', args: [address as `0x${string}`] }) as bigint;
+            setMyUsdcBalance(myBal);
+          }
+        }
+        if (FAUCET) {
+          const tc = await client.readContract({ address: FAUCET as `0x${string}`, abi: FAUCET_ABI as any, functionName: 'totalClaimed', args: [] }) as bigint;
+          setTotalClaimedOverride(tc);
+          if (address) {
+            const tcb = await client.readContract({ address: FAUCET as `0x${string}`, abi: FAUCET_ABI as any, functionName: 'totalClaimedBy', args: [address as `0x${string}`] }) as bigint;
+            setTotalClaimedByOverride(tcb);
+          }
+        }
+      } catch {}
+    }, 1500);
+  }, [client, usdcAddr, FAUCET, address]);
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -186,6 +212,7 @@ export default function FaucetPage() {
       await client.waitForTransactionReceipt({ hash });
       setToast({ open: true, message: 'Donation confirmed. Thank you!', severity: 'success' });
       setDonateAmount('');
+      refreshAfterTx();
     } catch (e: any) {
       setToast({ open: true, message: e?.shortMessage || e?.message || 'Donation failed', severity: 'error' });
     } finally {
@@ -241,9 +268,19 @@ export default function FaucetPage() {
                 ) : null}
               </Box>
               <Stack spacing={0.5}>
-                <Typography variant="body2">Faucet Balance: {formatTokenAmountBigint(usdcBalance, usdcDecimals)} USDC</Typography>
-                <Typography variant="body2">Total Claimed: {formatTokenAmountBigint(totalClaimed as bigint | undefined, usdcDecimals)} USDC</Typography>
-                <Typography variant="body2">My Total Claimed: {formatTokenAmountBigint(totalClaimedBy as bigint | undefined, usdcDecimals)} USDC</Typography>
+                <Typography variant="body2">Faucet Balance: {(() => {
+                  try {
+                    const bal = usdcBalance;
+                    if (bal === undefined) return '0';
+                    const factor = BigInt(10) ** BigInt(usdcDecimals || 6);
+                    const whole = bal / factor;
+                    return whole.toString();
+                  } catch {
+                    return formatTokenAmountBigint(usdcBalance, usdcDecimals);
+                  }
+                })()} USDC</Typography>
+                <Typography variant="body2">Total Claimed: {formatTokenAmountBigint((totalClaimedOverride ?? (totalClaimed as bigint | undefined)), usdcDecimals)} USDC</Typography>
+                <Typography variant="body2">My Total Claimed: {formatTokenAmountBigint((totalClaimedByOverride ?? (totalClaimedBy as bigint | undefined)), usdcDecimals)} USDC</Typography>
                 {nextClaimIn > 0 ? (
                   <Typography variant="body2" color="text.secondary">Next claim available in ~{Math.ceil(nextClaimIn/60)} min</Typography>
                 ) : null}
@@ -272,7 +309,7 @@ export default function FaucetPage() {
               </Stack>
               {typeof maxClaim === 'bigint' ? (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                  Max per claim: {formatToken(maxClaim as bigint, usdcDecimals)} USDC - Be kind to others.
+                  Max per claim: {formatToken(maxClaim as bigint, usdcDecimals)} USDC - Be kind to others
                 </Typography>
               ) : null}
 
