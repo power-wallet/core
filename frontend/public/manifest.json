@@ -1,0 +1,17 @@
+{
+    "name": "Power Wallet",
+    "short_name": "PowerWallet",
+    "description": "Smart Bitcoin DCA Investing",
+    "dir": "auto",
+    "lang": "en-US",
+    "display": "standalone",
+    "orientation": "any",
+    "scope": "/",
+    "start_url": "/",
+    "background_color": "#111827",
+    "theme_color": "#F59E0B",
+    "icons": [
+      { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+      { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+    ]
+  }

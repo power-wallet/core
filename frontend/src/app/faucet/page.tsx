@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Container, Box, Typography, Card, CardContent, Stack, TextField, Button, Alert, Snackbar, CircularProgress } from '@mui/material';
+import { Container, Box, Typography, Card, CardContent, Stack, TextField, Button, Alert, Snackbar, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import BaseSepoliaFaucets from '@/components/BaseSepoliaFaucets';
 import { useAccount, useChainId, useReadContract, useWriteContract } from 'wagmi';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { writeWithFees } from '@/lib/tx';
 import { getChainKey, getViemChain } from '@/config/networks';
-import { FAUCET_ABI, ERC20_READ_ABI } from '@/lib/abi';
+import { FAUCET_ABI, ERC20_READ_ABI, ERC20_WRITE_ABI } from '@/lib/abi';
 import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import { formatTokenAmountBigint } from '@/lib/format';
@@ -104,7 +105,9 @@ export default function FaucetPage() {
   }, [client, usdcAddr, FAUCET]);
 
   const [amount, setAmount] = React.useState<string>('');
+  const [donateAmount, setDonateAmount] = React.useState<string>('');
   const [busy, setBusy] = React.useState(false);
+  const [busyDonate, setBusyDonate] = React.useState(false);
   const [toast, setToast] = React.useState<{ open: boolean; message: string; severity: 'info' | 'success' | 'error' }>({ open: false, message: '', severity: 'info' });
 
   const canUse = isConnected && chainId === 84532 && FAUCET;
@@ -139,6 +142,57 @@ export default function FaucetPage() {
     }
   };
 
+  const [myUsdcBalance, setMyUsdcBalance] = React.useState<bigint | undefined>(undefined);
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!usdcAddr || !address) return;
+      try {
+        const [bal] = await Promise.all([
+          client.readContract({ address: usdcAddr as `0x${string}`, abi: ERC20_READ_ABI as any, functionName: 'balanceOf', args: [address as `0x${string}`] }) as Promise<bigint>,
+        ]);
+        if (!cancelled) setMyUsdcBalance(bal);
+      } catch {}
+    })();
+    const id = setInterval(async () => {
+      if (!usdcAddr || !address) return;
+      try {
+        const bal = await client.readContract({ address: usdcAddr as `0x${string}`, abi: ERC20_READ_ABI as any, functionName: 'balanceOf', args: [address as `0x${string}`] }) as bigint;
+        if (!cancelled) setMyUsdcBalance(bal);
+      } catch {}
+    }, 30000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [client, usdcAddr, address]);
+
+  const onDonate = async () => {
+    if (!canUse) return;
+    const v = Math.max(0, Number(donateAmount || '0'));
+    if (!isFinite(v) || v <= 0) { setToast({ open: true, message: 'Enter a valid amount to donate', severity: 'error' }); return; }
+    const scaled = parseUnits(String(v), usdcDecimals);
+    if (typeof myUsdcBalance === 'bigint' && scaled > myUsdcBalance) {
+      setToast({ open: true, message: 'Amount exceeds your USDC balance', severity: 'error' });
+      return;
+    }
+    setBusyDonate(true);
+    try {
+      const hash = await writeWithFees({
+        write: writeContractAsync as any,
+        client,
+        address: usdcAddr as `0x${string}`,
+        abi: ERC20_WRITE_ABI as any,
+        functionName: 'transfer',
+        args: [FAUCET as `0x${string}`, scaled],
+      });
+      await client.waitForTransactionReceipt({ hash });
+      setToast({ open: true, message: 'Donation confirmed. Thank you!', severity: 'success' });
+      setDonateAmount('');
+    } catch (e: any) {
+      setToast({ open: true, message: e?.shortMessage || e?.message || 'Donation failed', severity: 'error' });
+    } finally {
+      setBusyDonate(false);
+    }
+  };
+
   const nextClaimIn = React.useMemo(() => {
     try {
       const last = Number(lastClaimAt || 0);
@@ -154,7 +208,7 @@ export default function FaucetPage() {
     <Box sx={{ bgcolor: 'background.default', minHeight: '60vh'}}>
       <Container maxWidth="sm" sx={{ py: 3 }}>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h4" component="h1" fontWeight="bold">USDC Faucet</Typography>
+          <Typography variant="h4" component="h1" fontWeight="bold">Testnet Faucet</Typography>
           <Typography variant="body1" color="text.secondary">Claim testnet USDC on Base Sepolia - For Power Wallet users only.</Typography>
         </Box>
 
@@ -168,7 +222,24 @@ export default function FaucetPage() {
 
           <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>Faucet Status</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mb: 0 }}>Faucet Status</Typography>
+                {explorerBase && FAUCET ? (
+                  <Tooltip title="View on block explorer">
+                    <IconButton
+                      size="small"
+                      component="a"
+                      href={`${explorerBase}/address/${FAUCET}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Open faucet in block explorer"
+                      sx={{ color: 'primary.main' }}
+                    >
+                      <OpenInNewIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+              </Box>
               <Stack spacing={0.5}>
                 <Typography variant="body2">Faucet Balance: {formatTokenAmountBigint(usdcBalance, usdcDecimals)} USDC</Typography>
                 <Typography variant="body2">Total Claimed: {formatTokenAmountBigint(totalClaimed as bigint | undefined, usdcDecimals)} USDC</Typography>
@@ -178,7 +249,12 @@ export default function FaucetPage() {
                 ) : null}
               </Stack>
 
-              <Typography sx={{ pt: 3 }} variant="h6" fontWeight="bold" gutterBottom>Claim</Typography>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
+            <CardContent sx={{ px: 3 }}>
+              <Typography sx={{ pt: 1 }} variant="h6" fontWeight="bold" gutterBottom>Claim</Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
                 <TextField
                   size="small"
@@ -199,6 +275,24 @@ export default function FaucetPage() {
                   Max per claim: {formatToken(maxClaim as bigint, usdcDecimals)} USDC - Be kind to others.
                 </Typography>
               ) : null}
+
+              <Typography sx={{ pt: 4 }} variant="h6" fontWeight="bold" gutterBottom>Donate</Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Donate Amount (USDC)"
+                  value={donateAmount}
+                  onChange={(e) => setDonateAmount(e.target.value)}
+                  inputProps={{ min: 0, step: '0.01' }}
+                />
+                <Button variant="outlined" onClick={onDonate} disabled={!canUse || busyDonate}>
+                  {busyDonate ? (<><CircularProgress size={16} sx={{ mr: 1 }} /> Donating…</>) : 'Donate'}
+                </Button>
+              </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                Your USDC balance: {formatTokenAmountBigint(myUsdcBalance, usdcDecimals)} USDC
+              </Typography>
             </CardContent>
           </Card>
 

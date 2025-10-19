@@ -144,7 +144,7 @@ function SimulatorPageInner() {
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh'}}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh', mt: 2}}>
       <Container maxWidth="xl">
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">

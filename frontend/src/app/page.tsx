@@ -50,7 +50,7 @@ export default function Home() {
   const steps = [
     { step: 1, title: 'Create a Power Wallet', desc: 'Deploy your new on‑chain smart wallet in seconds.' },
     { step: 2, title: 'Pick a DCA Strategy', desc: 'Choose between Pure, Power, Smart, or Trend based on your goals.' },
-    { step: 3, title: 'Deposit USDC', desc: 'Fund your wallet with USDC to start investing.' },
+    { step: 3, title: 'Deposit USDC', desc: 'Fund your wallet with USDC so that your strategy can start investing.' },
     { step: 4, title: 'Enjoy a peace of mind', desc: 'Let your strategy execute on‑chain while you enjoy a peace of mind.' },
   ];
 
@@ -271,25 +271,25 @@ export default function Home() {
             {[
               {
                 key: 'pure',
-                title: 'Pure DCA',
+                title: 'Pure',
                 subtitle: 'Set‑and‑forget accumulation',
                 desc: 'Buy a fixed amount on a fixed cadence. Best for long‑term believers who are price insensitive and prefer simplicity.',
               },
               {
                 key: 'power',
-                title: 'Power DCA',
+                title: 'Power',
                 subtitle: 'Power‑law fair‑value trend',
                 desc: 'Scale buys below bitcoin power-law model price and trim above. Ideal for mean‑reversion believers seeking efficiency.',
               },
               {
                 key: 'smart',
-                title: 'Smart DCA',
+                title: 'Smart',
                 subtitle: 'Buy the dip and rebalance',
                 desc: 'Adaptive buys and sells based on volatility and drawdown, with optional threshold rebalancing to a BTC weight band.',
               },
               {
                 key: 'trend',
-                title: 'Trend DCA',
+                title: 'Trend',
                 subtitle: 'Trend aligned accumulation',
                 desc: 'All‑in BTC in confirmed uptrends, gentle DCA in downtrends, boosted buys when well below trend.',
               },
@@ -366,18 +366,55 @@ export default function Home() {
           variant="body1"
           textAlign="center"
           color="text.secondary"
-          sx={{ mb: 6, mt: 2, maxWidth: 720, mx: 'auto' }}
+          sx={{ mb: 2, mt: 2, maxWidth: 720, mx: 'auto' }}
         >
-          Get started in 3 simple step, and start bitcoin accumulation on autopilot today.
+          Create yuor first Power Wallet in 3 simple step, and start accumulating bitcoin today.
         </Typography>
 
-        <Grid container spacing={4}>
-          {[
-            { step: 1, title: 'Create a Power Wallet', desc: 'Deploy your new on‑chain smart wallet in seconds.' },
-            { step: 2, title: 'Pick a DCA Strategy', desc: 'Choose between Pure, Power, Smart, or Trend based on your goals.' },
-            { step: 3, title: 'Deposit USDC', desc: 'Fund your wallet with USDC to start investing.' },
-            { step: 4, title: 'Enjoy a peace of mind', desc: 'Let your strategy execute on‑chain while you enjoy a peace of mind.' },
-          ].map((d) => (
+        {/* Mobile carousel */}
+        <Box sx={{ display: { xs: 'block', md: 'none' }, position: 'relative', pt: 2 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="overline" color="primary">{stepIndex < 3 ? `Step ${steps[stepIndex].step}` : 'Done'}</Typography>
+              <Typography variant="h6" component="h3" gutterBottom fontWeight="bold">{steps[stepIndex].title}</Typography>
+              <Box sx={{
+                height: 180,
+                mb: 2,
+                borderRadius: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.04)',
+                border: '1px dashed rgba(255,255,255,0.18)'
+              }}>
+                <Image
+                  src={`/img/getstarted/step-${steps[stepIndex].step}.png`}
+                  alt={`${steps[stepIndex].title} illustration`}
+                  width={900}
+                  height={300}
+                  style={{ objectFit: 'contain', width: '100%', height: '100%' }}
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary">{steps[stepIndex].desc}</Typography>
+            </CardContent>
+          </Card>
+          <IconButton aria-label="Previous" onClick={prevStep} sx={{ position: 'absolute', top: '50%', left: 8, transform: 'translateY(-50%)', bgcolor: 'rgba(0,0,0,0.35)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.5)' } }}>
+            <ChevronLeftIcon />
+          </IconButton>
+          <IconButton aria-label="Next" onClick={nextStep} sx={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)', bgcolor: 'rgba(0,0,0,0.35)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.5)' } }}>
+            <ChevronRightIcon />
+          </IconButton>
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center" justifyContent="center">
+            {steps.map((_, i) => (
+              <Box key={i} onClick={() => setStepIndex(i)} role="button" aria-label={`Go to step ${i + 1}`} sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: i === stepIndex ? 'primary.main' : 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.2)', cursor: 'pointer' }} />
+            ))}
+          </Stack>
+        </Box>
+
+        {/* Desktop grid */}
+        <Grid container spacing={4} sx={{ display: { xs: 'none', md: 'flex' }, mt: 0 }}>
+          {steps.map((d) => (
             <Grid item xs={12} sm={6} md={3} key={d.step}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>

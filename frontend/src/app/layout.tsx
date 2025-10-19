@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     ],
     other: [
       { rel: 'manifest', url: '/manifest.json' },
-      { rel: 'mask-icon', url: '/safari-pinned-tab.svg', color: '#F59E0B' },
+      { rel: 'mask-icon', url: '/logo/wallet.svg', color: '#F59E0B' },
     ],
   },
 };

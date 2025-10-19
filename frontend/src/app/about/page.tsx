@@ -93,16 +93,16 @@ export default function About() {
               
               <Box>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  3. Choose a Strategy
+                  3. Choose an Accumulation Strategy
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Select from a growing library of automated investment strategies, each designed 
-                  to optimize returns and manage risk. <br/>
+                <Typography variant="body2" color="text.secondary" component="div">
+                  Select from a growing library of automated Bitcoin accumulation strategies, each designed 
+                  to optimize returns and manage risk.
                   Examples include:
                   <ul>
-                    <li>Pure DCA: The OG accumulator, buys with a fixed amount of USDC at a fixed cadence, no matter what.</li>
+                    <li>Pure: The OG accumulator, buys with a fixed amount of USDC at a fixed cadence, no matter what.</li>
                     <li>
-                      Smart DCA: Optimized BTC accumulation, guided by the &nbsp;
+                      Smart: Optimized BTC accumulation, guided by the &nbsp;
                       <Box component="a" 
                         href="https://charts.bitbo.io/long-term-power-law/" target="_blank" 
                         rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
@@ -110,8 +110,8 @@ export default function About() {
                       </Box>
                       &nbsp; price model.
                     </li>
-                    <li>Power BTC DCA: Adaptive DCA that buys the dip using volatility, with optional threshold rebalancing.</li>
-                    <li>Trend BTC DCA: All‑in BTC when the trend is up (above SMA50 with rising slope), otherwise sit in USDC and DCA on a schedule.</li>
+                    <li>Power: Adaptive DCA that buys the dip on high volatility, with optional threshold rebalancing.</li>
+                    <li>Trend: All‑in BTC when the trend is up, otherwise sit in USDC and DCA on a schedule.</li>
                   </ul>
                 </Typography>
               </Box>

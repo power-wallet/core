@@ -42,6 +42,8 @@ const Navbar = () => {
   const isBaseSepolia = chainId === 84532;
   const pathname = usePathname();
   const showConnect = pathname !== '/';
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   const shortAddress = React.useMemo(() => {
     if (!address) return '';
@@ -79,7 +81,7 @@ const Navbar = () => {
             </Link>
           </ListItem>
         ))}
-        {isConnected && isBaseSepolia ? (
+        {mounted && isConnected && isBaseSepolia ? (
           <ListItem disablePadding>
             <Link href="/faucet" passHref style={{ width: '100%', textDecoration: 'none', color: 'inherit' }}>
               <ListItemText 
@@ -89,7 +91,7 @@ const Navbar = () => {
             </Link>
           </ListItem>
         ) : null}
-        {showConnect && (
+        {showConnect && mounted && (
           <ListItem disablePadding>
             <Button
               fullWidth
@@ -157,7 +159,7 @@ const Navbar = () => {
                   </Button>
                 </Link>
               ))}
-              {isConnected && isBaseSepolia ? (
+              {mounted && isConnected && isBaseSepolia ? (
                 <Link href="/faucet" passHref style={{ textDecoration: 'none' }}>
                   <Button 
                     sx={{ 
@@ -174,7 +176,7 @@ const Navbar = () => {
               ) : null}
             </Box>
 
-            {showConnect && (
+            {showConnect && mounted && (
               <Button
                 variant="contained"
                 color="primary"
