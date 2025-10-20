@@ -101,7 +101,7 @@ describe("TechnicalIndicators - Core Functionality", function () {
             
             // Calculate expected SMA
             const expectedSma = btcData.reduce((sum, data) => sum + data.price, 0) / btcData.length;
-            const expectedSmaScaled = ethers.parseUnits(expectedSma.toString(), 8);
+            const expectedSmaScaled = ethers.parseUnits(expectedSma.toFixed(8), 8);
             
             // Allow for small rounding differences
             const difference = sma - expectedSmaScaled;

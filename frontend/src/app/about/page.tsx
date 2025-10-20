@@ -175,7 +175,7 @@ export default function About() {
 
         <Divider />
 
-        <Box sx={{ textAlign: 'center', py: 2 }}>
+        <Box sx={{ textAlign: 'center', pt: 2 }}>
           <Typography variant="body2" color="text.secondary">
             Power Wallet is currently in development and not yet live. <br />
             You can get a preview of the functionality by connecting to the Base Sepolia testnet. <br />

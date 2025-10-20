@@ -7,7 +7,7 @@ export interface ChainAddresses {
   
   // Tokens
   usdc: string;
-  cbBTC?: string;  // Not available on all chains
+  cbBTC: string;
   wbtc?: string;
   weth: string;
   cbETH?: string;  // Not available on all chains
@@ -81,7 +81,7 @@ export const addresses: Record<string, ChainAddresses> = {
     
     walletFactory: "",
     strategyRegistry: "",
-    technicalIndicators: "",
+    technicalIndicators: "0xE0087A5EcAaF884894946191eb9d5FD0841D95Ec",
     automator: "",
 
     strategies: {}

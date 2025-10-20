@@ -1,15 +1,10 @@
 import { ethers, upgrades, network, run } from "hardhat";
-
-// Proxy addresses for each network
-const PROXY_ADDRESSES: { [key: string]: string } = {
-  "base": "",      // TODO: Add Base mainnet proxy address after deployment
-  "base-sepolia": "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5",
-  "sepolia": ""    // TODO: Add Sepolia proxy address after deployment
-};
+import { addresses } from "../../config/addresses";
 
 async function main() {
   const networkName = network.name;
-  const proxyAddress = PROXY_ADDRESSES[networkName];
+  const cfg = (addresses as any)[networkName];
+  const proxyAddress = cfg?.technicalIndicators;
 
   if (!proxyAddress) {
     throw new Error(`No proxy address configured for network ${networkName}`);

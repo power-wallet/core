@@ -37,7 +37,7 @@ async function main() {
     throw new Error(`No addresses configured for network ${networkName}`);
   }
 
-    console.log(`Deploying TechnicalIndicators to ${networkName}...`);
+  console.log(`Deploying TechnicalIndicators to ${networkName}...`);
 
   // Load historical price data (date/close) and compute last 200 aligned points
   console.log("Loading historical price data...");
@@ -45,7 +45,7 @@ async function main() {
   const ethCsv = loadCsvPrices('eth_daily.json');
   const { btcPrices: btcHistoricalPrices, ethPrices: ethHistoricalPrices, startTimestamp, lastDate } = intersectLast200(btcCsv, ethCsv);
 
-    // Setup initialization parameters
+  // Setup initialization parameters
   let tokens: string[];
   let priceFeeds: string[];
 
@@ -76,12 +76,17 @@ async function main() {
   console.log("- End Date:", lastDate);
   console.log("- Historical Data Points:", btcHistoricalPrices.length);
   console.log("- First BTC Price:", ethers.formatUnits(btcHistoricalPrices[0], 8));
+  console.log("- Last BTC Price:", ethers.formatUnits(btcHistoricalPrices[btcHistoricalPrices.length - 1], 8));
   console.log("- First ETH Price:", ethers.formatUnits(ethHistoricalPrices[0], 8));
+  console.log("- Last ETH Price:", ethers.formatUnits(ethHistoricalPrices[ethHistoricalPrices.length - 1], 8));
 
-    // Get contract factory
-    const TechnicalIndicators = await ethers.getContractFactory("TechnicalIndicators");
+  // process.exit(0); // temporary
 
-    // Deploy proxy
+
+  // Get contract factory
+  const TechnicalIndicators = await ethers.getContractFactory("TechnicalIndicators");
+
+  // Deploy proxy
   const proxy = await upgrades.deployProxy(
     TechnicalIndicators,
     [tokens, priceFeeds, historicalPrices, startTimes],
@@ -115,9 +120,9 @@ async function main() {
     if (network.name !== "hardhat" && network.name !== "localhost") {
         console.log("\nWaiting for 5 block confirmations before verification...");
         await proxy.deploymentTransaction()?.wait(5);
-
         const implAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
-        
+
+        console.log("Implementation address:", implAddress);
         console.log("Verifying implementation contract...");
         try {
             await run("verify:verify", {

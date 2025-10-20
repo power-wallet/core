@@ -1,5 +1,6 @@
 import { ethers, network } from "hardhat";
 import * as dotenv from "dotenv";
+import { addresses } from "../config/addresses";
 
 dotenv.config();
 
@@ -15,8 +16,12 @@ async function main() {
     // CONFIGURATION - UPDATE THESE VALUES
     // ============================================
     
-    // Proxy address of the deployed TechnicalIndicators contract
-    const PROXY_ADDRESS = "0x7A0F3B371A2563627EfE1967E7645812909Eb6c5";
+    // Resolve contract address from config
+    const networkName = network.name;
+    const cfg = (addresses as any)[networkName];
+    if (!cfg || !cfg.technicalIndicators) {
+        throw new Error(`No technicalIndicators address configured for network ${networkName}`);
+    }
     
     // Token address to backfill prices for
     // const TOKEN_ADDRESS = "0xcbB7C0006F23900c38EB856149F799620fcb8A4a"; // cbBTC
@@ -52,7 +57,7 @@ async function main() {
     console.log(`Backfilling Daily Prices`);
     console.log(`========================================`);
     console.log(`Network: ${network.name}`);
-    console.log(`Contract: ${PROXY_ADDRESS}`);
+    console.log(`Contract: ${cfg.technicalIndicators}`);
     console.log(`Token: ${TOKEN_ADDRESS}`);
     console.log(`Data Points: ${DATES.length}`);
     console.log(`========================================\n`);
@@ -68,7 +73,7 @@ async function main() {
     console.log(`Account balance: ${ethers.formatEther(balance)} ETH\n`);
     
     // Get contract instance
-    const indicators = await ethers.getContractAt("TechnicalIndicators", PROXY_ADDRESS);
+    const indicators = await ethers.getContractAt("TechnicalIndicators", cfg.technicalIndicators);
     
     // Verify deployer is owner
     const owner = await indicators.owner();
