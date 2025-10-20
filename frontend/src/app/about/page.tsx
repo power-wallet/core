@@ -99,20 +99,20 @@ export default function About() {
                   Select from a growing library of automated Bitcoin accumulation strategies, each designed 
                   to optimize returns and manage risk.
                   Examples include:
-                  <ul>
-                    <li>Pure: The OG accumulator, buys with a fixed amount of USDC at a fixed cadence, no matter what.</li>
+                  <Box component="ul" sx={{ listStyleType: 'disc', listStylePosition: 'outside', pl: 3, mt: 2, '& li': { display: 'list-item' } }}>
+                    <li><strong>Pure</strong> - The OG accumulator. Buy a fixed amount on a fixed cadence. Best for long‑term believers who are price insensitive and prefer simplicity.</li>
                     <li>
-                      Smart: Optimized BTC accumulation, guided by the &nbsp;
+                      <strong>Power</strong> - Optimized BTC accumulation. Scale buys below below &nbsp;
                       <Box component="a" 
                         href="https://charts.bitbo.io/long-term-power-law/" target="_blank" 
                         rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>
                           Bitcoin Power Law
                       </Box>
-                      &nbsp; price model.
+                      &nbsp; model price and trim above. Ideal for mean‑reversion believers seeking efficiency.
                     </li>
-                    <li>Power: Adaptive DCA that buys the dip on high volatility, with optional threshold rebalancing.</li>
-                    <li>Trend: All‑in BTC when the trend is up, otherwise sit in USDC and DCA on a schedule.</li>
-                  </ul>
+                    <li><strong>Smart</strong> - Adaptive DCA that adjusts buys and sells based on volatility and drawdown, with optional rebalancing to a target BTC weight.</li>
+                    <li><strong>Trend</strong> - All‑in BTC in confirmed uptrends, gentle DCA in downtrends, boosted buys when well below trend.</li>
+                  </Box>
                 </Typography>
               </Box>
               

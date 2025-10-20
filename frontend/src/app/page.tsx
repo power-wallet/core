@@ -101,7 +101,7 @@ export default function Home() {
               >
               Bitcoin accumulation on autopilot
             </Typography>
-              <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0 }}>
+              <Box component="ul" sx={{ opacity: 0.9, mb: 6, pl: 3, m: 0, listStyleType: 'disc', listStylePosition: 'outside', '& li': { display: 'list-item' } }}>
                 <li>
                   <Typography variant="body1"><strong>Power up</strong> your Bitcoin investments with proven DCA strategies automated on-chain.</Typography>
                 </li>
