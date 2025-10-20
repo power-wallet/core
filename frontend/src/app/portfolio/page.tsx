@@ -6,6 +6,7 @@ import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlin
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
 import { writeWithFees } from '@/lib/tx';
@@ -304,7 +305,7 @@ export default function PortfolioPage() {
             <br />
             Please switch to Base Sepolia Testnet.
           </Typography>
-          <Button variant="contained" onClick={async () => {
+          <Button variant="contained" startIcon={<SwapHorizIcon fontSize="small" />} onClick={async () => {
             await ensureOnPrimaryChain(chainId, (args: any) => switchChainAsync(args as any));
           }}>
             Switch to Base Sepolia

@@ -11,6 +11,8 @@
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
+    "@coinbase/cdp-sdk": "latest",
+    "jose": "^5.9.6",
     "@coinbase/onchainkit": "^1.1.1",
     "@coinbase/wallet-sdk": "^4.2.3",
     "@emotion/react": "^11.14.0",

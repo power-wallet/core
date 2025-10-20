@@ -54,13 +54,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <DialogTitle>Switch network?</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            Power Wallet supports <b>Base</b> (mainnet) for fiat onramp and <b>Base Sepolia</b> for testnet demo. Choose a network to switch to.
+            Power Wallet supports <b>Base Sepolia</b> for testnet demo and <b>Base</b> (mainnet) for fiat onramp.
+            Choose a network to switch to.
           </Typography>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ pb: 2}}>
           <Button onClick={() => setShowNetworkPrompt(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSwitchToBase}>Switch to Base Mainnet</Button>
-          <Button variant="outlined" onClick={handleSwitchToSepolia}>Switch to Base Sepolia</Button>
+          <Button variant="outlined" onClick={handleSwitchToBase}>Switch to Base Mainnet</Button>
+          <Button variant="contained" onClick={handleSwitchToSepolia}>Switch to Base Sepolia</Button>
         </DialogActions>
       </Dialog>
     );

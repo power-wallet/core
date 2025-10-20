@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === 'production';
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',  // Enable static export
+  ...(isProd ? { output: 'export' } : {}),
   outputFileTracingRoot: __dirname,
   // Disable image optimization for static export
   images: {

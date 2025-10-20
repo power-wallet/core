@@ -20,7 +20,6 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import LaunchIcon from '@mui/icons-material/Launch';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import AddIcon from '@mui/icons-material/Add';
 import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain, useBalance } from 'wagmi';
@@ -217,8 +216,28 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                     size="small"
                                     onClick={async () => {
                                       try {
-                                        const mod = await import('@coinbase/onchainkit/fund');
-                                        const url = mod.getCoinbaseSmartWalletFundUrl();
+                                        const fundMod = await import('@coinbase/onchainkit/fund');
+                                        // Create server-side v2 session to get Hosted UI onrampUrl (deep-links to Buy USDC)
+                                        const resp = await fetch('/.netlify/functions/create-onramp-session', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ address, fiatCurrency: (Intl.NumberFormat().resolvedOptions().currency || '').toUpperCase() }),
+                                        });
+                                        const json = resp.ok ? await resp.json() : {} as any;
+                                        let url = (json as any)?.onrampUrl as string | undefined;
+                                        if (!url) {
+                                          // Fallback to token flow if function is older
+                                          const token = (json as any)?.sessionToken as string | undefined;
+                                          url = token ? fundMod.getOnrampBuyUrl({ sessionToken: token, defaultAsset: 'USDC', defaultNetwork: 'base', originComponentName: 'PowerWallet' }) : undefined;
+                                        }
+                                        if (!url) {
+                                          url = fundMod.getCoinbaseSmartWalletFundUrl();
+                                        }
+                                        const unsubscribe = fundMod.setupOnrampEventListeners({
+                                          onSuccess: () => { setReloadNonce((n) => n + 1); },
+                                          onExit: () => {},
+                                          onEvent: () => {},
+                                        });
                                         const w = 480, h = 720;
                                         const dualScreenLeft = window.screenLeft ?? (window as any).screenX ?? 0;
                                         const dualScreenTop = window.screenTop ?? (window as any).screenY ?? 0;
@@ -235,6 +254,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                           const interval = window.setInterval(() => {
                                             if (popup.closed) {
                                               window.clearInterval(interval);
+                                              try { unsubscribe?.(); } catch {}
                                               setReloadNonce((n) => n + 1);
                                             }
                                           }, 750);
