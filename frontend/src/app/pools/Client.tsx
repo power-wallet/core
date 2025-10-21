@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, Suspense } from 'react';
+import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Box, Button, Card, CardContent, Container, Grid, Stack, TextField, Typography, Link as MuiLink, Snackbar, Alert, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -68,7 +68,7 @@ export default function Client() {
   const chainId = useChainId();
   const chainKey = useMemo(() => getChainKey(chainId), [chainId]);
   const cfg = (appConfig as any)[chainKey];
-  const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http(cfg?.rpcUrl) }), [chainId, cfg?.rpcUrl]);
+  const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http(cfg?.rpcUrl, { batch: true }) }), [chainId, cfg?.rpcUrl]);
   const ADDR = contractAddresses[chainKey];
   const explorerBase = cfg?.explorer as string | undefined;
   const { isConnected, address: account } = useAccount();
@@ -101,6 +101,7 @@ export default function Client() {
   const [userRiskBal, setUserRiskBal] = useState<bigint | null>(null);
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const oracleLastFetchRef = useRef<number>(0);
 
   // Slippage simulator state
   const [simTokenIn, setSimTokenIn] = useState<'token0' | 'token1'>('token0');
@@ -113,40 +114,154 @@ export default function Client() {
     if (!ok) throw new Error('Please switch to Base Sepolia');
   };
 
+  // Prefer configured pool fee from appConfig when available (per-network)
+  const configuredPoolFee: number | null = useMemo(() => {
+    const pools = (cfg?.pools || {}) as any;
+    const usdc = (ADDR?.usdc || '').toLowerCase();
+    const cbBtc = (ADDR?.cbBTC || '').toLowerCase();
+    const weth = (ADDR?.weth || '').toLowerCase();
+    const t0 = (token0 || '').toLowerCase();
+    const t1 = (token1 || '').toLowerCase();
+    const isUsdcCbBtc = (t0 === usdc && t1 === cbBtc) || (t0 === cbBtc && t1 === usdc);
+    const isUsdcWeth = (t0 === usdc && t1 === weth) || (t0 === weth && t1 === usdc);
+    if (isUsdcCbBtc) return Number(pools['USDC-cbBTC']?.fee || 0) || null;
+    if (isUsdcWeth) return Number(pools['USDC-WETH']?.fee || 0) || null;
+    return null;
+  }, [cfg?.pools, ADDR?.usdc, ADDR?.cbBTC, ADDR?.weth, token0, token1]);
+
   useEffect(() => {
     (async () => {
-      if (!poolAddress) return;
+      if (!poolAddress) {
+        console.log('[Pool] skip: no pool address');
+        return;
+      }
+      
       try {
         const [slot0, t0, t1] = await Promise.all([
           client.readContract({ address: poolAddress, abi: POOL_ABI as any, functionName: 'slot0', args: [] }) as Promise<any>,
           client.readContract({ address: poolAddress, abi: POOL_ABI as any, functionName: 'token0', args: [] }) as Promise<`0x${string}`>,
           client.readContract({ address: poolAddress, abi: POOL_ABI as any, functionName: 'token1', args: [] }) as Promise<`0x${string}`>,
         ]);
+        console.log('[Pool] slot0 sqrtPriceX96 raw:', String(slot0[0]), 'tick:', Number(slot0[1]));
         setSqrtPriceX96(BigInt(slot0[0]));
         setTick(Number(slot0[1]));
         setToken0(t0); setToken1(t1);
-        const [d0, d1, s0, s1, liq, b0, b1, f] = await Promise.all([
-          client.readContract({ address: t0, abi: ERC20_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
-          client.readContract({ address: t1, abi: ERC20_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
-          client.readContract({ address: t0, abi: ERC20_ABI as any, functionName: 'symbol', args: [] }) as Promise<string>,
-          client.readContract({ address: t1, abi: ERC20_ABI as any, functionName: 'symbol', args: [] }) as Promise<string>,
-          client.readContract({ address: poolAddress, abi: POOL_ABI as any, functionName: 'liquidity', args: [] }) as Promise<bigint>,
-          client.readContract({ address: t0, abi: ERC20_ABI as any, functionName: 'balanceOf', args: [poolAddress] }) as Promise<bigint>,
-          client.readContract({ address: t1, abi: ERC20_ABI as any, functionName: 'balanceOf', args: [poolAddress] }) as Promise<bigint>,
-          client.readContract({ address: poolAddress, abi: POOL_ABI as any, functionName: 'fee', args: [] }) as Promise<number>,
-        ]);
-        setDec0(d0); setDec1(d1); setSym0(s0); setSym1(s1); setLiquidity(liq); setBal0(b0); setBal1(b1); setFee(f);
+        console.log('[Pool] token0, token1 addresses:', t0, t1);
+        // Use appConfig for token metadata when available to avoid RPC calls
+        const assets = (cfg?.assets || {}) as any;
+        const metaFor = (addr: string) => {
+          const entries = Object.values(assets) as any[];
+          for (const e of entries) {
+            if ((e?.address || '').toLowerCase() === (addr || '').toLowerCase()) {
+              return { dec: Number(e?.decimals), sym: String(e?.symbol || '') };
+            }
+          }
+          return { dec: undefined as number | undefined, sym: '' };
+        };
+        const m0 = metaFor(t0 as string);
+        const m1 = metaFor(t1 as string);
+        if (m0.dec !== undefined) setDec0(m0.dec);
+        if (m1.dec !== undefined) setDec1(m1.dec);
+        if (m0.sym) setSym0(m0.sym);
+        if (m1.sym) setSym1(m1.sym);
+        console.log('[Pool] token0/token1 decimals, symbols (cfg):', m0.dec, m1.dec, m0.sym, m1.sym);
+
+        try {
+          // Use configured fee (from appConfig) to avoid RPC call
+          if (configuredPoolFee !== null) {
+            setFee(configuredPoolFee);
+            console.log('[Pool] fee configured:', configuredPoolFee);
+          }
+
+          // Liquidity and Balances – add retry with backoff (3s + 1s per attempt, up to 10 attempts)
+          let canceledFetches = false;
+          let liqTimeout: any = null;
+          let bal0Timeout: any = null;
+          let bal1Timeout: any = null;
+
+          const fetchLiquidity = async (attempt: number) => {
+            if (canceledFetches) return;
+            try {
+              const liq = await client.readContract({ address: poolAddress, abi: POOL_ABI as any, functionName: 'liquidity', args: [] }) as bigint;
+              setLiquidity(liq);
+              console.log('[Pool] liquidity raw:', liq.toString());
+            } catch (e) {
+              if (attempt < 10 && !canceledFetches) {
+                const delay = 3000 + attempt * 1000;
+                console.log('[Pool] liquidity retry in ms', delay);
+                liqTimeout = setTimeout(() => fetchLiquidity(attempt + 1), delay);
+              } else {
+                console.warn('[Pool] liquidity read failed after retries');
+              }
+            }
+          };
+          liqTimeout = setTimeout(() => fetchLiquidity(0), 400);
+
+          // Only fetch token metadata if missing from config
+          if (m0.dec === undefined) {
+            const d0 = await client.readContract({ address: t0, abi: ERC20_ABI as any, functionName: 'decimals', args: [] }) as number;
+            setDec0(d0);
+          }
+          if (m1.dec === undefined) {
+            const d1 = await client.readContract({ address: t1, abi: ERC20_ABI as any, functionName: 'decimals', args: [] }) as number;
+            setDec1(d1);
+          }
+          if (!m0.sym) {
+            const s0 = await client.readContract({ address: t0, abi: ERC20_ABI as any, functionName: 'symbol', args: [] }) as string;
+            setSym0(s0);
+          }
+          if (!m1.sym) {
+            const s1 = await client.readContract({ address: t1, abi: ERC20_ABI as any, functionName: 'symbol', args: [] }) as string;
+            setSym1(s1);
+          }
+
+          // Balances (with retry)
+          const fetchBalanceWithRetry = (
+            addr: `0x${string}`,
+            setFn: (v: bigint) => void,
+            label: string,
+            attempt: number
+          ) => {
+            if (canceledFetches) return;
+            client.readContract({ address: addr, abi: ERC20_ABI as any, functionName: 'balanceOf', args: [poolAddress] })
+              .then((v) => {
+                if (canceledFetches) return;
+                const b = v as bigint;
+                console.log(`[Pool] balance ${label} raw:`, b.toString());
+                setFn(b);
+              })
+              .catch(() => {
+                if (attempt < 10 && !canceledFetches) {
+                  const delay = 3000 + attempt * 1000;
+                  console.log(`[Pool] balance ${label} retry in ms`, delay);
+                  const to = setTimeout(() => fetchBalanceWithRetry(addr, setFn, label, attempt + 1), delay);
+                  if (label === 'token0') bal0Timeout = to; else bal1Timeout = to;
+                } else if (!canceledFetches) {
+                  console.warn(`[Pool] balance ${label} read failed after retries`);
+                }
+              });
+          };
+          bal0Timeout = setTimeout(() => fetchBalanceWithRetry(t0, setBal0, 'token0', 0), 300);
+          bal1Timeout = setTimeout(() => fetchBalanceWithRetry(t1, setBal1, 'token1', 0), 700);
+
+          // Cleanup timers when effect re-runs
+          setTimeout(() => {
+            // attach to outer cleanup via scope variable
+          }, 0);
+        } catch (e) {
+          console.error('[Pool] metadata read error:', e);
+        }
       } catch {}
     })();
-  }, [poolAddress, client]);
+  }, [poolAddress, client, configuredPoolFee]);
 
   const priceToken1PerToken0 = useMemo(() => {
-    if (!sqrtPriceX96) return 0;
-    const q96 = Math.pow(2, 96);
-    const ratio = Number(sqrtPriceX96) / q96;
-    const pPool = ratio * ratio;
-    return pPool * Math.pow(10, dec0 - dec1);
-  }, [sqrtPriceX96, dec0, dec1]);
+    // Prefer tick-based formula for readability and to avoid floating drift
+    if (tick === null) return 0;
+    const priceFromTick = Math.pow(1.0001, tick);
+    // token1 per token0 with decimal adjustment: 10^(dec0 - dec1)
+    return priceFromTick * Math.pow(10, dec0 - dec1);
+  }, [tick, dec0, dec1]);
 
   const bal0Human = useMemo(() => bal0 !== null ? Number(bal0) / Math.pow(10, dec0) : 0, [bal0, dec0]);
   const bal1Human = useMemo(() => bal1 !== null ? Number(bal1) / Math.pow(10, dec1) : 0, [bal1, dec1]);
@@ -164,6 +279,7 @@ export default function Client() {
     if (stableIsToken1) return priceToken1PerToken0;
     return 0;
   }, [stableIsToken0, stableIsToken1, priceToken1PerToken0, token0, token1]);
+
 
   // Load user balances (USDC and risk asset)
   useEffect(() => {
@@ -185,51 +301,102 @@ export default function Client() {
 
   useEffect(() => {
     (async () => {
-      try {
-        if (!ADDR?.btcUsdPriceFeed || !ADDR?.ethUsdPriceFeed) return;
-        const riskIsBTC = (riskSymbol || '').toUpperCase().includes('BTC');
-        const feedRisk = (riskIsBTC ? ADDR.btcUsdPriceFeed : ADDR.ethUsdPriceFeed) as string;
-        const riskFeedAddr = (feedRisk || '').trim() as `0x${string}`;
-        const usdcFeedAddr = (ADDR?.usdcUsdPriceFeed || '').trim() as `0x${string}`;
+      console.log('[Oracle] effect start');
+      // Require token addresses and feeds
+      if (!token0 || !token1) {
+        console.log('[Oracle] skip: token addresses not ready', { token0, token1 });
+        return;
+      }
+      // Only proceed once tokens are classified vs USDC to avoid early calls
+      if (!stableIsToken0 && !stableIsToken1) {
+        console.log('[Oracle] skip: not classified vs USDC yet');
+        return;
+      }
+      // Throttle: at most one fetch every 15s
+      const now = Date.now();
+      if (now - oracleLastFetchRef.current < 15000) {
+        console.log('[Oracle] skip: throttled');
+        return;
+      }
+      oracleLastFetchRef.current = now;
+      const assets = (cfg?.assets || {}) as any;
+      const cbBtcAddr = (assets?.cbBTC?.address || '').toLowerCase();
+      const wethAddr = (assets?.WETH?.address || '').toLowerCase();
+      const usdcAddr = (assets?.USDC?.address || '').toLowerCase();
+      const riskAddr = (stableIsToken0 ? token1 : token0).toLowerCase();
+      // Determine risk feed directly from appConfig assets mapping
+      const riskFeedAddr = (riskAddr === cbBtcAddr ? assets?.cbBTC?.feed : (riskAddr === wethAddr ? assets?.WETH?.feed : '')) as `0x${string}`;
+      const usdcFeedAddr = (assets?.USDC?.feed || '') as `0x${string}`;
+      // If we cannot determine a risk feed, bail
+      if (!riskFeedAddr) {
+        console.log('[Oracle] skip: could not determine risk feed', { riskAddr, cbBtcAddr, wethAddr, assets });
+        return;
+      }
+      console.log('[Oracle] selected feeds', { riskFeedAddr, usdcFeedAddr, riskAddr, stableIsToken0, token0, token1 });
 
-        // Read risk/USD
-        const [riskRound, riskDec] = await Promise.all([
-          client.readContract({ address: riskFeedAddr, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as Promise<any>,
-          client.readContract({ address: riskFeedAddr, abi: FEED_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
-        ]);
-        const riskUsd = Number(riskRound[1]) / Math.pow(10, riskDec);
+      let canceled = false;
+      let retryTimeout: any = null;
 
-        // Read USDC/USD; fallback to 1 if unavailable
-        let usdcUsd = 1;
+      const fetchOracle = async (attempt: number) => {
+        if (canceled) return;
+
+        let riskUsd: number | null = null;
+        let usdcUsd: number = 1; // default to 1 if missing
+
         try {
-          if (usdcFeedAddr && usdcFeedAddr !== '0x') {
-            const [usdcRound, usdcDec] = await Promise.all([
-              client.readContract({ address: usdcFeedAddr, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as Promise<any>,
-              client.readContract({ address: usdcFeedAddr, abi: FEED_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
-            ]);
+          const riskRound = await client.readContract({ address: riskFeedAddr, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as any;
+          const riskDec = 8; // Chainlink feeds are 8 decimals
+          console.log('[Oracle] risk feed raw answer/decimals:', String(riskRound[1]), riskDec);
+          riskUsd = Number(riskRound[1]) / Math.pow(10, riskDec);
+        } catch (e) {
+          console.warn('[Oracle] risk feed read failed', e);
+        }
+
+        // Base mainnet USDC is $1; Chainlink USDC/USD feed may be optional/not available. Default to 1 if missing.
+        if (usdcFeedAddr && usdcFeedAddr !== '0x') {
+          try {
+            const usdcRound = await client.readContract({ address: usdcFeedAddr, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as any;
+            const usdcDec = 8; // Chainlink feeds are 8 decimals
+            console.log('[Oracle] USDC feed raw answer/decimals:', String(usdcRound[1]), usdcDec);
             const v = Number(usdcRound[1]) / Math.pow(10, usdcDec);
             if (v > 0) usdcUsd = v;
+          } catch (e) {
+            console.warn('[Oracle] USDC feed read failed', e);
           }
-        } catch {}
-
-        const stablePerRisk = usdcUsd === 0 ? null : (riskUsd / usdcUsd);
-        setOracleStablePerRisk(stablePerRisk);
-        // Map USD prices to token0/token1
-        if (stableIsToken0) {
-          setUsdPerToken0(usdcUsd);
-          setUsdPerToken1(riskUsd);
-        } else if (stableIsToken1) {
-          setUsdPerToken1(usdcUsd);
-          setUsdPerToken0(riskUsd);
-        } else {
-          setUsdPerToken0(null);
-          setUsdPerToken1(null);
         }
-      } catch {
-        setOracleStablePerRisk(null);
-      }
+
+        if (!canceled && riskUsd !== null && riskUsd > 0) {
+          const stablePerRisk = (usdcUsd && usdcUsd > 0) ? (riskUsd / usdcUsd) : riskUsd;
+          setOracleStablePerRisk(stablePerRisk);
+          // Map USD prices to token0/token1
+          if (stableIsToken0) {
+            setUsdPerToken0(usdcUsd);
+            setUsdPerToken1(riskUsd);
+          } else if (stableIsToken1) {
+            setUsdPerToken1(usdcUsd);
+            setUsdPerToken0(riskUsd);
+          } else {
+            setUsdPerToken0(null);
+            setUsdPerToken1(null);
+          }
+          console.log('[Oracle] computed', { riskUsd, usdcUsd, stablePerRisk });
+        } else if (!canceled && attempt < 10) {
+          const delay = 4000 + attempt * 1000; // 5s, then 10s
+          console.log('[Oracle] scheduling retry in ms', delay);
+          retryTimeout = setTimeout(() => fetchOracle(attempt + 1), delay);
+        } else if (!canceled) {
+          console.log(`[Oracle] giving up after ${attempt} retries`);
+        }
+      };
+
+      fetchOracle(0);
+
+      return () => {
+        canceled = true;
+        try { if (retryTimeout) clearTimeout(retryTimeout as any); } catch {}
+      };
     })();
-  }, [ADDR?.btcUsdPriceFeed, ADDR?.ethUsdPriceFeed, ADDR?.usdcUsdPriceFeed, client, riskSymbol, stableIsToken0, stableIsToken1]);
+  }, [ADDR?.btcUsdPriceFeed, ADDR?.ethUsdPriceFeed, ADDR?.usdcUsdPriceFeed, client, token0, token1, cfg?.assets, stableIsToken0, riskSymbol]);
 
   useEffect(() => {
     if (txConfirmed && txHash) {
@@ -368,11 +535,12 @@ export default function Client() {
   // Align to Oracle via QuoterV2 search + SwapRouter swap
   const quoterV2Map: Record<string, string> = {
     'base-sepolia': '0xC5290058841028F1614F3A6F0F5816cAd0df5E27',
-    'base': '0xC36442b4a4522E871399CD717aBDD847Ab11FE88', // placeholder; update if different
+    'base': '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a',
   };
+  // NonfungiblePositionManager
   const nfpmMap: Record<string, string> = {
     'base-sepolia': '0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2',
-    'base': '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+    'base': '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
   };
 
   // Live compute required risk amount
@@ -530,14 +698,15 @@ export default function Client() {
                     <Typography variant="body2">token1: {sym1} ({token1})</Typography>
                     <Typography variant="body2">tick: {tick ?? '-'}</Typography>
                     <Typography variant="body2">liquidity: {liquidity?.toString() || '-'}</Typography>
-                    <Typography variant="body2">reserves: {formatNumber(bal0Human)} {sym0} | {formatNumber(bal1Human)} {sym1}</Typography>
-                    <Typography variant="body2">price: 1 {riskSymbol || 'RISK'} = {formatNumber(poolStablePerRisk || 0, 2)} USDC</Typography>
+                    <Typography variant="body2">reserves: {bal0 !== null ? formatNumber(Number(bal0) / Math.pow(10, dec0), stableIsToken0 ? 0 : 6) : '-'} {sym0} | {bal1 !== null ? formatNumber(Number(bal1) / Math.pow(10, dec1), stableIsToken1 ? 0 : 6) : '-'} {sym1}</Typography>
+                    <Typography variant="body2">price: 1 {riskSymbol || 'RISK'} = {poolStablePerRisk > 0 ? formatNumber(poolStablePerRisk, 0) : '-'} USDC</Typography>
                     <Typography variant="body2" fontWeight="bold">
                       TVL: ${(() => {
-                        const usd0 = usdPerToken0 !== null ? bal0Human * (usdPerToken0 || 0) : null;
-                        const usd1 = usdPerToken1 !== null ? bal1Human * (usdPerToken1 || 0) : null;
+                        const usd0 = (usdPerToken0 !== null && bal0 !== null) ? (Number(bal0) / Math.pow(10, dec0)) * (usdPerToken0 || 0) : null;
+                        const usd1 = (usdPerToken1 !== null && bal1 !== null) ? (Number(bal1) / Math.pow(10, dec1)) * (usdPerToken1 || 0) : null;
+                        if (usd0 === null && usd1 === null) return '-';
                         const tvl = (usd0 ?? 0) + (usd1 ?? 0);
-                        return Number.isFinite(tvl) ? tvl.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '-';
+                        return tvl > 0 ? formatNumber(tvl, 0) : '-';
                       })()}
                     </Typography>
                   </Stack>

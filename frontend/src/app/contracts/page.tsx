@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Container, Box, Typography, Card, CardContent, Stack, Link as MuiLink, Divider, useMediaQuery, Button, Tabs, Tab } from '@mui/material';
 import { useAccount, useChainId } from 'wagmi';
 import { createPublicClient, http } from 'viem';
@@ -8,34 +8,7 @@ import appConfig from '@/config/appConfig.json';
 import { getChainKey, getViemChain } from '@/config/networks';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 
-// Show contract info for Base Sepolia (84532)
-const chainKey = getChainKey(84532);
-const explorerBase = (appConfig as any)[chainKey].explorer as string;
-const BASESCAN = `${explorerBase}/address/`;
-
-// Addresses from unified config + contracts addresses
-const cfg = (appConfig as any)[chainKey];
-const addrChain = contractAddresses[chainKey];
-const ADDR = {
-  uniswapV3Factory: String(addrChain.uniswapV3Factory || ''),
-  uniswapV3Router: String(addrChain.uniswapV3Router || ''),
-  usdc: String(addrChain.usdc),
-  weth: String(addrChain.weth),
-  cbBTC: String(addrChain.cbBTC || ''),
-  btcUsdPriceFeed: String(addrChain.btcUsdPriceFeed),
-  ethUsdPriceFeed: String(addrChain.ethUsdPriceFeed),
-  walletFactory: String(addrChain.walletFactory || ''),
-  strategyRegistry: String(addrChain.strategyRegistry || ''),
-  technicalIndicators: String(addrChain.technicalIndicators || ''),
-    automator: String(addrChain.automator || ''),
-  faucet: String(addrChain.faucet || ''),
-  strategies: {
-    'simple-btc-dca-v1': String(addrChain.strategies['simple-btc-dca-v1'] || ''),
-    'power-btc-dca-v2': String(addrChain.strategies['power-btc-dca-v2'] || ''),
-    'smart-btc-dca-v2': String(addrChain.strategies['smart-btc-dca-v2'] || ''),
-    'trend-btc-dca-v1': String(addrChain.strategies['trend-btc-dca-v1'] || ''),
-  },
-} as const;
+// Constants will be computed inside component based on connection/network
 
 const FACTORY_ABI = [
   {
@@ -51,8 +24,7 @@ const FACTORY_ABI = [
   },
 ];
 
-const FEE_001 = cfg.pools['USDC-cbBTC'].fee as number;
-const BASE_SEPOLIA_RPC = cfg.rpcUrl as string;
+// Will derive network-specific constants inside the component
 
 type PoolInfo = {
   pool: string;
@@ -96,11 +68,44 @@ export default function SmartContractsPage() {
   const shortAddr = (a: string) => (a ? `${a.slice(0, 6)}...${a.slice(-4)}` : '');
   const { isConnected } = useAccount();
   const chainId = useChainId();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
   const isBaseMainnet = isConnected && chainId === 8453;
   const showTokens = !isConnected || chainId === 84532 || chainId === 8453;
+  const chainKey = isBaseMainnet ? 'base' : 'base-sepolia';
+  const cfg = (appConfig as any)[chainKey];
+  const addrChain = (contractAddresses as any)[chainKey];
+  const explorerBase = String(cfg?.explorer || '');
+  const BASESCAN = `${explorerBase}/address/`;
+  const BASE_RPC = String(cfg?.rpcUrl || '');
+  const FEE_001 = Number(((cfg?.pools || {})['USDC-cbBTC'] || {}).fee || 0);
+  const FEE_002 = Number(((cfg?.pools || {})['USDC-WETH'] || {}).fee || 0);
+
+  const viemChain = getViemChain(chainKey === 'base' ? 8453 : 84532);
+  const ADDR = {
+    uniswapV3Factory: String(addrChain?.uniswapV3Factory || ''),
+    uniswapV3Router: String(addrChain?.uniswapV3Router || ''),
+    usdc: String(addrChain?.usdc || ''),
+    weth: String(addrChain?.weth || ''),
+    cbBTC: String(addrChain?.cbBTC || ''),
+    btcUsdPriceFeed: String(addrChain?.btcUsdPriceFeed || ''),
+    ethUsdPriceFeed: String(addrChain?.ethUsdPriceFeed || ''),
+    walletFactory: String(addrChain?.walletFactory || ''),
+    strategyRegistry: String(addrChain?.strategyRegistry || ''),
+    technicalIndicators: String(addrChain?.technicalIndicators || ''),
+    automator: String(addrChain?.automator || ''),
+    faucet: String(addrChain?.faucet || ''),
+    strategies: {
+      'simple-btc-dca-v1': String(addrChain?.strategies?.['simple-btc-dca-v1'] || ''),
+      'power-btc-dca-v2': String(addrChain?.strategies?.['power-btc-dca-v2'] || ''),
+      'smart-btc-dca-v2': String(addrChain?.strategies?.['smart-btc-dca-v2'] || ''),
+      'trend-btc-dca-v1': String(addrChain?.strategies?.['trend-btc-dca-v1'] || ''),
+    },
+  } as const;
+  // BASESCAN already defined above
   const addTokenToWallet = async (key: 'cbBTC' | 'WETH' | 'USDC') => {
     try {
-      const assetCfg = (cfg.assets as any)[key];
+      const assetCfg = (cfg?.assets as any)?.[key];
       const address = (key === 'cbBTC')
         ? (ADDR as any).cbBTC
         : (ADDR as any)[key.toLowerCase()];
@@ -127,35 +132,41 @@ export default function SmartContractsPage() {
   const [tab, setTab] = useState(0);
 
   useEffect(() => {
+    if (!hydrated) return;
     let mounted = true;
-    const client = createPublicClient({ chain: getViemChain(84532), transport: http(BASE_SEPOLIA_RPC) });
+    if (!ADDR?.uniswapV3Factory || !ADDR?.usdc || !ADDR?.cbBTC || !FEE_001 || !FEE_002 || !BASE_RPC) return;
+    // Only resolve pools when Uniswap tab is visible
+    if (tab !== 2) return;
+    const client = createPublicClient({ chain: viemChain, transport: http(BASE_RPC, { batch: true }) });
     (async () => {
       try {
-        const pool1 = await client.readContract({
-          address: ADDR.uniswapV3Factory as `0x${string}`,
-          abi: FACTORY_ABI as any,
-          functionName: 'getPool',
-          args: [ADDR.cbBTC as `0x${string}`, ADDR.usdc as `0x${string}`, FEE_001],
-        });
-        const pool2 = await client.readContract({
-          address: ADDR.uniswapV3Factory as `0x${string}`,
-          abi: FACTORY_ABI as any,
-          functionName: 'getPool',
-          args: [ADDR.weth as `0x${string}`, ADDR.usdc as `0x${string}`, FEE_001],
-        });
+        // Uniswap V3 Factory expects token0 < token1 (sorted by address)
+        const sortPair = (a: string, b: string): [string, string] => (a.toLowerCase() < b.toLowerCase() ? [a, b] : [b, a]);
+        const [a1, b1] = sortPair(ADDR.cbBTC, ADDR.usdc);
+        const [a2, b2] = sortPair(ADDR.weth, ADDR.usdc);
+        const pool1 = await client.readContract({ address: ADDR.uniswapV3Factory as `0x${string}`, abi: FACTORY_ABI as any, functionName: 'getPool', args: [a1 as `0x${string}`, b1 as `0x${string}`, FEE_001] });
+        const pool2 = await client.readContract({ address: ADDR.uniswapV3Factory as `0x${string}`, abi: FACTORY_ABI as any, functionName: 'getPool', args: [a2 as `0x${string}`, b2 as `0x${string}`, FEE_002] });
         if (!mounted) return;
-        setCbBtcUsdcPool(String(pool1));
+        // Fallback to known pool on Base mainnet if factory resolution fails
+        const zero = '0x0000000000000000000000000000000000000000';
+        const knownBaseCbBtcPool = '0xfBB6Eed8e7aa03B138556eeDaF5D271A5E1e43ef';
+        const resolved1 = String(pool1);
+        setCbBtcUsdcPool(
+          resolved1 && resolved1 !== zero ? resolved1 : (chainKey === 'base' ? knownBaseCbBtcPool : '')
+        );
         setWethUsdcPool(String(pool2));
       } catch (_) {
         // ignore; will render empty if unavailable
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [hydrated, tab, chainKey, ADDR.uniswapV3Factory, ADDR.cbBTC, ADDR.usdc, ADDR.weth, FEE_001, FEE_002, viemChain, BASE_RPC]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    if (tab !== 2) return;
     if (!cbBtcUsdcPool && !wethUsdcPool) return;
-    const client = createPublicClient({ chain: getViemChain(84532), transport: http(BASE_SEPOLIA_RPC) });
+    const client = createPublicClient({ chain: viemChain, transport: http(BASE_RPC, { batch: true }) });
 
     const loadPool = async (poolAddr: string, label: 'cbBTC' | 'weth') => {
       if (!poolAddr || poolAddr === '0x0000000000000000000000000000000000000000') return null;
@@ -232,19 +243,24 @@ export default function SmartContractsPage() {
           const info = await loadPool(cbBtcUsdcPool, 'cbBTC');
           if (info) setCbBtcInfo(info);
         }
-        if (wethUsdcPool) {
-          const info2 = await loadPool(wethUsdcPool, 'weth');
-          if (info2) setWethInfo(info2);
-        }
+        // Defer WETH pool extra calls to reduce RPC load; uncomment if needed
+        // if (wethUsdcPool) {
+        //   const info2 = await loadPool(wethUsdcPool, 'weth');
+        //   if (info2) setWethInfo(info2);
+        // }
       } catch (_) {
         // ignore
       }
     })();
-  }, [cbBtcUsdcPool, wethUsdcPool]);
+  }, [hydrated, tab, cbBtcUsdcPool, wethUsdcPool, viemChain, BASE_RPC]);
 
+  const priceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
+    if (!hydrated) return;
     let mounted = true;
-    const client = createPublicClient({ chain: getViemChain(84532), transport: http(BASE_SEPOLIA_RPC) });
+    // Only poll price feeds when Chainlink tab is visible
+    if (tab !== 3) return;
+    const client = createPublicClient({ chain: viemChain, transport: http(BASE_RPC, { batch: true }) });
     const load = async () => {
       console.log('Loading price feeds...');
       try {
@@ -268,9 +284,10 @@ export default function SmartContractsPage() {
       }
     };
     load();
-    const id = setInterval(load, 30000);
-    return () => { mounted = false; clearInterval(id); };
-  }, []);
+    if (priceIntervalRef.current) clearInterval(priceIntervalRef.current);
+    priceIntervalRef.current = setInterval(load, 30000);
+    return () => { mounted = false; if (priceIntervalRef.current) clearInterval(priceIntervalRef.current); };
+  }, [hydrated, tab, ADDR.btcUsdPriceFeed, ADDR.ethUsdPriceFeed, viemChain, BASE_RPC]);
 
   const Ext = ({ href, children }: { href: string; children: React.ReactNode }) => (
     <MuiLink href={href} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{children}</MuiLink>
@@ -286,6 +303,16 @@ export default function SmartContractsPage() {
     </Card>
   );
 
+  if (!hydrated) {
+    return (
+      <Box sx={{ bgcolor: 'background.default', minHeight: '60vh', py: 4 }}>
+        <Container maxWidth="lg">
+          <Typography variant="h5">Loading contracts...</Typography>
+        </Container>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '60vh', py: 4 }}>
       <Container maxWidth="lg">
@@ -296,6 +323,7 @@ export default function SmartContractsPage() {
         <Box sx={{ mb: 2 }}>
           <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons allowScrollButtonsMobile>
             <Tab label="Core Contracts" />
+            <Tab label="Strategies" />
             <Tab label="Uniswap" />
             <Tab label="Chainlink" />
             <Tab label="Tokens" />
@@ -316,14 +344,26 @@ export default function SmartContractsPage() {
               address={ADDR.automator}
               blurb="Automation contract coordinating periodic upkeep for wallets and related strategies." />
 
-            <Section title="Faucet"
-              address={ADDR.faucet}
-              blurb="For Power Wallet users to claim testnet USDC on Base Sepolia." />
+            {!isBaseMainnet && (
+              <>
+                <Section title="Faucet"
+                  address={ADDR.faucet}
+                  blurb="For Power Wallet users to claim testnet USDC on Base Sepolia." />
 
-            <Section title="Pool Rebalancer (cbBTC/USDC)"
-              address={(cfg.pools as any)['USDC-cbBTC']?.rebalancer || ''}
-              blurb="Periodically rebalances the assets in the cbBTC/USDC pool, and aligns the pool exchange rate to the Chainlink BTC/USD oracle price." />
+                <Section title="Pool Rebalancer (cbBTC/USDC)"
+                  address={(cfg.pools as any)['USDC-cbBTC']?.rebalancer || ''}
+                  blurb="Periodically rebalances the assets in the cbBTC/USDC pool, and aligns the pool exchange rate to the Chainlink BTC/USD oracle price." />
+              </>
+            )}
 
+            <Section title="Technical Indicators"
+              address={ADDR.technicalIndicators}
+              blurb="Calculates and stores daily indicators (e.g. SMA, RSI) using Chainlink price feeds." />
+          </Stack>
+        )}
+
+        {tab === 1 && (
+          <Stack spacing={2}>
             <Section title="Pure BTC DCA"
               address={ADDR.strategies['simple-btc-dca-v1']}
               blurb="The OG accumulator: dollar‑cost average into BTC on a set cadence." />
@@ -339,14 +379,10 @@ export default function SmartContractsPage() {
             <Section title="Trend BTC DCA"
               address={ADDR.strategies['trend-btc-dca-v1']}
               blurb="A strategy that steadily accumulates below trend, and goes all‑in when the trend is up." />
-
-            <Section title="Technical Indicators"
-              address={ADDR.technicalIndicators}
-              blurb="Calculates and stores daily indicators (e.g. SMA, RSI) using Chainlink price feeds." />
           </Stack>
         )}
 
-        {tab === 1 && (
+        {tab === 2 && (
           <Stack spacing={2}>
             <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
               <CardContent sx={{ p: 3 }}>
@@ -397,7 +433,7 @@ export default function SmartContractsPage() {
           </Stack>
         )}
 
-        {tab === 2 && (
+        {tab === 3 && (
           <Stack spacing={2}>
             <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
               <CardContent sx={{ p: 3 }}>
@@ -444,7 +480,7 @@ export default function SmartContractsPage() {
           </Stack>
         )}
 
-        {tab === 3 && (
+        {tab === 4 && (
           <Stack spacing={2}>
             {showTokens ? (
               <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
