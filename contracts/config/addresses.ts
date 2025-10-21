@@ -79,11 +79,16 @@ export const addresses: Record<string, ChainAddresses> = {
     ethUsdPriceFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
     usdcUsdPriceFeed: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
     
-    walletFactory: "",
-    strategyRegistry: "",
+    walletFactory: "0xfB1b64e658Cd1A7DdcEF9Cf263dFd800fc708987",
+    strategyRegistry: "0xD643C9Df3B3606Af35054824E5788f6c1b8B58Dd",
     technicalIndicators: "0xE0087A5EcAaF884894946191eb9d5FD0841D95Ec",
     automator: "",
 
-    strategies: {}
+    strategies: {
+      'simple-btc-dca-v1': '0x9cD62343cF0daec9d2179f35D4630d61aD56ae09',
+      'power-btc-dca-v2': '0x77C5deDdcFDe2f165306e1b6d2F834D8F5d4c1f0',
+      'smart-btc-dca-v2': '0xC749e37Be623D848B19396a5185093c7808bC5A7',
+      'trend-btc-dca-v1': '0x962083E1164693186666646732B64A137be6Dd82'
+    }
   },
 }

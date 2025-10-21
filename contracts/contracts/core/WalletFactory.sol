@@ -10,6 +10,9 @@ import "./StrategyRegistry.sol";
 
 contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     event WalletCreated(address indexed user, address wallet, bytes32 indexed strategyId, address strategyImpl, address strategyInstance);
+    event WhitelistEnabled(bool enabled);
+    event WhitelistAdded(address indexed account);
+    event WhitelistRemoved(address indexed account);
     
     StrategyRegistry public registry;
 
@@ -23,8 +26,14 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     address[] private users;
     mapping(address => bool) public hasCreatedWallet;
 
+    // ---------------------------------------------
+    // Optional whitelist of allowed creators
+    bool public whitelistEnabled;
+    mapping(address => bool) public isWhitelisted;
+    address[] private whitelistMembers;
+
     // Storage gap for future variable additions without shifting layout
-    uint256[50] private __gap;
+    uint256[47] private __gap;
 
     function initialize(address initialOwner, StrategyRegistry _registry, address _swapRouter, address _uniswapV3Factory) external initializer {
         __Ownable_init(initialOwner);
@@ -50,6 +59,9 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         address[] calldata priceFeeds,
         uint24[] calldata poolFees
     ) external returns (address walletAddr) {
+        if (whitelistEnabled) {
+            require(isWhitelisted[msg.sender], "not whitelisted");
+        }
         address strategyImpl = registry.strategies(strategyId);
         require(strategyImpl != address(0), "strategy not found");
         require(riskAssets.length == priceFeeds.length, "len mismatch");
@@ -141,6 +153,43 @@ contract WalletFactory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function setUniswapV3Factory(address _factory) external onlyOwner {
         require(_factory != address(0), "zero");
         uniswapV3Factory = _factory;
+    }
+
+    // ---------------------------------------------
+    // Whitelist administration
+    function setWhitelistEnabled(bool enabled) external onlyOwner {
+        whitelistEnabled = enabled;
+        emit WhitelistEnabled(enabled);
+    }
+
+    function addToWhitelist(address account) external onlyOwner {
+        if (!isWhitelisted[account]) {
+            isWhitelisted[account] = true;
+            whitelistMembers.push(account);
+            emit WhitelistAdded(account);
+        }
+    }
+
+    function removeFromWhitelist(address account) external onlyOwner {
+        if (isWhitelisted[account]) {
+            isWhitelisted[account] = false;
+            // remove from array by swap and pop
+            uint256 n = whitelistMembers.length;
+            for (uint256 j = 0; j < n; j++) {
+                if (whitelistMembers[j] == account) {
+                    if (j != n - 1) {
+                        whitelistMembers[j] = whitelistMembers[n - 1];
+                    }
+                    whitelistMembers.pop();
+                    break;
+                }
+            }
+            emit WhitelistRemoved(account);
+        }
+    }
+
+    function getWhitelist() external view returns (address[] memory) {
+        return whitelistMembers;
     }
     
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
