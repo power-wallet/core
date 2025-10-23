@@ -489,26 +489,43 @@ export default function SmartContractsPage() {
                   <Typography variant="body2" color="text.secondary" paragraph>
                     {isBaseMainnet ? 'Core tokens used by Power Wallet on Base chain.' : 'Core tokens used by Power Wallet on Base Sepolia network.'}
                   </Typography>
-                  <Stack spacing={1}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        cbBTC: {ADDR.cbBTC ? (<MuiLink href={`${BASESCAN}${ADDR.cbBTC}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.cbBTC) : ADDR.cbBTC}</MuiLink>) : '—'}
+                  <Stack spacing={1} sx={{ maxWidth: 500 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2">cbBTC</Typography>
+                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                        {ADDR.cbBTC ? (
+                          <MuiLink href={`${BASESCAN}${ADDR.cbBTC}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>
+                            {isMobile ? shortAddr(ADDR.cbBTC) : ADDR.cbBTC}
+                          </MuiLink>
+                        ) : '—'}
                       </Typography>
                       {isConnected && ADDR.cbBTC ? (
                         <Button size="small" variant="outlined" onClick={() => addTokenToWallet('cbBTC')}>Add</Button>
                       ) : null}
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        WETH: {ADDR.weth ? (<MuiLink href={`${BASESCAN}${ADDR.weth}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.weth) : ADDR.weth}</MuiLink>) : '—'}
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2">WETH</Typography>
+                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                        {ADDR.weth ? (
+                          <MuiLink href={`${BASESCAN}${ADDR.weth}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>
+                            {isMobile ? shortAddr(ADDR.weth) : ADDR.weth}
+                          </MuiLink>
+                        ) : '—'}
                       </Typography>
                       {isConnected && ADDR.weth ? (
                         <Button size="small" variant="outlined" onClick={() => addTokenToWallet('WETH')}>Add</Button>
                       ) : null}
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        USDC: {ADDR.usdc ? (<MuiLink href={`${BASESCAN}${ADDR.usdc}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>{isMobile ? shortAddr(ADDR.usdc) : ADDR.usdc}</MuiLink>) : '—'}
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2">USDC</Typography>
+                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                        {ADDR.usdc ? (
+                          <MuiLink href={`${BASESCAN}${ADDR.usdc}`} target="_blank" rel="noopener noreferrer" sx={{ color: '#60A5FA' }}>
+                            {isMobile ? shortAddr(ADDR.usdc) : ADDR.usdc}
+                          </MuiLink>
+                        ) : '—'}
                       </Typography>
                       {isConnected && ADDR.usdc ? (
                         <Button size="small" variant="outlined" onClick={() => addTokenToWallet('USDC')}>Add</Button>

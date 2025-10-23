@@ -19,8 +19,8 @@ export default function Onboarding({ isBaseSepolia, address, connectorId, needsF
       <Stack spacing={3}>
         <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
         <Typography variant="body2" color="text.secondary">
-          Create your first Power Wallet: an on-chain vault that can hold USDC and invest it into BTC according to a strategy you choose.
-          Your connected account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means no one else can interact with them, and mess with your funds.
+          Create your first Power Wallet: an on-chain vault that can hold USDC and BTC rebalancing these assets according to a strategy you choose.
+          Your account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means only you can deposit and withdraw funds. 
         </Typography>
 
         {!needsFunding ? (
