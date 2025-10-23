@@ -252,7 +252,7 @@ export default function SmartContractsPage() {
         // ignore
       }
     })();
-  }, [hydrated, tab, cbBtcUsdcPool, wethUsdcPool, viemChain, BASE_RPC]);
+  }, [hydrated, tab, cbBtcUsdcPool, wethUsdcPool, viemChain, BASE_RPC, ADDR.usdc]);
 
   const priceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {

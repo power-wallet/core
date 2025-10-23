@@ -90,14 +90,33 @@ export default function Providers({ children }: { children: React.ReactNode }) {
               },
             }}
           >
-          {showNotice && (
-            <div style={{ width: '100%', position: 'relative', background: 'rgb(135, 56, 56)', color: '#FFFFFF', fontSize: 12, padding: '6px 32px 6px 12px', textAlign: 'center', borderBottom: '1px solid rgba(239, 68, 68, 0.25)' }}>
-              This project is in early development and available for demo on the Base Sepolia testnet.
-              <button aria-label="Dismiss" onClick={dismissNotice} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#FECACA', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>
-                ×
-              </button>
-            </div>
-          )}
+          {(() => {
+            function Banner() {
+              const cid = useChainId();
+              const isBase = cid === 8453;
+              if (!showNotice) return null;
+              return (
+                <div style={{
+                  width: '100%',
+                  position: 'relative',
+                  background: isBase ? '#0052FF' : 'rgb(135, 56, 56)',
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  padding: '6px 32px 6px 12px',
+                  textAlign: 'center',
+                  borderBottom: isBase ? '1px solid rgba(0, 82, 255, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)'
+                }}>
+                  {isBase
+                    ? 'This is an early preview on the Base mainnet. This project is in early development and has not been audited. Be extra careful!'
+                    : 'This project is in early development and available for demo on the Base Sepolia testnet.'}
+                  <button aria-label="Dismiss" onClick={dismissNotice} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#FECACA', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>
+                    ×
+                  </button>
+                </div>
+              );
+            }
+            return <Banner />;
+          })()}
           <Navbar />
           <NetworkGuard />
           {children}

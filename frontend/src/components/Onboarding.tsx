@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Container, Stack, Typography, Card, CardContent, Box, Button, Alert } from '@mui/material';
+import { Container, Stack, Typography, Card, CardContent, Box, Button, Alert, CircularProgress } from '@mui/material';
 import { useChainId, useReadContract, useSwitchChain } from 'wagmi';
 import { getChainKey } from '@/config/networks';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
@@ -44,19 +44,30 @@ export default function Onboarding({ isBaseSepolia, address, connectorId, needsF
   });
 
   const gatedOnBaseMainnet = chainKey === 'base' && whitelistEnabled === true && isWhitelisted === false;
+  const whitelistChecksNeeded = chainKey === 'base' && Boolean(factoryAddress);
+  const whitelistLoading = whitelistChecksNeeded && (whitelistEnabled === undefined || (whitelistEnabled === true && isWhitelisted === undefined));
 
   return (
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Stack spacing={3}>
         <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
-        {!gatedOnBaseMainnet && (
+        {!gatedOnBaseMainnet && !whitelistLoading && (
           <Typography variant="body2" color="text.secondary">
             Create your first Power Wallet: an on-chain vault that can hold USDC and BTC rebalancing these assets according to a strategy you choose.
             Your account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means only you can deposit and withdraw funds. 
           </Typography>
         )}
 
-        {gatedOnBaseMainnet ? (
+        {whitelistLoading ? (
+          <Card variant="outlined">
+            <CardContent>
+              <Stack spacing={2} alignItems="center">
+                <CircularProgress size={24} />
+                <Typography variant="body2" color="text.secondary">Checking access…</Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+        ) : gatedOnBaseMainnet ? (
           <Card variant="outlined">
             <CardContent>
               <Stack spacing={2}>

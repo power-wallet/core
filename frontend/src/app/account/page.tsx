@@ -24,6 +24,7 @@ import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useAccount, useChainId, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
+import Image from 'next/image';
 import appConfig from '@/config/appConfig.json';
 import { getChainKey } from '@/config/networks';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
@@ -202,7 +203,7 @@ export default function AccountPage() {
           <DialogContent>
             {address ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-                <img
+                <Image
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(address)}`}
                   alt="Wallet address QR"
                   width={180}

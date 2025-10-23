@@ -253,7 +253,7 @@ export default function Client() {
         }
       } catch {}
     })();
-  }, [poolAddress, client, configuredPoolFee]);
+  }, [poolAddress, client, configuredPoolFee, cfg?.assets]);
 
   const priceToken1PerToken0 = useMemo(() => {
     // Prefer tick-based formula for readability and to avoid floating drift
@@ -396,7 +396,7 @@ export default function Client() {
         try { if (retryTimeout) clearTimeout(retryTimeout as any); } catch {}
       };
     })();
-  }, [ADDR?.btcUsdPriceFeed, ADDR?.ethUsdPriceFeed, ADDR?.usdcUsdPriceFeed, client, token0, token1, cfg?.assets, stableIsToken0, riskSymbol]);
+  }, [ADDR?.btcUsdPriceFeed, ADDR?.ethUsdPriceFeed, ADDR?.usdcUsdPriceFeed, client, token0, token1, cfg?.assets, stableIsToken0, stableIsToken1, riskSymbol]);
 
   useEffect(() => {
     if (txConfirmed && txHash) {
