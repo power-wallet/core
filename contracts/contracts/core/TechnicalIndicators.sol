@@ -365,7 +365,7 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
      * @dev Will return false if gap detected to prevent corrupting price history
      * @param checkData Not used in this implementation
      * @return upkeepNeeded True if update needed and no gaps detected
-     * @return performData Encoded array of tracked tokens to update
+     * @return performData Unused; empty bytes to save gas (performUpkeep reads trackedTokens)
      */
     function checkUpkeep(bytes calldata checkData) 
         external 
@@ -376,6 +376,12 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         checkData; // Silence unused parameter warning
         
         uint256 today = block.timestamp - (block.timestamp % 1 days);
+        
+        // Only allow automation within first hour after midnight UTC
+        uint256 timeIntoDay = block.timestamp - today;
+        if (timeIntoDay >= 1 hours) {
+            return (false, hex"");
+        }
         uint256 yesterday = today - 1 days;
         uint256 dayBeforeYesterday = yesterday - 1 days;
         
@@ -412,8 +418,8 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
             break;
         }
         
-        // Return tracked tokens as performData
-        performData = abi.encode(trackedTokens);
+        // Return empty performData (performUpkeep uses trackedTokens directly)
+        performData = hex"";
     }
 
     /**
@@ -422,14 +428,14 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
      * @param performData Encoded array of tokens to update
      */
     function performUpkeep(bytes calldata performData) external override {
-        address[] memory tokens = abi.decode(performData, (address[]));
+        performData; // silence unused parameter warning
         
         // Validate that update is still needed
         uint256 today = block.timestamp - (block.timestamp % 1 days);
         bool updateNeeded = false;
         
-        for (uint256 i = 0; i < tokens.length; i++) {
-            TokenConfig storage config = tokenConfigs[tokens[i]];
+        for (uint256 i = 0; i < trackedTokens.length; i++) {
+            TokenConfig storage config = tokenConfigs[trackedTokens[i]];
             if (config.priceFeed != address(0) && config.lastUpdateTimestamp < today) {
                 updateNeeded = true;
                 break;
@@ -439,7 +445,7 @@ contract TechnicalIndicators is Initializable, OwnableUpgradeable, UUPSUpgradeab
         require(updateNeeded, "No update needed");
         
         // Perform the update - call internal update logic
-        _updatePrices(tokens, today);
+        _updatePrices(trackedTokens, today);
     }
     
     /**

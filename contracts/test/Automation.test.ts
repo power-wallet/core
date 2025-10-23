@@ -89,12 +89,13 @@ describe("Chainlink Automation & Backfill", function () {
             
             const [upkeepNeeded, performData] = await indicators.checkUpkeep("0x");
             expect(upkeepNeeded).to.be.true;
-            
-            // Decode performData
-            const decodedTokens = ethers.AbiCoder.defaultAbiCoder().decode(["address[]"], performData)[0];
-            expect(decodedTokens.length).to.equal(2);
-            expect(decodedTokens[0]).to.equal(await wbtc.getAddress());
-            expect(decodedTokens[1]).to.equal(await weth.getAddress());
+            // performData is intentionally empty; performUpkeep reads trackedTokens internally
+            expect(performData).to.equal("0x");
+            // Validate tracked tokens directly
+            const tracked = await indicators.getTrackedTokens();
+            expect(tracked.length).to.equal(2);
+            expect(tracked[0]).to.equal(await wbtc.getAddress());
+            expect(tracked[1]).to.equal(await weth.getAddress());
         });
 
         it("Should perform upkeep and update prices", async function () {

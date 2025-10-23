@@ -9,7 +9,31 @@ dotenv.config();
  * 
  * Usage:
  * npx hardhat run scripts/backfill-prices.ts --network base-sepolia
+ * npx hardhat run scripts/backfill-prices.ts --network base
  */
+
+////// SET PARAMETERS HERE //////
+    
+const tokenName = "weth"; // or cbBTC or weth
+
+// Array of dates in YYYY-MM-DD format
+const DATES = [
+    "2025-10-21",
+    "2025-10-22"
+    // Add more dates...
+];
+
+// Array of prices (will be scaled to 8 decimals)
+// These should be raw numbers like 65000.50 for $65,000.50
+
+// [1761004800,387802009965]
+// [1761091200,380566504300]]
+const PRICES = [
+    3878.02009965,
+    3805.66504300
+    // 3980.42
+    // Add more prices... (must match DATES length)
+];
 
 async function main() {
     // ============================================
@@ -22,24 +46,14 @@ async function main() {
     if (!cfg || !cfg.technicalIndicators) {
         throw new Error(`No technicalIndicators address configured for network ${networkName}`);
     }
-    
-    // Token address to backfill prices for
-    // const TOKEN_ADDRESS = "0xcbB7C0006F23900c38EB856149F799620fcb8A4a"; // cbBTC
-    const TOKEN_ADDRESS = "0x4200000000000000000000000000000000000006"; // WETH
-    
-    // Array of dates in YYYY-MM-DD format
-    const DATES = [
-        "2025-09-29",
-        // Add more dates...
-    ];
-    
-    // Array of prices (will be scaled to 8 decimals)
-    // These should be raw numbers like 65000.50 for $65,000.50
-    const PRICES = [
-        // 114365.07,
-        4217.25
-        // Add more prices... (must match DATES length)
-    ];
+  
+    const tokenAddress = (cfg as any)[tokenName];
+    if (!tokenAddress) {
+        const available = ["cbBTC", "weth"].filter(k => Boolean((cfg as any)[k])).join(", ");
+        throw new Error(`Token "${tokenName}" not found for network ${networkName}. Available: ${available || "none"}`);
+    }
+    const TOKEN_ADDRESS = tokenAddress as string;
+
     
     // ============================================
     // VALIDATION
@@ -58,7 +72,7 @@ async function main() {
     console.log(`========================================`);
     console.log(`Network: ${network.name}`);
     console.log(`Contract: ${cfg.technicalIndicators}`);
-    console.log(`Token: ${TOKEN_ADDRESS}`);
+    console.log(`Token: ${tokenName} (${TOKEN_ADDRESS})`);
     console.log(`Data Points: ${DATES.length}`);
     console.log(`========================================\n`);
     
