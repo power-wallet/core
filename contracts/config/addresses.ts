@@ -82,7 +82,7 @@ export const addresses: Record<string, ChainAddresses> = {
     walletFactory: "0xfB1b64e658Cd1A7DdcEF9Cf263dFd800fc708987",
     strategyRegistry: "0xD643C9Df3B3606Af35054824E5788f6c1b8B58Dd",
     technicalIndicators: "0xE0087A5EcAaF884894946191eb9d5FD0841D95Ec",
-    automator: "",
+    automator: "0x05b9079458D57F80e6638cF0ABaFd31BfBa0f586",
 
     strategies: {
       'simple-btc-dca-v1': '0x9cD62343cF0daec9d2179f35D4630d61aD56ae09',
