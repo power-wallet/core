@@ -96,15 +96,15 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
           </Grid>
         )}
 
-      {chainKey === 'base-sepolia' && (userUsdcBalance !== undefined) && (userUsdcBalance === 0n) ? (
-          <Alert severity="info" sx={{ mt: 3 }}>
-            You can claim testnet USDC from the{' '}
-            <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Circle Faucet</a>.
-          </Alert>
-        ) : null
-      }
+        {chainKey === 'base-sepolia' && (userUsdcBalance !== undefined) && (userUsdcBalance === 0n) ? (
+            <Alert severity="info" sx={{ mt: 3 }}>
+              You can claim testnet USDC from the{' '}
+              <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Circle Faucet</a>.
+            </Alert>
+          ) : null
+        }
 
-        <Stack direction="row" spacing={2} sx={{ pt:2,mt: 'auto', alignSelf: 'flex-end', justifyContent: 'flex-end' }}>
+        <Stack direction="row" spacing={2} sx={{ pt:2, pr: 2,  mt: 'auto', alignSelf: 'flex-end', justifyContent: 'flex-end' }}>
           <Button variant="outlined" size="small" onClick={onDeposit}>Deposit</Button>
           <Button variant="outlined" size="small" onClick={onWithdraw}>Withdraw</Button>
         </Stack>

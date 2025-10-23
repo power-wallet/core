@@ -74,7 +74,7 @@ export default function CreateWalletDialog({ open, onClose, onCreate, creating, 
         </Stack>
       </DialogContent>
       {isMobile ? null : (
-        <DialogActions>
+        <DialogActions sx={{ pb: 2, pr: 2 }}>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="contained" disabled={creating || isConfirming} onClick={onCreate}>{creating || isConfirming ? 'Creating…' : 'Create Power Wallet'}</Button>
         </DialogActions>

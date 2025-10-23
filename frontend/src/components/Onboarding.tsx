@@ -2,7 +2,11 @@
 
 import React from 'react';
 import { Container, Stack, Typography, Card, CardContent, Box, Button, Alert } from '@mui/material';
+import { useChainId, useReadContract, useSwitchChain } from 'wagmi';
+import { getChainKey } from '@/config/networks';
+import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded';
 import BaseSepoliaFaucets from './BaseSepoliaFaucets';
 
 type Props = {
@@ -14,16 +18,61 @@ type Props = {
 };
 
 export default function Onboarding({ isBaseSepolia, address, connectorId, needsFunding, onOpenCreate }: Props) {
+  const chainId = useChainId();
+  const chainKey = getChainKey(chainId);
+  const factoryAddress = ((contractAddresses as any)[chainKey] || {})?.walletFactory as `0x${string}` | undefined;
+  const { switchChain } = useSwitchChain();
+
+  const FACTORY_ABI = [
+    { type: 'function', stateMutability: 'view', name: 'whitelistEnabled', inputs: [], outputs: [{ type: 'bool' }] },
+    { type: 'function', stateMutability: 'view', name: 'isWhitelisted', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'bool' }] },
+  ] as const;
+
+  const { data: whitelistEnabled } = useReadContract({
+    address: factoryAddress,
+    abi: FACTORY_ABI,
+    functionName: 'whitelistEnabled',
+    query: { enabled: Boolean(factoryAddress && chainKey === 'base') },
+  });
+
+  const { data: isWhitelisted } = useReadContract({
+    address: factoryAddress,
+    abi: FACTORY_ABI,
+    functionName: 'isWhitelisted',
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(factoryAddress && address && whitelistEnabled === true && chainKey === 'base') },
+  });
+
+  const gatedOnBaseMainnet = chainKey === 'base' && whitelistEnabled === true && isWhitelisted === false;
+
   return (
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Stack spacing={3}>
         <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Create your first Power Wallet: an on-chain vault that can hold USDC and BTC rebalancing these assets according to a strategy you choose.
-          Your account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means only you can deposit and withdraw funds. 
-        </Typography>
+        {!gatedOnBaseMainnet && (
+          <Typography variant="body2" color="text.secondary">
+            Create your first Power Wallet: an on-chain vault that can hold USDC and BTC rebalancing these assets according to a strategy you choose.
+            Your account will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, which means only you can deposit and withdraw funds. 
+          </Typography>
+        )}
 
-        {!needsFunding ? (
+        {gatedOnBaseMainnet ? (
+          <Card variant="outlined">
+            <CardContent>
+              <Stack spacing={2}>
+                <Typography variant="subtitle1" fontWeight="bold">Early Access Only</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Power Wallet is still in development and not ready for prime use on the Base mainnet chain. <br />
+                  To request early access please contact the team via Telegram, or switch to the Base Sepolia testnet where you can experience a preview of the product we are building.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button variant="outlined" href="https://t.me/power_wallet_finance" target="_blank" rel="noopener noreferrer">Telegram</Button>
+                  <Button variant="contained" startIcon={<SwapHorizRoundedIcon />} onClick={() => switchChain?.({ chainId: 84532 })}>Switch to Base Sepolia</Button>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        ) : !needsFunding ? (
           <Card variant="outlined">
             <CardContent>
               <Stack spacing={2}>
