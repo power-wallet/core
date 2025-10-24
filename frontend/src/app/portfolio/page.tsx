@@ -6,6 +6,7 @@ import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlin
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { encodeFunctionData, createPublicClient, http, parseUnits } from 'viem';
@@ -72,6 +73,27 @@ export default function PortfolioPage() {
   const usdcAddress = contractAddresses[chainKey]?.usdc as `0x${string}` | undefined;
   const assetCfg = (appConfig as any)[chainKey]?.assets as Record<string, { address: string; symbol: string; decimals: number; feed?: `0x${string}` }>;
   const addressesForChain = contractAddresses[chainKey];
+
+  // Gentle RPC helpers: throttle and retry on 429
+  const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  const readWithRetry = async <T,>(label: string, fn: () => Promise<T>, attempt = 0): Promise<T> => {
+    try {
+      return await fn();
+    } catch (e: any) {
+      console.log(`Error fetching ${label}: ${e}`);
+      const msg = String(e?.message || e);
+      const status = e?.status || e?.cause?.status;
+      const is429 = status === 429 || msg.includes('429');
+      const maxAttempts = 3;
+      if (is429 || attempt < maxAttempts - 1) {
+        const delay = is429 ? 2000 : 1000 + attempt * 500;
+        console.warn(`[RPC] ${label} failed (attempt ${attempt + 1}). Retrying in ${delay}ms...`);
+        await sleep(delay);
+        return readWithRetry(label, fn, attempt + 1);
+      }
+      throw e;
+    }
+  };
 
   // Balances for onboarding funding check
   const { data: nativeBal } = useBalance({ address: address as `0x${string}` | undefined, chainId });
@@ -140,13 +162,16 @@ export default function PortfolioPage() {
         const createdAtAbi = [
           { type: 'function', name: 'createdAt', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint64' }] },
         ] as const;
-        const timestamps = await Promise.all(
-          wallets.map((addr) =>
-            feeClient
-              .readContract({ address: addr as `0x${string}`, abi: createdAtAbi as any, functionName: 'createdAt', args: [] })
-              .catch(() => BigInt(0))
-          )
-        );
+        // Sequential, gentle fetching with retry and short pacing
+        const timestamps: (bigint | undefined)[] = [];
+        for (const addr of wallets) {
+          const ts = await readWithRetry<bigint>(
+            `createdAt:${addr}`,
+            () => feeClient.readContract({ address: addr as `0x${string}`, abi: createdAtAbi as any, functionName: 'createdAt', args: [] }) as Promise<bigint>
+          ).catch(() => BigInt(0));
+          timestamps.push(ts);
+          await sleep(1000);
+        }
         const pairs = wallets.map((addr, i) => ({ addr, ts: Number((timestamps[i] as bigint | undefined) ?? BigInt(0)) }));
         const ordered = pairs
           .slice()
@@ -214,10 +239,16 @@ export default function PortfolioPage() {
         }
         for (const w of open) {
           try {
-            const [assets, balances] = await Promise.all([
-              feeClient.readContract({ address: w as `0x${string}`, abi: walletViewAbi as any, functionName: 'getRiskAssets', args: [] }) as Promise<string[]>,
-              feeClient.readContract({ address: w as `0x${string}`, abi: walletViewAbi as any, functionName: 'getBalances', args: [] }) as Promise<any>,
-            ]);
+            // Sequential per-wallet calls with retry, small pacing
+            const assets = await readWithRetry<string[]>(
+              `getRiskAssets:${w}`,
+              () => feeClient.readContract({ address: w as `0x${string}`, abi: walletViewAbi as any, functionName: 'getRiskAssets', args: [] }) as Promise<string[]>
+            );
+            await sleep(1000);
+            const balances = await readWithRetry<any>(
+              `getBalances:${w}`,
+              () => feeClient.readContract({ address: w as `0x${string}`, abi: walletViewAbi as any, functionName: 'getBalances', args: [] }) as Promise<any>
+            );
             const stableBal: bigint = balances[0];
             const riskBals: bigint[] = balances[1];
             // USDC
@@ -239,11 +270,16 @@ export default function PortfolioPage() {
               }
             });
             valueByAddr[w] = walletUsd;
-          } catch {}
+            await sleep(1000);
+          } catch (e: any) {
+            console.log(`Error fetching portfolio for wallet ${w}: ${e}`);
+          }
         }
         const totalUsd = per.cbBTC.usd + per.WETH.usd + per.USDC.usd;
         setPortfolioTotals({ totalUsd, perAsset: per });
         setWalletValueUsdByAddr(valueByAddr);
+        setPortfolioTotals({ totalUsd, perAsset: per });
+        console.log('setPortfolioTotals:', totalUsd, "perAsset:", per);
       } catch {
         setPortfolioTotals({ totalUsd: 0, perAsset: {} });
         setWalletValueUsdByAddr({});
@@ -275,11 +311,15 @@ export default function PortfolioPage() {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Stack spacing={3} alignItems="center" textAlign="center">
-          <Typography variant="h4" fontWeight="bold">Connect your wallet</Typography>
+          <Typography variant="h4" fontWeight="bold">
+            Connect your wallet
+          </Typography>
           <Typography variant="body1" color="text.secondary">
             Connect a web3 wallet to view and manage your on-chain Power Wallets.
           </Typography>
-          <Button variant="contained" onClick={() => setConnectOpen(true)}>Connect Wallet</Button>
+          <Button variant="contained" startIcon={<AccountBalanceWalletIcon />} onClick={() => setConnectOpen(true)}>
+            Connect Wallet
+          </Button>
         </Stack>
         <WalletConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
       </Container>
@@ -579,6 +619,8 @@ export default function PortfolioPage() {
       setSortDir('desc');
     }
   };
+
+  console.log('portfolioTotals', portfolioTotals);
 
   return (
   <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>

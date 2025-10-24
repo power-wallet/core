@@ -59,7 +59,7 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
             <Typography variant="body1" color="text.primary" fontWeight="bold" sx={{ flexShrink: 0 }}>Total Value</Typography>
             <Typography variant="body1" color="text.primary" fontWeight="bold" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-              {formatUsd6(valueUsd as bigint)}
+              {valueUsd ? formatUsd6(valueUsd as bigint) : '-'}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>

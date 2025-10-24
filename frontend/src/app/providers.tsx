@@ -54,8 +54,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <DialogTitle>Switch network?</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            Power Wallet supports <b>Base Sepolia</b> for testnet demo and <b>Base</b> (mainnet) for fiat onramp.
-            Choose a network to switch to.
+          Power Wallet is available for early preview on <b>Base Sepolia</b> (testnet) 
+          and closed‑access preview on <b>Base</b> (mainnet). Choose a network to switch to.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ pb: 2}}>
@@ -92,23 +92,27 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           >
           {(() => {
             function Banner() {
+              const [mounted, setMounted] = React.useState(false);
+              React.useEffect(() => { setMounted(true); }, []);
+              const { isConnected } = useAccount();
               const cid = useChainId();
-              const isBase = cid === 8453;
+              // Avoid hydration mismatch: treat as non-Base until mounted on client
+              const isBase = mounted && cid === 8453;
               if (!showNotice) return null;
               return (
                 <div style={{
                   width: '100%',
                   position: 'relative',
-                  background: isBase ? '#0052FF' : 'rgb(135, 56, 56)',
-                  color: '#FFFFFF',
+                  backgroundColor: isBase ? 'rgb(52, 46, 235)' : 'rgb(135, 56, 56)',
+                  color: 'rgb(255, 255, 255)',
                   fontSize: 12,
                   padding: '6px 32px 6px 12px',
                   textAlign: 'center',
                   borderBottom: isBase ? '1px solid rgba(0, 82, 255, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)'
                 }}>
-                  {isBase
-                    ? 'This is an early preview on the Base mainnet. This project is in early development and has not been audited. Be extra careful!'
-                    : 'This project is in early development and available for demo on the Base Sepolia testnet.'}
+                  {(isConnected && isBase)
+                    ? 'This project is in development and has not been audited. Be extra careful!'
+                    : 'This project is in development and available for preview on Base Sepolia (testnet).'}
                   <button aria-label="Dismiss" onClick={dismissNotice} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#FECACA', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>
                     ×
                   </button>

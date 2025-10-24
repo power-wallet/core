@@ -41,7 +41,7 @@ const Navbar = () => {
   const chainId = useChainId();
   const isBaseSepolia = chainId === 84532;
   const pathname = usePathname();
-  const showConnect = pathname !== '/';
+  const showConnect = isConnected || !['/','/portfolio', '/simulator', '/contracts', '/about'].includes(pathname);
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
