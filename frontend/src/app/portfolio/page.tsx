@@ -664,6 +664,8 @@ export default function PortfolioPage() {
     } catch { return true; }
   })();
 
+  const walletCountForSort = (openWallets.length ? openWallets.length : wallets.length);
+
   return (
   <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
 
@@ -683,24 +685,23 @@ export default function PortfolioPage() {
         <Typography variant="body2" color="text.secondary">
           Power Wallets owned by {shortAddr}
         </Typography>
+        {walletCountForSort > 1 ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Tooltip title={`Sort by value`}>
             <IconButton size="small" color={sortKey === 'value' ? 'primary' : 'default'} onClick={() => onSortClick('value')} aria-label="Sort by value">
               <MonetizationOnOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          {sortKey === 'value' ? (
-            sortDir === 'asc' ? <ArrowUpwardIcon fontSize="small" color="primary" /> : <ArrowDownwardIcon fontSize="small" color="primary" />
-          ) : null}
+          <IconButton size="small" aria-label="Toggle sort direction" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}>
+            {sortDir === 'desc' ? <ArrowDownwardIcon fontSize="small" color="primary" /> : <ArrowUpwardIcon fontSize="small" color="primary" />}
+          </IconButton>
           <Tooltip title={`Sort by created date`}>
             <IconButton size="small" color={sortKey === 'createdAt' ? 'primary' : 'default'} onClick={() => onSortClick('createdAt')} aria-label="Sort by created date">
               <CalendarTodayOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          {sortKey === 'createdAt' ? (
-            sortDir === 'asc' ? <ArrowDownwardIcon fontSize="small" color="primary" /> : <ArrowUpwardIcon fontSize="small" color="primary" />
-          ) : null}
         </Box>
+        ) : null}
       </Box>
 
       <Grid container spacing={3}>

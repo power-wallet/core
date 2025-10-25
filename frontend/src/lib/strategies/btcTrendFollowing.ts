@@ -158,11 +158,17 @@ export async function run(initialCapital: number, startDate: string, endDate: st
         }
       } else if (inDcaMode && enterUp && usdc >= 1) {
         // Switch from DCA to full BTC when trend resumes
-        const fee = usdc * feePct;
-        const qty = (usdc * (1.0 - feePct)) / btcPrice;
-        btcQty += qty; usdc = 0;
-        trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: qty * btcPrice, fee, portfolioValue: usdc + btcQty * btcPrice });
-        inDcaMode = false;
+        const spend = usdc;
+        const fee = spend * feePct;
+        const net = spend * (1.0 - feePct);
+        const qty = net / btcPrice;
+        btcQty += qty;
+        usdc -= spend; // typically 0
+        trades.push({ date, symbol: 'BTC', side: 'BUY', price: btcPrice, quantity: qty, value: spend, fee, portfolioValue: usdc + btcQty * btcPrice });
+        // Mirror on-chain rule: only exit DCA if post-trade stable is effectively fully deployed
+        if (usdc < minSpendUsd) {
+          inDcaMode = false;
+        }
       }
       nextEvalDate.setDate(nextEvalDate.getDate() + evalIntervalDays);
     }
