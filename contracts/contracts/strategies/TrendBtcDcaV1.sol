@@ -233,8 +233,19 @@ contract TrendBtcDcaV1 is IStrategy {
             }
         }
         if (sawSellRisk) inDcaMode = true;
-        if (sawBuyRisk) inDcaMode = false;
-        emit Executed(lastTimestamp, 0, 0, inDcaMode);
+        if (sawBuyRisk) {
+            // Exit DCA only when the wallet effectively fully deployed stable (post-trade stable < minSpendStable)
+            // This prevents tiny or manual buys from flipping regime unintentionally.
+            uint256 stablePost = IERC20Metadata(stableAsset).balanceOf(authorizedWallet);
+            if (stablePost < minSpendStable) {
+                inDcaMode = false;
+            }
+        }
+
+        uint8 actionKind = sawBuyRisk ? 1 : sawSellRisk ? 2 : 0;
+        uint256 amountIn = sawBuyRisk ? actions[0].amountIn : sawSellRisk ? actions[0].amountIn : 0;
+
+        emit Executed(lastTimestamp, actionKind, amountIn, inDcaMode);
     }
 
     // ---- Owner setters ----
