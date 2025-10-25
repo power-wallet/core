@@ -30,6 +30,7 @@ import { ensureOnPrimaryChain } from '@/lib/web3';
 import { createPublicClient, http, parseUnits } from 'viem';
 import { writeWithFees } from '@/lib/tx';
 import { getViemChain } from '@/config/networks';
+import { loadAssetPrices, loadAssetPricesFromBinance } from '@/lib/prices';
 
 
 export default function WalletDetails() {
@@ -212,27 +213,38 @@ export default function WalletDetails() {
 
   React.useEffect(() => {
     let cancelled = false;
-    const metas = [addressToMeta(chainAssets.cbBTC.address), addressToMeta(chainAssets.WETH.address), addressToMeta(chainAssets.USDC.address)].filter(Boolean) as { address: string; symbol: string; decimals: number; feed: `0x${string}` }[];
-
-    const load = async () => {
-      const next: Record<string, { price: number; decimals: number }> = {};
-      for (const m of metas) {
+    (async () => {
+      const metas = [addressToMeta(chainAssets.cbBTC.address), addressToMeta(chainAssets.WETH.address), addressToMeta(chainAssets.USDC.address)].filter(Boolean) as { address: string; symbol: string; decimals: number; feed?: `0x${string}` }[];
+      // Try Binance first to avoid RPC throttling; require cbBTC if present
+      try {
+        const bin = await loadAssetPricesFromBinance(metas.map(m => ({ symbol: m.symbol })));
+        const needsCb = metas.some(m => m.symbol === 'cbBTC');
+        const hasCb = !needsCb || (Number.isFinite(bin?.cbBTC?.price) && (bin?.cbBTC?.price || 0) > 0);
+        if (hasCb) {
+          if (!cancelled) setPrices(bin);
+          return;
+        }
+      } catch {}
+      // Fallback to on-chain Chainlink with exponential backoff until cbBTC available
+      let attempt = 0;
+      for (;;) {
+        if (cancelled) break;
         try {
-          const [dec, round] = await Promise.all([
-            client.readContract({ address: m.feed, abi: FEED_ABI as any, functionName: 'decimals', args: [] }) as Promise<number>,
-            client.readContract({ address: m.feed, abi: FEED_ABI as any, functionName: 'latestRoundData', args: [] }) as Promise<any>,
-          ]);
-          const p = Number(round[1]);
-          next[m.symbol] = { price: p, decimals: dec };
-        } catch (e) { }
+          const next = await loadAssetPrices(chainId, metas as any);
+          const needsCb = metas.some(m => m.symbol === 'cbBTC');
+          const hasCb = !needsCb || (Number.isFinite(next?.cbBTC?.price) && (next?.cbBTC?.price || 0) > 0);
+          if (hasCb) {
+            if (!cancelled) setPrices(next);
+            break;
+          }
+        } catch {}
+        attempt += 1;
+        const delay = Math.min(15000, 1000 * Math.pow(2, Math.min(attempt, 4)));
+        await new Promise(res => setTimeout(res, delay));
       }
-      if (!cancelled) setPrices(next);
-    };
-
-    load();
-    const id = setInterval(load, 60000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [client, addressToMeta, chainAssets.cbBTC.address, chainAssets.WETH.address, chainAssets.USDC.address]);
+    })();
+    return () => { cancelled = true; };
+  }, [addressToMeta, chainAssets.cbBTC.address, chainAssets.WETH.address, chainAssets.USDC.address, chainId]);
 
   React.useEffect(() => {
     (async () => {

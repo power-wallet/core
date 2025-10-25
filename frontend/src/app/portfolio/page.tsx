@@ -20,7 +20,7 @@ import WalletSummaryCard from '@/app/wallet/WalletSummaryCard';
 import PortfolioSummary from '@/components/PortfolioSummary';
 import CreateWalletDialog from '@/components/CreateWalletDialog';
 import Onboarding from '@/components/Onboarding';
-import { loadAssetPrices } from '@/lib/prices';
+import { loadAssetPrices, loadAssetPricesFromBinance } from '@/lib/prices';
 import appConfig from '@/config/appConfig.json';
 
 
@@ -208,19 +208,41 @@ export default function PortfolioPage() {
     })();
   }, [isConfirmed, txHash, refetchWallets]);
 
-  // Load prices for cbBTC, WETH, USDC when chain or config changes
+  // Load prices for cbBTC, WETH, USDC when chain or config changes (use Binance first, then retry Chainlink until cbBTC is available)
   useEffect(() => {
+    let cancelled = false;
     (async () => {
+      const metas = ['cbBTC', 'WETH', 'USDC']
+        .map((k) => (assetCfg as any)[k])
+        .filter(Boolean) as { symbol: string; feed?: `0x${string}`; decimals: number }[];
+      let attempt = 0;
+      // First try Binance as a quick off-chain source to avoid RPC throttling delays
       try {
-        const metas = ['cbBTC', 'WETH', 'USDC']
-          .map((k) => (assetCfg as any)[k])
-          .filter(Boolean) as { symbol: string; feed?: `0x${string}`; decimals: number }[];
-        const next = await loadAssetPrices(chainId, metas);
-        setPrices(next);
-      } catch {
-        setPrices({});
+        const binance = await loadAssetPricesFromBinance(metas.map(m => ({ symbol: m.symbol })));
+        const cbOk = Number.isFinite(binance?.cbBTC?.price) && (binance?.cbBTC?.price || 0) > 0;
+        if (cbOk) {
+          if (!cancelled) setPrices(binance);
+          return;
+        }
+      } catch {}
+      // Fallback: retry Chainlink until cbBTC arrives
+      for (;;) {
+        if (cancelled) break;
+        try {
+          const next = await loadAssetPrices(chainId, metas);
+          const needsCb = metas.some(m => m.symbol === 'cbBTC');
+          const hasCbPrice = !needsCb || (Number.isFinite(next?.cbBTC?.price) && (next?.cbBTC?.price || 0) > 0);
+          if (hasCbPrice) {
+            if (!cancelled) setPrices(next);
+            break;
+          }
+        } catch {}
+        attempt += 1;
+        const delay = Math.min(15000, 1000 * Math.pow(2, Math.min(attempt, 4)));
+        await sleep(delay);
       }
     })();
+    return () => { cancelled = true; };
   }, [assetCfg, chainId]);
 
   // Aggregate portfolio across all open wallets and compute per-wallet value
@@ -260,13 +282,25 @@ export default function PortfolioPage() {
               const sym = byAddr[addr.toLowerCase()];
               const amt = Number(riskBals[i] || BigInt(0));
               if (sym === 'cbBTC') {
-                per.cbBTC.amount += amt / 1e8;
-                per.cbBTC.usd += (amt / 1e8) * (prices.cbBTC?.price || 0);
-                walletUsd += (amt / 1e8) * (prices.cbBTC?.price || 0);
+                const tokenDec = (assetCfg as any).cbBTC?.decimals ?? 8;
+                const priceNum = prices.cbBTC?.price;
+                const amtHuman = amt / 10 ** tokenDec;
+                per.cbBTC.amount += amtHuman;
+                if (priceNum !== undefined) {
+                  const usdVal = amtHuman * priceNum;
+                  per.cbBTC.usd += usdVal;
+                  walletUsd += usdVal;
+                }
               } else if (sym === 'WETH') {
-                per.WETH.amount += amt / 1e18;
-                per.WETH.usd += (amt / 1e18) * (prices.WETH?.price || 0);
-                walletUsd += (amt / 1e18) * (prices.WETH?.price || 0);
+                const tokenDec = (assetCfg as any).WETH?.decimals ?? 18;
+                const priceNum = prices.WETH?.price;
+                const amtHuman = amt / 10 ** tokenDec;
+                per.WETH.amount += amtHuman;
+                if (priceNum !== undefined) {
+                  const usdVal = amtHuman * priceNum;
+                  per.WETH.usd += usdVal;
+                  walletUsd += usdVal;
+                }
               }
             });
             valueByAddr[w] = walletUsd;
@@ -622,12 +656,20 @@ export default function PortfolioPage() {
 
   console.log('portfolioTotals', portfolioTotals);
 
+  const hideSummary = (() => {
+    try {
+      const amt = Number((portfolioTotals.perAsset as any)?.cbBTC?.amount || -1);
+      const priceLoaded = Number.isFinite(prices?.cbBTC?.price) && (prices?.cbBTC?.price || 0) > 0;
+      return amt > 0 && !priceLoaded;
+    } catch { return true; }
+  })();
+
   return (
   <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
 
     <Container maxWidth="lg" sx={{ py: 3 }} >
       {/* Portfolio Summary */}
-      {portfolioTotals.totalUsd > 0 ? (
+      {portfolioTotals.totalUsd > 0 && !hideSummary ? (
         <>
           <Typography variant="h4" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
           <PortfolioSummary totalUsd={portfolioTotals.totalUsd} perAsset={portfolioTotals.perAsset} />

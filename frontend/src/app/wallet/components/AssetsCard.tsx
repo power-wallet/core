@@ -41,7 +41,7 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
                 })();
               if (amt === undefined) return null;
               const p = prices[m.symbol];
-              const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
+              const usd = p && Number.isFinite(p.price) ? (Number(amt) / 10 ** m.decimals) * p.price : undefined;
               return (
                 <Box key={sym} sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
                   <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
@@ -73,7 +73,7 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
                 })();
               if (amt === undefined) return null;
               const p = prices[m.symbol];
-              const usd = p ? (Number(amt) * p.price) / 10 ** (m.decimals + p.decimals) : undefined;
+              const usd = p && Number.isFinite(p.price) ? (Number(amt) / 10 ** m.decimals) * p.price : undefined;
               return (
                 <Grid key={sym} item xs={12} sm={6} md={4}>
                   <Stack>

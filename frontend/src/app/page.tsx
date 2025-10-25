@@ -279,20 +279,20 @@ export default function Home() {
               {
                 key: 'power',
                 title: 'Power',
-                subtitle: 'Power‑law fair‑value trend',
+                subtitle: 'Fair‑value Adaptive DCA',
                 desc: 'Scale buys below bitcoin power-law model price and trim above. Ideal for mean‑reversion believers seeking efficiency.',
               },
               {
                 key: 'smart',
                 title: 'Smart',
                 subtitle: 'Buy the dip and rebalance',
-                desc: 'Adaptive buys and sells based on volatility and drawdown, with optional threshold rebalancing to a BTC weight band.',
+                desc: 'Adaptive buys and sells based on volatility and drawdown. For risk‑aware investors who want to optimize returns.',
               },
               {
                 key: 'trend',
                 title: 'Trend',
-                subtitle: 'Trend aligned accumulation',
-                desc: 'All‑in BTC in confirmed uptrends, gentle DCA in downtrends, boosted buys when well below trend.',
+                subtitle: 'Trend boosted accumulation',
+                desc: 'All‑in BTC in confirmed uptrends, gentle DCA in downtrends. For trend followers who want to accumulate in downturns.',
               },
             ].map((s, i) => (
               <Grid item xs={12} sm={6} md={3} key={s.key}>

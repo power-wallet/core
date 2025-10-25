@@ -17,4 +17,45 @@ export async function loadAssetPrices(chainId: number, assets: { symbol: string;
   return next;
 }
 
+// Quick, off-chain fallback using Binance spot prices
+export async function loadAssetPricesFromBinance(assets: { symbol: string }[]): Promise<Record<string, { price: number; decimals: number }>> {
+  const wantBtc = assets.some(a => ['cbBTC', 'WBTC', 'BTC'].includes(a.symbol));
+  const wantEth = assets.some(a => ['WETH', 'ETH'].includes(a.symbol));
+  const results: Record<string, { price: number; decimals: number }> = {};
+  try {
+    const fetches: Promise<void>[] = [];
+    if (wantBtc) {
+      fetches.push((async () => {
+        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+        if (res.ok) {
+          const j = await res.json();
+          const p = Number(j?.price);
+          if (Number.isFinite(p) && p > 0) {
+            results['cbBTC'] = { price: p, decimals: 0 };
+            results['BTC'] = { price: p, decimals: 0 };
+            results['WBTC'] = { price: p, decimals: 0 };
+          }
+        }
+      })());
+    }
+    if (wantEth) {
+      fetches.push((async () => {
+        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
+        if (res.ok) {
+          const j = await res.json();
+          const p = Number(j?.price);
+          if (Number.isFinite(p) && p > 0) {
+            results['WETH'] = { price: p, decimals: 0 };
+            results['ETH'] = { price: p, decimals: 0 };
+          }
+        }
+      })());
+    }
+    await Promise.all(fetches);
+  } catch {}
+  // Always include USDC = 1 if requested
+  if (assets.some(a => a.symbol === 'USDC')) results['USDC'] = { price: 1, decimals: 6 };
+  return results;
+}
+
 
