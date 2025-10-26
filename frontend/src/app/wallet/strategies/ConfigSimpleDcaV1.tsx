@@ -42,7 +42,8 @@ export default function ConfigSimpleDcaV1({ strategyAddr, chainId, stableSymbol,
   });
   const [busy, setBusy] = React.useState<null | 'amount' | 'freq'>(null);
   const { writeContractAsync } = useWriteContract();
-  const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
+  const cfg = (appConfig as any)[getChainKey(chainId)];
+  const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http(cfg?.rpcUrl) }), [chainId, cfg?.rpcUrl]);
   const explorerBase = (appConfig as any)[getChainKey(chainId)]?.explorer as string | undefined;
   const [toast, setToast] = React.useState<{ open: boolean; hash?: `0x${string}` }>(() => ({ open: false }));
 

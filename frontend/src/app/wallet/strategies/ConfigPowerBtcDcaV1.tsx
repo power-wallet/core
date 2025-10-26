@@ -5,7 +5,8 @@ import { Box, Stack, TextField, Button, Typography, CircularProgress, Snackbar, 
 import { useWriteContract, useReadContract } from 'wagmi';
 import { createPublicClient, http } from 'viem';
 import { writeWithFees } from '@/lib/tx';
-import { getViemChain } from '@/config/networks';
+import { getViemChain, getChainKey } from '@/config/networks';
+import appConfig from '@/config/appConfig.json';
 
 const ABI_READ = [
   { type: 'function', name: 'frequency', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
@@ -32,7 +33,8 @@ type Props = { strategyAddr: `0x${string}`; chainId: number; stableSymbol?: stri
 
 export default function ConfigSmartBtcDcaV2({ strategyAddr, chainId, stableSymbol = 'USDC', stableDecimals = 6 }: Props) {
   const { writeContractAsync } = useWriteContract();
-  const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
+  const cfg = (appConfig as any)[getChainKey(chainId)];
+  const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http(cfg?.rpcUrl) }), [chainId, cfg?.rpcUrl]);
 
   const { data: freqSec, refetch: refetchFreq } = useReadContract({ address: strategyAddr, abi: ABI_READ as any, functionName: 'frequency', query: { refetchInterval: 60000 } });
   const { data: baseDca, refetch: refetchBase } = useReadContract({ address: strategyAddr, abi: ABI_READ as any, functionName: 'baseDcaStable', query: { refetchInterval: 60000 } });

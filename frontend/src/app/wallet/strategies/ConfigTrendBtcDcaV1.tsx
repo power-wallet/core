@@ -5,7 +5,7 @@ import { Box, Stack, TextField, Button, Typography, CircularProgress, Snackbar, 
 import { useWriteContract, useReadContract } from 'wagmi';
 import { createPublicClient, http } from 'viem';
 import { writeWithFees } from '@/lib/tx';
-import { getViemChain } from '@/config/networks';
+import { getViemChain, getChainKey } from '@/config/networks';
 import appConfig from '@/config/appConfig.json';
 
 type Props = { strategyAddr: `0x${string}`; chainId: number; };
@@ -36,7 +36,8 @@ const WRITE_ABI = [
 
 export default function ConfigTrendBtcDcaV1({ strategyAddr, chainId }: Props) {
   const { writeContractAsync } = useWriteContract();
-  const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
+  const cfg = (appConfig as any)[getChainKey(chainId)];
+  const client = React.useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http(cfg?.rpcUrl) }), [chainId, cfg?.rpcUrl]);
   const explorerBase = (appConfig as any)[getViemChain(chainId).name as any]?.explorer || (appConfig as any)[(getViemChain(chainId).id === 84532 ? 'base-sepolia' : 'base')]?.explorer;
 
   const { data: freqSec, refetch: refetchFreq } = useReadContract({ address: strategyAddr, abi: READ_ABI as any, functionName: 'frequency', query: { refetchInterval: 60000 } });

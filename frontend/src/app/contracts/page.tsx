@@ -364,19 +364,19 @@ export default function SmartContractsPage() {
 
         {tab === 1 && (
           <Stack spacing={2}>
-            <Section title="Pure BTC DCA"
+            <Section title="Pure"
               address={ADDR.strategies['simple-btc-dca-v1']}
               blurb="The OG accumulator: dollar‑cost average into BTC on a set cadence." />
 
-            <Section title="Power BTC DCA"
+            <Section title="Power"
               address={ADDR.strategies['power-btc-dca-v2']}
               blurb="DCA strategy with a mean reversion twist. Uses the Bitcoin power-law price model to buy more below trend and trim above." />
 
-            <Section title="Smart BTC DCA"
+            <Section title="Smart"
               address={ADDR.strategies['smart-btc-dca-v2']}
               blurb="An adaptive BTC DCA that buys dips more aggressively, with a volatility/drawdown kicker and optional band rebalancing." />
 
-            <Section title="Trend BTC DCA"
+            <Section title="Trend"
               address={ADDR.strategies['trend-btc-dca-v1']}
               blurb="A strategy that steadily accumulates below trend, and goes all‑in when the trend is up." />
           </Stack>

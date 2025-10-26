@@ -40,7 +40,7 @@
       "simple-btc-dca-v1": {
         "id": "simple-btc-dca-v1",
         "idBytes32": "0xc6b7ecee70fee10e980eb5533cf3266256d80c190859cb747fd382754e908f70",
-        "name": "Pure BTC DCA",
+        "name": "Pure",
         "description": "The OG accumulator: dollar‑cost average into BTC on a set cadence.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -72,7 +72,7 @@
       "power-btc-dca-v2": {
         "id": "power-btc-dca-v2",
         "idBytes32": "0x35ab1065458923ca54e83e5793eada91ea7c2b839e74adecb712ef77b295c560",
-        "name": "Power BTC DCA",
+        "name": "Power",
         "description": "DCA strategy with a mean reversion twist. Uses the Bitcoin power-law price model to buy more below trend and trim above.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -82,7 +82,7 @@
       "smart-btc-dca-v2": {
         "id": "smart-btc-dca-v2",
         "idBytes32": "0x51b7b33ebe7925dc4a735d324ea695a77d3f30e756336df447e6e48ba5c83dec",
-        "name": "Smart BTC DCA",
+        "name": "Smart",
         "description": "An adaptive BTC DCA that buys dips more aggressively, with a volatility/drawdown kicker and optional band rebalancing.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -92,7 +92,7 @@
       "trend-btc-dca-v1": {
         "id": "trend-btc-dca-v1",
         "idBytes32": "0x546ecbd44cc6cccca7236adf69c69a0d0c7132b5ddd3886d72f22e0e811ff31b",
-        "name": "Trend BTC DCA",
+        "name": "Trend",
         "description": "A strategy that steadily accumulates below trend, and goes all‑in when the trend is up.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -104,7 +104,7 @@
   
   "base": {
     "explorer": "https://basescan.org",
-    "rpcUrl": "https://mainnet.base.org",
+    "rpcUrl": "https://base-mainnet.infura.io/v3/e9212a93f0e14eb59e87b7d00f100a48",
     "assets": {
       "cbBTC": {
         "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
@@ -143,7 +143,7 @@
       "simple-btc-dca-v1": {
         "id": "simple-btc-dca-v1",
         "idBytes32": "0xc6b7ecee70fee10e980eb5533cf3266256d80c190859cb747fd382754e908f70",
-        "name": "Pure BTC DCA",
+        "name": "Pure",
         "description": "The OG accumulator: dollar‑cost average into BTC on a set cadence.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -153,7 +153,7 @@
       "power-btc-dca-v2": {
         "id": "power-btc-dca-v2",
         "idBytes32": "0x35ab1065458923ca54e83e5793eada91ea7c2b839e74adecb712ef77b295c560",
-        "name": "Power BTC DCA",
+        "name": "Power",
         "description": "DCA strategy with a mean reversion twist. Uses the Bitcoin power-law price model to buy more below trend and trim above.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -163,7 +163,7 @@
       "smart-btc-dca-v2": {
         "id": "smart-btc-dca-v2",
         "idBytes32": "0x51b7b33ebe7925dc4a735d324ea695a77d3f30e756336df447e6e48ba5c83dec",
-        "name": "Smart BTC DCA",
+        "name": "Smart",
         "description": "An adaptive BTC DCA that buys dips more aggressively, with a volatility/drawdown kicker and optional band rebalancing.",
         "stable": "usdc",
         "risk": ["cbBTC"],
@@ -173,7 +173,7 @@
       "trend-btc-dca-v1": {
         "id": "trend-btc-dca-v1",
         "idBytes32": "0x546ecbd44cc6cccca7236adf69c69a0d0c7132b5ddd3886d72f22e0e811ff31b",
-        "name": "Trend BTC DCA",
+        "name": "Trend",
         "description": "A strategy that steadily accumulates below trend, and goes all‑in when the trend is up.",
         "stable": "usdc",
         "risk": ["cbBTC"],

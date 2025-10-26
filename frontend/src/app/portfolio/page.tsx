@@ -66,8 +66,9 @@ export default function PortfolioPage() {
   const chainKey = useMemo(() => getChainKey(chainId), [chainId]);
 
   const explorerBase = (appConfig as any)[chainKey]?.explorer || '';
+  const cfg = (appConfig as any)[chainKey];
 
-  const feeClient = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
+  const feeClient = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http(cfg?.rpcUrl) }), [chainId, cfg?.rpcUrl]);
 
   const factoryAddress = contractAddresses[chainKey]?.walletFactory;
   const usdcAddress = contractAddresses[chainKey]?.usdc as `0x${string}` | undefined;

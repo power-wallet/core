@@ -294,7 +294,7 @@ export async function run(
 
 const strategy: Strategy = {
   id: 'smart-btc-dca',
-  name: 'Smart BTC DCA',
+  name: 'Smart DCA',
   run,
   getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };

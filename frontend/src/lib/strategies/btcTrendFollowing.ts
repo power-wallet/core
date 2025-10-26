@@ -249,7 +249,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
 const strategy: Strategy = {
   id: 'trend-btc-dca',
-  name: 'Trend BTC DCA (SMA50, weekly)',
+  name: 'Trend aware DCA',
   run,
   getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };

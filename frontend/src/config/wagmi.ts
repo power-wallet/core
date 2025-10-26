@@ -1,5 +1,6 @@
 import { createConfig, http } from 'wagmi';
 import { baseSepolia, base, mainnet, sepolia } from 'wagmi/chains';
+import appConfig from '@/config/appConfig.json';
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
 
 // Get WalletConnect project ID from environment
@@ -35,8 +36,8 @@ export const config = createConfig({
   chains: [baseSepolia, base, mainnet, sepolia],
   connectors,
   transports: {
-    [baseSepolia.id]: http(),
-    [base.id]: http(),
+    [baseSepolia.id]: ((appConfig as any)['base-sepolia']?.rpcUrl ? http((appConfig as any)['base-sepolia']?.rpcUrl) : http()),
+    [base.id]: ((appConfig as any)['base']?.rpcUrl ? http((appConfig as any)['base']?.rpcUrl) : http()),
     [sepolia.id]: http(),
     [mainnet.id]: http(),
   },

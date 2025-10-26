@@ -156,7 +156,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
 const strategy: Strategy = {
   id: 'simple-btc-dca',
-  name: 'Simple BTC DCA',
+  name: 'Simple DCA',
   run,
   getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };

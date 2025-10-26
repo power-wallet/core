@@ -181,7 +181,7 @@ function SimulatorPageInner() {
                     return 'A daily BTC–ETH momentum strategy with a BTC regime filter and RSI-based entries/exits.';
                   }
                   if (id === 'trend-btc-dca') {
-                    return 'Trend BTC DCA: all‑in BTC when price is convincingly above SMA50 with a rising slope; otherwise hold USDC and DCA on a schedule.';
+                    return 'Goes all‑in BTC in confirmed uptrends, gentle DCA in downtrends. For trend followers who want to accumulate in downturns.';
                   }
                   return '';
                 })()}

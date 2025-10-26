@@ -245,7 +245,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
 const strategy: Strategy = {
   id: 'power-btc-dca',
-  name: 'Power BTC DCA',
+  name: 'Power DCA',
   run,
   getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
 };

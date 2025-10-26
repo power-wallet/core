@@ -119,7 +119,8 @@ export default function WalletDetails() {
     query: { enabled: Boolean(stableTokenAddr && connected), refetchInterval: 60000 },
   });
 
-  const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http() }), [chainId]);
+  const cfg = (appConfig as any)[chainKey];
+  const client = useMemo(() => createPublicClient({ chain: getViemChain(chainId), transport: http(cfg?.rpcUrl) }), [chainId, cfg?.rpcUrl]);
 
   // Use shared Chainlink feed ABI
 
