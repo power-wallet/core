@@ -223,11 +223,21 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                           headers: { 'Content-Type': 'application/json' },
                                           body: JSON.stringify({ address, fiatCurrency: (Intl.NumberFormat().resolvedOptions().currency || '').toUpperCase() }),
                                         });
+                                        if (!resp.ok) {
+                                          console.warn('Failed to create onramp session:', resp.statusText, "status:", resp.status);
+                                        }
                                         const json = resp.ok ? await resp.json() : {} as any;
                                         let url = (json as any)?.onrampUrl as string | undefined;
+                                        // if (url) {
+                                        //   console.log('Created onramp session: url:', url, "resp:", json);
+                                        // }
                                         if (!url) {
+                                          console.warn('Failed to create onramp session: no onrampUrl');
                                           // Fallback to token flow if function is older
                                           const token = (json as any)?.sessionToken as string | undefined;
+                                          if (!token) {
+                                            console.warn('Failed to create onramp session: no sessionToken');
+                                          }
                                           url = token ? fundMod.getOnrampBuyUrl({ sessionToken: token, defaultAsset: 'USDC', defaultNetwork: 'base', originComponentName: 'PowerWallet' }) : undefined;
                                         }
                                         if (!url) {

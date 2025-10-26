@@ -201,13 +201,13 @@ function SimulatorPageInner() {
                         <ul style={{ margin: 0, paddingLeft: 18 }}>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              The Bitcoin power-law model defines a fair-value price as P(t) = 9.64e-18 * d^5.8451, where d is days since 2009-01-03. <br/>
+                              The bitcoin power-law model defines bitcoin&apos;s fair-value price as <strong>P(t) = 9.64 × 10<sup>−18</sup> · d <sup>5.8451</sup></strong> where <strong>d</strong> is days since 2009-01-03. <br/>
                               We define two bands: lower = 0.5×model, upper = 2×model.
                             </Typography>
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Below lower band: buy 5% of available USDC (weekly cadence, 0.30% fee).
+                              Below lower band: buy 5% of available USDC on a weekly cadence.
                             </Typography>
                           </li>
                           <li>
@@ -227,12 +227,17 @@ function SimulatorPageInner() {
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Reserves: keep ~2% in USDC and ~10% in BTC (min holdings logic in simulator).
+                              Reserves: keep ~2% in USDC and ~10% in BTC as minimum holding.
                             </Typography>
                           </li>
                           <li>
                             <Typography variant="body2" color="text.secondary">
-                              Execution & benchmark: trades at daily closes on a weekly schedule; benchmark buys BTC on day one (net of fee) and holds.
+                              Execution: trades at daily closes on a weekly schedule.
+                            </Typography>
+                          </li>
+                          <li>
+                            <Typography variant="body2" color="text.secondary">
+                              Benchmark: HODL benchmark buys BTC on day one and holds.
                             </Typography>
                           </li>
                         </ul>
