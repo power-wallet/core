@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, Typography, ToggleButton, ToggleButtonGroup, Box } from '@mui/material';
-import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter, Brush } from 'recharts';
 import type { SimulationResult } from '@/lib/types';
 
 interface Props { result: SimulationResult; }
@@ -101,6 +101,15 @@ const PowerLawChart: React.FC<Props> = ({ result }) => {
 
             <Scatter dataKey="btcBuy" name="BTC Buy" fill="#10B981" shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? <g /> : <TriangleUp {...props} />)} />
             <Scatter dataKey="btcSell" name="BTC Sell" fill="#EF4444" shape={(props: any) => (props?.cy == null || Number.isNaN(props.cy) ? <g /> : <TriangleDown {...props} />)} />
+
+            <Brush
+              dataKey="date"
+              stroke="#F59E0B"
+              fill="#0F172A"
+              travellerWidth={8}
+              height={24}
+              tickFormatter={(v)=>new Date(v).toLocaleDateString('en-US',{month:'short',year:'2-digit'})}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>

@@ -15,14 +15,14 @@ export interface Strategy {
 }
 
 // Chart identifiers used by StrategyCharts to determine which charts to render
-export type ChartId = 'portfolio' | 'powerlaw' | 'allocation' | 'drawdown' | 'prices' | 'rsi' | 'trades';
+export type ChartId = 'portfolio' | 'powerlaw' | 'allocation' | 'drawdown' | 'prices' | 'rsi' | 'trades' | 'assetvalue';
 
 export const strategyCharts: Record<StrategyId, ChartId[]> = {
-  'simple-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
-  'power-btc-dca': ['portfolio', 'powerlaw', 'allocation', 'drawdown', 'trades'],
-  'smart-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
-  'trend-btc-dca': ['portfolio', 'prices', 'allocation', 'drawdown', 'trades'],
-  'btc-eth-momentum': ['portfolio', 'prices', 'allocation', 'drawdown', 'rsi', 'trades'],
+  'simple-btc-dca': ['portfolio', 'prices', 'assetvalue', 'allocation', 'drawdown', 'trades'],
+  'power-btc-dca': ['portfolio', 'powerlaw', 'assetvalue', 'allocation', 'drawdown', 'trades'],
+  'smart-btc-dca': ['portfolio', 'prices', 'assetvalue', 'allocation', 'drawdown', 'trades'],
+  'trend-btc-dca': ['portfolio', 'prices', 'assetvalue', 'allocation', 'drawdown', 'trades'],
+  'btc-eth-momentum': ['portfolio', 'prices', 'assetvalue', 'allocation', 'drawdown', 'rsi', 'trades'],
 };
 
 // Lazy imports to avoid bundling unused strategies upfront

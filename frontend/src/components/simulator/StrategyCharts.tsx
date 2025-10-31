@@ -8,6 +8,7 @@ import DrawdownChart from '@/components/simulator/DrawdownChart';
 import PriceChart from '@/components/simulator/PriceChart';
 import RSIAndSignalsChart from '@/components/simulator/RSIAndSignalsChart';
 import PowerLawChart from '@/components/simulator/PowerLawChart';
+import AssetValueChart from '@/components/simulator/AssetValueChart';
 import TradesTable from '@/components/simulator/TradesTable';
 import { strategyCharts, type ChartId } from '@/lib/strategies/registry';
 
@@ -24,6 +25,7 @@ const StrategyCharts: React.FC<Props> = ({ result }) => {
         if (c === 'drawdown') return <DrawdownChart key={c} result={result} />;
         if (c === 'prices') return <PriceChart key={c} result={result} />;
         if (c === 'rsi') return <RSIAndSignalsChart key={c} result={result} />;
+        if (c === 'assetvalue') return <AssetValueChart key={c} result={result} />;
         if (c === 'trades') return <TradesTable key={c} result={result} />;
         return null;
       })}

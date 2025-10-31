@@ -17,7 +17,7 @@ function SimulatorPageInner() {
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showOverview, setShowOverview] = useState(false);
-  const [strategyId, setStrategyId] = useState<string>('smart-btc-dca');
+  const [strategyId, setStrategyId] = useState<string>('power-btc-dca');
   const searchParams = useSearchParams();
 
   const mapParamToStrategyId = (p?: string): string | undefined => {

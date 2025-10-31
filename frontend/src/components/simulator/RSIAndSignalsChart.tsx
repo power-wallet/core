@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, Typography } from '@mui/material';
-import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter, Brush } from 'recharts';
 import type { SimulationResult } from '@/lib/types';
 
 interface Props {
@@ -90,6 +90,15 @@ const RSIAndSignalsChart: React.FC<Props> = ({ result }) => {
             {/* Both-eligible / both-allocated strips near the top */}
             <Scatter dataKey="bothEligible" name="Both eligible" fill="#3B82F6" />
             <Scatter dataKey="bothAllocated" name="Both allocated" fill="#FB923C" />
+
+            <Brush
+              dataKey="date"
+              stroke="#F59E0B"
+              fill="#0F172A"
+              travellerWidth={8}
+              height={24}
+              tickFormatter={(v)=>new Date(v).toLocaleDateString('en-US',{month:'short',year:'2-digit'})}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
