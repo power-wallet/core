@@ -22,18 +22,21 @@ export const DEFAULT_PARAMETERS = {
   tradingFee: 0.003,       // 0.3% trading fee assumption
 };
 
-export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaAmount?: number; dcaIntervalDays?: number; tradingFee?: number }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaAmount?: number; dcaIntervalDays?: number; tradingFee?: number; depositAmount?: number; depositIntervalDays?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
   const dcaAmount = Math.max(0, options.dcaAmount ?? DEFAULT_PARAMETERS.dcaAmount);
   const dcaIntervalDays = Math.max(1, Math.floor(options.dcaIntervalDays ?? DEFAULT_PARAMETERS.dcaIntervalDays));
   const feePct = options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee;
+  const depositAmount = Math.max(0, options.depositAmount ?? 0);
+  const depositIntervalDays = Math.max(0, Math.floor(options.depositIntervalDays ?? 0));
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in BTC data');
 
-  let usdc = initialCapital;
+  // Treat initialCapital as total contributions; start with only the first deposit as cash
+  let usdc = depositAmount > 0 ? depositAmount : 0;
   let btcQty = 0;
   const trades: Trade[] = [];
   const dailyPerformance: DailyPerformance[] = [];
@@ -42,12 +45,17 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   const btcStartPrice = prices[startIdx];
   const btcHodlQty = (initialCapital * (1.0 - feePct)) / btcStartPrice;
 
-  let maxPortfolioValue = initialCapital;
+  let maxPortfolioValue = usdc;
   let maxBtcHodlValue = initialCapital;
 
   const toDate = (s: string) => new Date(s + 'T00:00:00Z');
   let nextBuyDate = toDate(dates[startIdx]);
   nextBuyDate.setDate(nextBuyDate.getDate() + dcaIntervalDays);
+  // Deposit schedule (start on day 1)
+  let nextDepositDate = toDate(dates[startIdx]);
+  if (depositIntervalDays > 0) {
+    nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+  }
 
   // Initial day
   dailyPerformance.push({
@@ -57,7 +65,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     ethQty: 0,
     btcValue: 0,
     ethValue: 0,
-    totalValue: initialCapital,
+    totalValue: usdc,
     btcHodlValue: initialCapital,
     drawdown: 0,
     btcHodlDrawdown: 0,
@@ -69,8 +77,14 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     const date = dates[i];
     const btcPrice = prices[i];
 
-    // DCA buy if due and cash available
+    // Apply deposit if due (before evaluation/trade)
     const currDate = toDate(date);
+    if (depositAmount > 0 && depositIntervalDays > 0 && currDate >= nextDepositDate) {
+      usdc += depositAmount;
+      nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+    }
+
+    // DCA buy if due and cash available
     if (usdc >= dcaAmount && currDate >= nextBuyDate) {
       const buyAmount = Math.min(dcaAmount, usdc);
       const fee = buyAmount * feePct;

@@ -19,7 +19,7 @@ The Strategy Simulator is a comprehensive backtesting tool that allows users to 
 2. **Interactive Controls**
    - Strategy selector (currently: BTC-ETH Momentum RSI)
    - Date range picker (start/end dates)
-   - Initial capital input
+   - Deposit amount and cadence (e.g., $1,000 monthly)
    - Form validation
 
 3. **Performance Metrics**
@@ -47,7 +47,7 @@ The Strategy Simulator is a comprehensive backtesting tool that allows users to 
 
 1. **Price Data**: Loaded from `/public/data/btc_daily.json` and `/public/data/eth_daily.json`
 2. **Indicators**: Calculated using `lib/indicators.ts` (SMA, RSI)
-3. **Simulation**: Day-by-day portfolio simulation in `lib/simulator.ts`
+3. **Simulation**: Day-by-day portfolio simulation in `lib/simulator.ts` and strategy modules; portfolio is funded via periodic deposits into USDC, available on the next evaluation date
 4. **Results**: Rendered via components in `components/simulator/`
 
 ### Strategy Logic (from Python)
@@ -105,10 +105,10 @@ frontend/src/
 
 1. **Navigate**: Go to `/simulator` in the app
 2. **Configure**: 
-   - Select strategy (currently only BTC-ETH Momentum)
+   - Select strategy
    - Choose start date (e.g., 2025-01-01)
    - Choose end date (e.g., 2025-09-27)
-   - Enter initial capital (minimum $100)
+   - Enter deposit amount (e.g., $1,000) and cadence (e.g., monthly)
 3. **Run**: Click "Run Simulation" button
 4. **Analyze**: Review metrics, charts, and trades
 

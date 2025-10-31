@@ -16,7 +16,7 @@ export interface Strategy {
 // Centralized default parameters (adapted from adaptive_dca_btc.py)
 export const DEFAULT_PARAMETERS = {
   evalIntervalDays: 7,        // how often to evaluate trading rules (default weekly)
-  baseDcaUsdc: 100.0,         // daily base DCA
+  baseDcaUsdc: 100.0,         // base DCA amount per evaluation
   minTradeUsd: 1.0,           // minimum trade to execute/record
   lookbackDays: 30,           // rolling realized variance window
   kKicker: 0.05,              // vol/drawdown sizing coefficient
@@ -25,9 +25,9 @@ export const DEFAULT_PARAMETERS = {
   bufferMult: 9.0,            // days of base DCA to keep as USDC buffer
   cmaxMult: 3.0,              // cap extra buy per day = cmax_mult * base_dca
   thresholdMode: true,        // optional true threshold rebalancing
-  targetBtcWeight: 0.80,      // target BTC weight
-  bandDelta: 0.10,            // ±10% band around target
-  rebalanceCapFrac: 0.05,     // cap single rebalance to 5% NAV
+  targetBtcWeight: 0.50,      // target BTC weight
+  bandDelta: 0.30,            // ±10% band around target
+  rebalanceCapFrac: 0.20,     // cap single rebalance to 20% NAV
   tradingFee: 0.003,          // 0.3% fee assumption for BTC HODL benchmark
 };
 
@@ -60,6 +60,8 @@ export async function run(
     bandDelta?: number;
     rebalanceCapFrac?: number;
     tradingFee?: number;
+    depositAmount?: number;
+    depositIntervalDays?: number;
   }
 ): Promise<SimulationResult> {
   const btcData = options.prices.btc;
@@ -83,9 +85,12 @@ export async function run(
   if (startIdx === -1) throw new Error('Start date not found in BTC data');
 
   // Portfolio state
-  let usdc = initialCapital;
+  const depositAmount = Math.max(0, options.depositAmount ?? 0);
+  const depositIntervalDays = Math.max(0, Math.floor(options.depositIntervalDays ?? 0));
+  // initialCapital represents total contributions; start with first deposit as cash
+  let usdc = depositAmount > 0 ? depositAmount : 0;
   let btcQty = 0;
-  let maxPortfolioValue = initialCapital;
+  let maxPortfolioValue = usdc;
   let maxBtcHodlValue = initialCapital;
 
   // Benchmark HODL
@@ -116,7 +121,7 @@ export async function run(
     ethQty: 0,
     btcValue: 0,
     ethValue: 0,
-    totalValue: initialCapital,
+    totalValue: usdc,
     btcHodlValue: initialCapital,
     drawdown: 0,
     btcHodlDrawdown: 0,
@@ -128,11 +133,22 @@ export async function run(
   const toDate = (s: string) => new Date(s + 'T00:00:00Z');
   let nextEvalDate = toDate(dates[startIdx]);
   nextEvalDate.setDate(nextEvalDate.getDate() + evalIntervalDays);
+  // Deposit schedule
+  let nextDepositDate = toDate(dates[startIdx]);
+  if (depositIntervalDays > 0) {
+    nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+  }
 
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
     const price = closes[i];
     const currDate = toDate(date);
+
+    // Apply deposit if due (before evaluation)
+    if (depositAmount > 0 && depositIntervalDays > 0 && currDate >= nextDepositDate) {
+      usdc += depositAmount;
+      nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+    }
 
     // Update drawdown
     runningPeak = Math.max(runningPeak, price);

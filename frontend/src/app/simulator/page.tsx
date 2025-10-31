@@ -66,13 +66,33 @@ function SimulatorPageInner() {
 
     try {
       const prices = await loadPriceData(params.startDate, params.endDate, 210);
+      // Compute total contributions over the interval (deposit on start date and every interval thereafter)
+      const start = new Date(params.startDate + 'T00:00:00Z');
+      const end = new Date(params.endDate + 'T00:00:00Z');
+      let numDeposits = 0;
+      if (params.depositAmount > 0) {
+        if (params.depositIntervalDays <= 0) {
+          numDeposits = 1; // one-off
+        } else {
+          const d = new Date(start.getTime());
+          while (d <= end) {
+            numDeposits += 1;
+            d.setDate(d.getDate() + params.depositIntervalDays);
+          }
+        }
+      }
+      const totalContributions = params.depositAmount * numDeposits;
+
+      const baseOptions = params.options?.[params.strategy] || params.options || {};
+      const optionsWithDeposits = { ...baseOptions, depositAmount: params.depositAmount, depositIntervalDays: params.depositIntervalDays };
+
       const simulationResult = await runStrategy(
         params.strategy as any,
-        params.initialCapital,
+        totalContributions,
         params.startDate,
         params.endDate,
         prices,
-        params.options?.[params.strategy] || params.options || undefined
+        optionsWithDeposits
       );
       setResult(simulationResult);
     } catch (err) {

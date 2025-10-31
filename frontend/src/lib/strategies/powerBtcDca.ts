@@ -63,6 +63,8 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   sellPctAboveUpper?: number;
   upperBandMult?: number;
   lowerBandMult?: number;
+  depositAmount?: number;
+  depositIntervalDays?: number;
 }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
   const tradingFee = options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee;
@@ -74,6 +76,8 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   const sellPctAboveUpper = Math.max(0, options.sellPctAboveUpper ?? DEFAULT_PARAMETERS.sellPctAboveUpper);
   const upperMult = Math.max(0, options.upperBandMult ?? DEFAULT_PARAMETERS.upperBandMult);
   const lowerMult = Math.max(0, options.lowerBandMult ?? DEFAULT_PARAMETERS.lowerBandMult);
+  const depositAmount = Math.max(0, options.depositAmount ?? 0);
+  const depositIntervalDays = Math.max(0, Math.floor(options.depositIntervalDays ?? 0));
 
   // Align to range and compute model and bands
   const dates = btcData.map(d => d.date);
@@ -82,8 +86,8 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in BTC data');
 
-  // Portfolio: USDC + BTC only
-  let usdc = initialCapital;
+  // Portfolio: start with only the first scheduled deposit as cash; initialCapital is total contributions
+  let usdc = depositAmount > 0 ? depositAmount : 0;
   let btcQty = 0;
   const trades: Trade[] = [];
   const dailyPerformance: DailyPerformance[] = [];
@@ -92,7 +96,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   const btcStartPrice = prices[startIdx];
   const btcHodlQty = (initialCapital * (1.0 - tradingFee)) / btcStartPrice; // reuse fee assumption
 
-  let maxPortfolioValue = initialCapital;
+  let maxPortfolioValue = usdc;
   let maxBtcHodlValue = initialCapital;
 
   // Helper: is week boundary (trade once per 7 days)
@@ -115,7 +119,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     ethQty: 0,
     btcValue: 0,
     ethValue: 0,
-    totalValue: initialCapital,
+    totalValue: usdc,
     btcHodlValue: initialCapital,
     drawdown: 0,
     btcHodlDrawdown: 0,
@@ -126,12 +130,26 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     btcLowerBand: modelPriceUSD(dates[startIdx]) * lowerMult,
   });
 
+  // Deposit schedule (start on day 1)
+  const toDate = (s: string) => new Date(s + 'T00:00:00Z');
+  let nextDepositDate = toDate(dates[startIdx]);
+  if (depositIntervalDays > 0) {
+    nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+  }
+
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
     const btcPrice = prices[i];
     const model = modelPriceUSD(date);
     const upper = model * upperMult;
     const lower = model * lowerMult;
+
+    // Apply deposit if due before evaluation
+    const currDate = toDate(date);
+    if (depositAmount > 0 && depositIntervalDays > 0 && currDate >= nextDepositDate) {
+      usdc += depositAmount;
+      nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+    }
 
     // Update portfolio value
     const btcValue = btcQty * btcPrice;

@@ -59,6 +59,8 @@ export async function run(
     rebalanceThreshold?: number;
     momentumExponent?: number;
     tradingFee?: number;
+    depositAmount?: number;
+    depositIntervalDays?: number;
   }
 ): Promise<SimulationResult> {
   const parameters: StrategyParameters = {
@@ -93,7 +95,10 @@ export async function run(
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in data');
 
-  let cash = initialCapital;
+  const depositAmount = Math.max(0, options.depositAmount ?? 0);
+  const depositIntervalDays = Math.max(0, Math.floor(options.depositIntervalDays ?? 0));
+  // initialCapital is total contributions; start with first deposit as cash
+  let cash = depositAmount > 0 ? depositAmount : 0;
   const btcPos: Position = { symbol: 'BTC', quantity: 0, value: 0, lastPrice: 0 };
   const ethPos: Position = { symbol: 'ETH', quantity: 0, value: 0, lastPrice: 0 };
 
@@ -104,17 +109,17 @@ export async function run(
   const rsiSignals: DailyRsiSignals[] = [];
   const dailyPerformance: DailyPerformance[] = [];
 
-  let maxPortfolioValue = initialCapital;
+  let maxPortfolioValue = cash;
   let maxBtcHodlValue = initialCapital;
 
   dailyPerformance.push({
     date: dates[startIdx],
-    cash: initialCapital,
+    cash: cash,
     btcQty: 0,
     ethQty: 0,
     btcValue: 0,
     ethValue: 0,
-    totalValue: initialCapital,
+    totalValue: cash,
     btcHodlValue: initialCapital,
     drawdown: 0,
     btcHodlDrawdown: 0,
@@ -122,10 +127,24 @@ export async function run(
     ethPrice: ethPrices[startIdx],
   });
 
+  // Deposit schedule
+  const toDate = (s: string) => new Date(s + 'T00:00:00Z');
+  let nextDepositDate = toDate(dates[startIdx]);
+  if (depositIntervalDays > 0) {
+    nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+  }
+
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
     const btcPrice = btcPrices[i];
     const ethPrice = ethPrices[i];
+
+    // Apply deposit before evaluation
+    const currDate = toDate(date);
+    if (depositAmount > 0 && depositIntervalDays > 0 && currDate >= nextDepositDate) {
+      cash += depositAmount;
+      nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+    }
 
     btcPos.lastPrice = btcPrice; btcPos.value = btcPos.quantity * btcPrice;
     ethPos.lastPrice = ethPrice; ethPos.value = ethPos.quantity * ethPrice;

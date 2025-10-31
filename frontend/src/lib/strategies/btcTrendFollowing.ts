@@ -46,7 +46,7 @@ export const DEFAULT_PARAMETERS = {
 
 const SMA_LENGTH = 50; // SMA period for trend (kept constant for charting consistency)
 
-export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number; dcaMode?: boolean }): Promise<SimulationResult> {
+export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number; dcaMode?: boolean; depositAmount?: number; depositIntervalDays?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
   const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_PARAMETERS.dcaPctWhenBearish));
   const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.evalIntervalDays));
@@ -63,7 +63,10 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   const startIdx = dates.findIndex(d => d >= startDate);
   if (startIdx === -1) throw new Error('Start date not found in BTC data');
 
-  let usdc = initialCapital;
+  const depositAmount = Math.max(0, options.depositAmount ?? 0);
+  const depositIntervalDays = Math.max(0, Math.floor(options.depositIntervalDays ?? 0));
+  // initialCapital is total contributions; start with first deposit only
+  let usdc = depositAmount > 0 ? depositAmount : 0;
   let btcQty = 0;
   let inDcaMode = options.dcaMode ?? DEFAULT_PARAMETERS.dcaMode;
   const trades: Trade[] = [];
@@ -73,7 +76,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   const btcStartPrice = prices[startIdx];
   const btcHodlQty = (initialCapital * (1.0 - feePct)) / btcStartPrice;
 
-  let maxPortfolioValue = initialCapital;
+  let maxPortfolioValue = usdc;
   let maxBtcHodlValue = initialCapital;
 
   const toDate = (s: string) => new Date(s + 'T00:00:00Z');
@@ -88,7 +91,7 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     ethQty: 0,
     btcValue: 0,
     ethValue: 0,
-    totalValue: initialCapital,
+    totalValue: usdc,
     btcHodlValue: initialCapital,
     drawdown: 0,
     btcHodlDrawdown: 0,
@@ -111,6 +114,12 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     return sum / length;
   };
 
+  // Deposit schedule
+  let nextDepositDate = toDate(dates[startIdx]);
+  if (depositIntervalDays > 0) {
+    nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+  }
+
   for (let i = startIdx + 1; i < dates.length; i++) {
     const date = dates[i];
     const btcPrice = prices[i];
@@ -118,6 +127,11 @@ export async function run(initialCapital: number, startDate: string, endDate: st
 
     // Evaluate weekly
     const currDate = toDate(date);
+    // Apply deposit before evaluation
+    if (depositAmount > 0 && depositIntervalDays > 0 && currDate >= nextDepositDate) {
+      usdc += depositAmount;
+      nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
+    }
     if (sma !== null && currDate >= nextEvalDate) {
       // Hysteresis thresholds and slope gate
       const upThresh = sma * (1 + hystBps / 10_000);
