@@ -37,6 +37,16 @@ export const DEFAULT_PARAMETERS = {
     description: 'Strategy evaluation interval (default 5 days)',
     configurable: true,
   },
+  dcaPctWhenBearish: {
+    name: 'Base DCA (%)',
+    defaultValue: 0.05,
+    minPerc: 1,
+    maxPerc: 25,
+    percInc: 1,
+    type: 'percentage',
+    description: 'Base DCA percentage when in downtrend',
+    configurable: true,
+  },
   dcaMode: {
     name: 'DCA mode',
     defaultValue: true,
@@ -59,16 +69,6 @@ export const DEFAULT_PARAMETERS = {
     defaultValue: 14,
     type: 'days',
     description: 'SMA slope lookback window for downtrend detection',
-    configurable: true,
-  },
-  dcaPctWhenBearish: {
-    name: 'Base DCA (%)',
-    defaultValue: 0.05,
-    minPerc: 1,
-    maxPerc: 25,
-    percInc: 1,
-    type: 'percentage',
-    description: 'Base DCA percentage when in downtrend',
     configurable: true,
   },
   dcaBoostMultiplier: {
