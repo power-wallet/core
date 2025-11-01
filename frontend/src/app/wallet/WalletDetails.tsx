@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, Button, Container, Grid, Typography, Snackbar, Alert, useMediaQuery, useTheme, Tooltip } from '@mui/material';
+import { Box, Button, Container, Grid, Typography, Snackbar, Alert, useMediaQuery, useTheme, Tooltip, Tabs, Tab } from '@mui/material';
 import LaunchIcon from '@mui/icons-material/Launch';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
@@ -47,6 +47,7 @@ export default function WalletDetails() {
     return `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`;
   }, [walletAddress]);
   const [copied, setCopied] = React.useState(false);
+  const [tab, setTab] = React.useState(0);
 
   const {
     assets,
@@ -354,11 +355,15 @@ export default function WalletDetails() {
         </Tooltip>
       </Typography>
 
-      {hasAnyTransactions && walletSeries && walletSeries.length ? (
-        <Box sx={{ mb: 3 }}>
-          <WalletHistoryChart data={walletSeries as any} />
-        </Box>
-      ) : null}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="Wallet tabs">
+          <Tab label="Wallet" />
+          <Tab label="Config" />
+          <Tab label="Trades" />
+        </Tabs>
+      </Box>
+
+      
 
       {isClosed ? (
         <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'warning.main', bgcolor: 'rgba(245, 158, 11, 0.08)', borderRadius: 1 }}>
@@ -370,89 +375,99 @@ export default function WalletDetails() {
         </Box>
       ) : null}
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
-          <AssetsCard
-            chainAssets={chainAssets as any}
-            riskAssets={riskAssets as any}
-            stableBal={stableBal}
-            riskBals={riskBals}
-            userUsdcBalance={userUsdcBalance}
-            prices={prices}
-            valueUsd={valueUsd as bigint}
-            onDeposit={() => setDepositOpen(true)}
-            onWithdraw={() => setWithdrawOpen(true)}
-          />
-        </Grid>
+      {tab === 0 ? (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+            <AssetsCard
+              chainAssets={chainAssets as any}
+              riskAssets={riskAssets as any}
+              stableBal={stableBal}
+              riskBals={riskBals}
+              userUsdcBalance={userUsdcBalance}
+              prices={prices}
+              valueUsd={valueUsd as bigint}
+              onDeposit={() => setDepositOpen(true)}
+              onWithdraw={() => setWithdrawOpen(true)}
+            />
+          </Grid>
 
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <StrategyCard
-            strategyName={(() => {
-              const strategies = (appConfig as any)[chainKey]?.strategies || {};
-              const onChainId = String(strategyIdStr || '').trim();
-              let mappedName: string | null = null;
-              if (onChainId && (strategies as any)[onChainId]?.name) {
-                mappedName = (strategies as any)[onChainId].name as string;
-              } else if (onChainId) {
-                for (const st of Object.values<any>(strategies)) {
-                  if (String(st.id || '').trim() === onChainId) { mappedName = (st as any).name as string; break; }
-                }
-              }
-              return mappedName || String(strategyName || '');
-            })() as any}
-            description={(() => {
-              const strategies = (appConfig as any)[chainKey]?.strategies || {};
-              const onChainId = String(strategyIdStr || '').trim();
-              let mappedDesc: string | null = null;
-              if (onChainId && (strategies as any)[onChainId]?.description) {
-                mappedDesc = (strategies as any)[onChainId].description as string;
-              } else if (onChainId) {
-                for (const st of Object.values<any>(strategies)) {
-                  if (String(st.id || '').trim() === onChainId) { mappedDesc = (st as any).description as string; break; }
-                }
-              }
-              const finalDesc = mappedDesc || String(desc || '');
-              return finalDesc;
-            })()}
-            strategyAddr={strategyAddr as any}
-            explorerBase={explorerBase}
-            dcaAmount={(["power-btc-dca-v1", "smart-btc-dca-v2"].includes(String(strategyIdStr || '').trim()) ? baseDcaAmount : dcaAmount) as any}
-            frequency={freq as any}
-            strategyIdStr={strategyIdStr as any}
-            onOpenConfig={() => setStrategyConfigOpen(true)}
-          />
+          <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+            <DepositsWithdrawalsCard
+              deposits={(Array.isArray(depositsData) ? depositsData : []) as any}
+              withdrawals={(Array.isArray(withdrawalsData) ? withdrawalsData : []) as any}
+              addressToMeta={addressToMeta as any}
+            />
+          </Grid>
         </Grid>
-      </Grid>
+      ) : null}
+
+      {tab === 0 && hasAnyTransactions && walletSeries && walletSeries.length ? (
+        <Box sx={{ mt: 3 }}>
+          <WalletHistoryChart data={walletSeries as any} />
+        </Box>
+      ) : null}
 
       {/* Wallet Config + Automate Your Wallet side by side on desktop */}
-      <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <WalletConfigCard
-            automationPaused={automationPaused as any}
-            slippage={slippage as any}
-            onOpenSlippage={() => { setSlippageInput(slippage ? String(Number(slippage)) : ''); setSlippageOpen(true); }}
-            onToggleAutomation={async () => {
-              const ok = await ensureOnPrimaryChain(chainId as number, (args: any) => (window as any));
-              if (!walletAddress) return;
-              try {
-                const fn = automationPaused ? 'unpauseAutomation' : 'pauseAutomation';
-                const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: fn as any, args: [] });
-                setTxHash(hash as `0x${string}`);
-              } catch (e: any) {
-                setToast({ open: true, message: e?.shortMessage || e?.message || 'Transaction failed', severity: 'error' });
-              }
-            }}
-          />
-        </Grid>
+      {tab === 1 ? (
+        <Grid container spacing={3} sx={{ mt: 0 }}>
+          <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+            <StrategyCard
+              strategyName={(() => {
+                const strategies = (appConfig as any)[chainKey]?.strategies || {};
+                const onChainId = String(strategyIdStr || '').trim();
+                let mappedName: string | null = null;
+                if (onChainId && (strategies as any)[onChainId]?.name) {
+                  mappedName = (strategies as any)[onChainId].name as string;
+                } else if (onChainId) {
+                  for (const st of Object.values<any>(strategies)) {
+                    if (String(st.id || '').trim() === onChainId) { mappedName = (st as any).name as string; break; }
+                  }
+                }
+                return mappedName || String(strategyName || '');
+              })() as any}
+              description={(() => {
+                const strategies = (appConfig as any)[chainKey]?.strategies || {};
+                const onChainId = String(strategyIdStr || '').trim();
+                let mappedDesc: string | null = null;
+                if (onChainId && (strategies as any)[onChainId]?.description) {
+                  mappedDesc = (strategies as any)[onChainId].description as string;
+                } else if (onChainId) {
+                  for (const st of Object.values<any>(strategies)) {
+                    if (String(st.id || '').trim() === onChainId) { mappedDesc = (st as any).description as string; break; }
+                  }
+                }
+                const finalDesc = mappedDesc || String(desc || '');
+                return finalDesc;
+              })()}
+              strategyAddr={strategyAddr as any}
+              explorerBase={explorerBase}
+              dcaAmount={( ["power-btc-dca-v1", "smart-btc-dca-v2"].includes(String(strategyIdStr || '').trim()) ? baseDcaAmount : dcaAmount) as any}
+              frequency={freq as any}
+              strategyIdStr={strategyIdStr as any}
+              onOpenConfig={() => setStrategyConfigOpen(true)}
+            />
+          </Grid>
 
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-          <DepositsWithdrawalsCard
-            deposits={(Array.isArray(depositsData) ? depositsData : []) as any}
-            withdrawals={(Array.isArray(withdrawalsData) ? withdrawalsData : []) as any}
-            addressToMeta={addressToMeta as any}
-          />
+          <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+            <WalletConfigCard
+              automationPaused={automationPaused as any}
+              slippage={slippage as any}
+              onOpenSlippage={() => { setSlippageInput(slippage ? String(Number(slippage)) : ''); setSlippageOpen(true); }}
+              onToggleAutomation={async () => {
+                const ok = await ensureOnPrimaryChain(chainId as number, (args: any) => (window as any));
+                if (!walletAddress) return;
+                try {
+                  const fn = automationPaused ? 'unpauseAutomation' : 'pauseAutomation';
+                  const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: fn as any, args: [] });
+                  setTxHash(hash as `0x${string}`);
+                } catch (e: any) {
+                  setToast({ open: true, message: e?.shortMessage || e?.message || 'Transaction failed', severity: 'error' });
+                }
+              }}
+            />
+          </Grid>
         </Grid>
-      </Grid>
+      ) : null}
 
       {/* Deposit Modal */}
       <DepositDialog
@@ -670,15 +685,17 @@ export default function WalletDetails() {
 
 
       {/* Transactions - Deposits & Withdrawals */}
-      <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid item xs={12} sx={{ display: 'flex' }}>
-          <SwapsCard
-            swaps={(Array.isArray(swapsData) ? swapsData : []) as any}
-            addressToMeta={addressToMeta as any}
-            chainAssets={chainAssets as any}
-          />
+      {tab === 2 ? (
+        <Grid container spacing={3} sx={{ mt: 0 }}>
+          <Grid item xs={12} sx={{ display: 'flex' }}>
+            <SwapsCard
+              swaps={(Array.isArray(swapsData) ? swapsData : []) as any}
+              addressToMeta={addressToMeta as any}
+              chainAssets={chainAssets as any}
+            />
+          </Grid>
         </Grid>
-      </Grid>
+      ) : null}
 
       {/* Close Wallet Section */}
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-start' }}>
