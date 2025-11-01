@@ -19,24 +19,24 @@ export interface Strategy {
 
 export const DEFAULT_PARAMETERS = {
   evalIntervalDays: {
-    name: 'Evaluate interval (days)',
+    name: 'Interval (days)',
     defaultValue: 1,
     type: 'days',
-    description: 'Evaluate daily',
+    description: 'Strategy evaluation interval (daily default)',
     configurable: true,
   },
   rsiBars: {
-    name: 'RSI lookback (days)',
+    name: 'RSI (days)',
     defaultValue: 8,
     type: 'days',
-    description: 'RSI lookback (days) for BTC and ETH',
+    description: 'RSI (days) for BTC/USDC and ETH/USDC',
     configurable: true,
   },
   ethBtcRsiBars: {
-    name: 'ETH/BTC RSI lookback (days)',
+    name: 'ETH/BTC RSI (days)',
     defaultValue: 5,
     type: 'days',
-    description: 'RSI lookback (days) for ETH/BTC price ratio',
+    description: 'RSI (days) for ETH/BTC price ratio',
     configurable: true,
   },
   bearishRsiEntry: {
@@ -77,6 +77,9 @@ export const DEFAULT_PARAMETERS = {
   allocation: {
     name: 'Investable allocation',
     defaultValue: 0.98,
+    minPerc: 1,
+    maxPerc: 100,
+    percInc: 1,
     type: 'percentage',
     description: 'Fraction of equity investable in risk assets (rest kept as cash)',
     configurable: true,
@@ -84,6 +87,9 @@ export const DEFAULT_PARAMETERS = {
   rebalanceThreshold: {
     name: 'Rebalance threshold (NAV %)',
     defaultValue: 0.275,
+    minPerc: 5,
+    maxPerc: 50,
+    percInc: 0.5,
     type: 'percentage',
     description: 'Min |target-current| as fraction of total equity to trigger a trade',
     configurable: true,
@@ -96,8 +102,11 @@ export const DEFAULT_PARAMETERS = {
     configurable: true,
   },
   tradingFee: {
-    name: 'Trading fee',
+    name: 'Fee (%)',
     defaultValue: 0.003,
+    minPerc: 0,
+    maxPerc: 0.5,
+    percInc: 0.05,
     type: 'percentage',
     description: 'Per-trade fee (0.30%) applied to buys and sells',
     configurable: true,

@@ -17,10 +17,10 @@ export interface Strategy {
 // Centralized default parameters (adapted from adaptive_dca_btc.py)
 export const DEFAULT_PARAMETERS = {
   evalIntervalDays: {
-    name: 'Evaluate interval (days)',
+    name: 'Interval (days)',
     defaultValue: 7,
     type: 'days',
-    description: 'How often to evaluate trading rules (default weekly)',
+    description: 'Strategy evaluation interval (default weekly)',
     configurable: true,
   },
   baseDcaUsdc: {
@@ -54,6 +54,9 @@ export const DEFAULT_PARAMETERS = {
   winsorizeAbsRet: {
     name: 'Winsorize abs return',
     defaultValue: 0.20,
+    minPerc: 0,
+    maxPerc: 100,
+    percInc: 1,
     type: 'percentage',
     description: 'Clip absolute daily log return',
     configurable: true,
@@ -89,6 +92,9 @@ export const DEFAULT_PARAMETERS = {
   targetBtcWeight: {
     name: 'Target BTC weight',
     defaultValue: 0.50,
+    minPerc: 0,
+    maxPerc: 100,
+    percInc: 1,
     type: 'percentage',
     description: 'Target BTC weight',
     configurable: true,
@@ -96,6 +102,9 @@ export const DEFAULT_PARAMETERS = {
   bandDelta: {
     name: 'Weight band ±',
     defaultValue: 0.30,
+    minPerc: 0,
+    maxPerc: 100,
+    percInc: 1,
     type: 'percentage',
     description: '± band around target weight',
     configurable: true,
@@ -103,15 +112,21 @@ export const DEFAULT_PARAMETERS = {
   rebalanceCapFrac: {
     name: 'Rebalance cap (NAV %)',
     defaultValue: 0.20,
+    minPerc: 0,
+    maxPerc: 100,
+    percInc: 1,
     type: 'percentage',
     description: 'Cap single rebalance as fraction of NAV',
     configurable: true,
   },
   tradingFee: {
-    name: 'Trading fee',
+    name: 'Fee (%)',
     defaultValue: 0.003,
+    minPerc: 0,
+    maxPerc: 1,
+    percInc: 0.05,
     type: 'percentage',
-    description: 'Trading fee assumption for BTC HODL benchmark',
+    description: 'Trading fee (default 0.3%)',
     configurable: true,
   },
 };

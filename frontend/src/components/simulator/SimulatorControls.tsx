@@ -390,7 +390,16 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
                   }
 
                   if (type === 'percentage') {
-                    const pct = Math.round((Number(value) || 0) * 100);
+                    const minPerc: number = Number(m?.minPerc ?? 0);
+                    const maxPerc: number = Number(m?.maxPerc ?? 100);
+                    const percInc: number = Number(m?.percInc ?? 1);
+                    const decimals = Math.max(0, ((String(percInc).split('.')[1]) || '').length);
+                    const options: number[] = [];
+                    for (let p = minPerc; p <= maxPerc + 1e-9; p = Number((p + percInc).toFixed(decimals))) {
+                      options.push(Number(p.toFixed(decimals)));
+                    }
+                    const pctValue = (Number(value) || 0) * 100;
+                    const pctStr = pctValue.toFixed(decimals);
                     return (
                       <Grid item xs={12} sm={6} md={4} key={key}>
                         <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
@@ -400,7 +409,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
                           select
                           fullWidth
                           label={name}
-                          value={String(pct)}
+                          value={pctStr}
                           onChange={(e) => handleField(key, Number(e.target.value) / 100)}
                           variant="outlined"
                           sx={{
@@ -414,8 +423,8 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
                             '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
                           }}
                         >
-                          {Array.from({ length: 101 }, (_, i) => (
-                            <MenuItem key={i} value={String(i)}>{i}%</MenuItem>
+                          {options.map((p) => (
+                            <MenuItem key={p.toFixed(decimals)} value={p.toFixed(decimals)}>{p.toFixed(decimals)}%</MenuItem>
                           ))}
                         </TextField>
                       </Grid>
