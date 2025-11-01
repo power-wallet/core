@@ -327,18 +327,7 @@ export default function WalletDetails() {
   <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
 
     <Container maxWidth="lg" sx={{ py: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-        <Box sx={{ width: 64, height: 64, borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper' }}>
-          {walletAddress ? (<Jazzicon diameter={44} seed={jsNumberForAddress(walletAddress)} />) : null}
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ lineHeight: 1, mb: 0.5 }}>Wallet value</Typography>
-          <Typography sx={{ fontSize: { xs: '2.2rem', sm: '3rem' }, fontWeight: 700, lineHeight: 1 }}>
-            {valueUsd !== undefined ? formatUsd6Bigint(valueUsd as bigint) : '-'}
-          </Typography>
-        </Box>
-      </Box>
-      <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
+      <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 1.5 }}>
         <a
           href="/portfolio"
           style={{ color: 'inherit', textDecoration: 'underline' }}
@@ -369,6 +358,18 @@ export default function WalletDetails() {
           </a>
         </Tooltip>
       </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+        <Box sx={{ width: 64, height: 64, borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper' }}>
+          {walletAddress ? (<Jazzicon diameter={44} seed={jsNumberForAddress(walletAddress)} />) : null}
+        </Box>
+        <Box>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ lineHeight: 1, mb: 0.5 }}>Wallet value</Typography>
+          <Typography sx={{ fontSize: { xs: '2.2rem', sm: '3rem' }, fontWeight: 700, lineHeight: 1 }}>
+            {valueUsd !== undefined ? formatUsd6Bigint(valueUsd as bigint) : '-'}
+          </Typography>
+        </Box>
+      </Box>
+      
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="Wallet tabs">
