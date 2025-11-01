@@ -19,7 +19,7 @@ import "../core/TechnicalIndicators.sol";
  * - State machine:
  *    - If not in DCA mode and price > upThresh and slopeOk: go/stay full-BTC (BUY all stable)
  *    - If not in DCA mode and (price < dnThresh or !slopeOk): SELL all BTC to stable, enter DCA mode
- *    - If in DCA mode and not enterUp and stable > minCash: DCA
+ *    - If in DCA mode and price < dnThresh and stable > minCash: DCA
  *         spend = min(stable, stable * dcaPct)
  *         if price discount vs SMA >= discountBelowSmaPct, spend *= dcaBoostMultiplier (bounded by stable)
  *         if spend >= minSpendUsd (in stable units), BUY spend of stable into BTC
@@ -185,7 +185,7 @@ contract TrendBtcDcaV1 is IStrategy {
             return (true, actions);
         }
 
-        if (inDcaMode && !enterUp && stableBalance > minCashStable) {
+        if (inDcaMode && (price1e8 <= dnThresh1e8) && stableBalance > minCashStable) {
             // DCA gently while trend is not up
             uint256 spend = (stableBalance * dcaPctBps) / 10000;
             // discount = 1 - price/sma (in percent)

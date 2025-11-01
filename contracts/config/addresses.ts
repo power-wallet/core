@@ -57,7 +57,7 @@ export const addresses: Record<string, ChainAddresses> = {
       'simple-btc-dca-v1': '0x251cc6A7B70BD87F4Dc12cf5A9AF88A2410c1aFf', // deployed SimpleDCA on Base Sepolia
       'power-btc-dca-v2': '0x24b3DC2D7b68C69cE28A072c82a03e17C49C9973',
       'smart-btc-dca-v2': '0xcD0745beF87FC9f1CAF741E831cfF6621302bDE5',
-      'trend-btc-dca-v1': '0xb2195C7971387F5E37d2Db142B3711f131C3728b'
+      'trend-btc-dca-v1': '0xA7422613CF3D0C4EA595c15b9EFb54E84D748eb4'
     }
   },
 
@@ -88,7 +88,7 @@ export const addresses: Record<string, ChainAddresses> = {
       'simple-btc-dca-v1': '0x9cD62343cF0daec9d2179f35D4630d61aD56ae09',
       'power-btc-dca-v2': '0x77C5deDdcFDe2f165306e1b6d2F834D8F5d4c1f0',
       'smart-btc-dca-v2': '0xC749e37Be623D848B19396a5185093c7808bC5A7',
-      'trend-btc-dca-v1': '0xA27B80dCD4490E11aCd53148c69bB62c9fcEEB9a'
+      'trend-btc-dca-v1': '0x316cc4fb12b1785aA38Cba5040AC2094B1d99709'
     }
   },
 }

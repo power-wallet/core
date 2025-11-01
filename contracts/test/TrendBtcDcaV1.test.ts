@@ -201,6 +201,29 @@ describe("TrendBtcDcaV1", () => {
     // 5% of 1,000 = 50
     expect(actions[0].amountIn).to.eq(50_000_000n);
   });
+
+  it("does not DCA in band when in DCA mode (price above SMA but below up-threshold)", async () => {
+    const { strat, btcFeed, usdc, cbBTC, indicators } = await deployFixture();
+    // Ensure DCA mode is on
+    await strat.setInDcaMode(true);
+    // Fetch current SMA to position price within hysteresis band
+    const sma50 = await (indicators as any).calculateSMA(cbBTC.target as string, 50);
+    // Set BTC price above SMA but below up-threshold
+    // With hystPct=0.015 (1.5%), pick price = SMA * 1.01 (within band)
+    const priceInBand = (sma50 * 101n) / 100n;
+    await btcFeed.updateAnswer(priceInBand);
+    const stableBal = 1_000_000_000n; // $1,000
+    const [need, actions] = await strat.shouldRebalance.staticCall(
+      usdc.target,
+      [cbBTC.target],
+      stableBal,
+      [0n]
+    );
+
+    // expect no DCA
+    expect(need).to.eq(false);
+    expect(actions.length).to.eq(0);
+  });
 });
 
 
