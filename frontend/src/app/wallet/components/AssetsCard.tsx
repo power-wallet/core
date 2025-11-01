@@ -26,16 +26,16 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
   const chainKey = getChainKey(chainId);
   const usdcMeta = (chainAssets as any)['USDC'] as { address: string; symbol: string; decimals: number } | undefined;
   const btcMeta = (chainAssets as any)['cbBTC'] as { address: string; symbol: string; decimals: number } | undefined;
-  const usdcAmt = (stableBal !== undefined ? stableBal : 0n);
-  const btcAmt = (() => {
-    if (!btcMeta) return 0n;
+  const usdcAmtRaw = (stableBal !== undefined ? stableBal : undefined);
+  const btcAmtRaw = (() => {
+    if (!btcMeta) return undefined;
     const idx = riskAssets.findIndex(x => x.toLowerCase() === btcMeta.address.toLowerCase());
-    return idx === -1 ? 0n : (riskBals[idx] ?? 0n);
+    return idx === -1 ? undefined : (riskBals[idx] as bigint | undefined);
   })();
   const usdcPrice = (prices?.USDC?.price ?? 1);
   const btcPrice = (prices?.cbBTC?.price ?? prices?.BTC?.price ?? 0);
-  const usdcUsd = usdcMeta ? (Number(usdcAmt) / Math.pow(10, usdcMeta.decimals)) * usdcPrice : 0;
-  const btcUsd = btcMeta ? (Number(btcAmt) / Math.pow(10, btcMeta.decimals)) * btcPrice : 0;
+  const usdcUsd = usdcMeta ? (Number(usdcAmtRaw ?? 0n) / Math.pow(10, usdcMeta.decimals)) * usdcPrice : 0;
+  const btcUsd = btcMeta ? (Number(btcAmtRaw ?? 0n) / Math.pow(10, btcMeta.decimals)) * btcPrice : 0;
   const totalUsdNum = Math.max(0, (usdcUsd || 0) + (btcUsd || 0));
   const usdcPct = totalUsdNum > 0 ? (usdcUsd / totalUsdNum) * 100 : 0;
   const btcPct = totalUsdNum > 0 ? 100 - usdcPct : 0;
@@ -49,7 +49,7 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
             <Box sx={{ display: 'grid', gridTemplateColumns: '48px 1fr', gridTemplateRows: 'auto auto', columnGap: 1, alignItems: 'center' }}>
               <img src="/img/wallet/usdc.svg" alt="USDC" width={36} height={36} style={{ gridRow: '1 / span 2' }} />
               <Typography sx={{ fontSize: { xs: '2rem', sm: '2.2rem' }, fontWeight: 600, lineHeight: 1.1 }}>
-                {usdcMeta ? formatTokenAmountBigint(usdcAmt, usdcMeta.decimals) : '-'}
+                {usdcMeta ? (usdcAmtRaw === undefined ? '-' : formatTokenAmountBigint(usdcAmtRaw, usdcMeta.decimals)) : '-'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 USDC {usdcMeta ? `$${usdcUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
@@ -60,7 +60,7 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
             <Box sx={{ display: 'grid', gridTemplateColumns: '48px 1fr', gridTemplateRows: 'auto auto', columnGap: 1, alignItems: 'center' }}>
               <img src="/img/wallet/btc.svg" alt="cbBTC" width={36} height={36} style={{ gridRow: '1 / span 2' }} />
               <Typography sx={{ fontSize: { xs: '2rem', sm: '2.2rem' }, fontWeight: 600, lineHeight: 1.1 }}>
-                {btcMeta ? formatTokenAmountBigint(btcAmt, btcMeta.decimals) : '-'}
+                {btcMeta ? (btcAmtRaw === undefined ? '-' : formatTokenAmountBigint(btcAmtRaw, btcMeta.decimals)) : '-'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 cbBTC {btcMeta ? `$${btcUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
