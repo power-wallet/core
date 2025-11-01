@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, Stack, Box, Typography, Button, Tooltip } from '@mui/material';
+import dynamic from 'next/dynamic';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { useReadContract, useChainId } from 'wagmi';
 import { useWalletReads, useStrategyReads } from '@/lib/walletReads';
@@ -12,9 +13,13 @@ type Props = { walletAddress: `0x${string}`; explorerBase: string; feeClient: an
 
 export default function WalletSummaryCard({ walletAddress, explorerBase, feeClient }: Props) {
   const { valueUsd, strategyAddr, createdAtTs } = useWalletReads(walletAddress);
-  const { strategyName, freq, dcaAmount, strategyIdStr } = useStrategyReads(strategyAddr as any);
+  const { strategyName, freq, dcaAmount, strategyIdStr, desc } = useStrategyReads(strategyAddr as any);
   const chainId = useChainId();
   const chainKey = getChainKey(chainId);
+  const Jazzicon = dynamic(() => import('react-jazzicon'), { ssr: false });
+  const jsNumberForAddress = (address: string) => {
+    try { return parseInt(address.slice(2, 10), 16); } catch { return 0; }
+  };
 
   const formatUsd6 = (v?: bigint) => {
     if (!v) return '$0.00';
@@ -35,6 +40,19 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
     } catch {}
     return String(strategyName || '').trim() || 'Strategy';
   })();
+  const displayDesc = (() => {
+    try {
+      const strategies = (appConfig as any)[chainKey]?.strategies || {};
+      const onChainId = String(strategyIdStr || '').trim();
+      if (onChainId && (strategies as any)[onChainId]?.description) return (strategies as any)[onChainId].description as string;
+      if (onChainId) {
+        for (const st of Object.values<any>(strategies)) {
+          if (String(st.id || '').trim() === onChainId) return String(st.description || '');
+        }
+      }
+    } catch {}
+    return String(desc || '').trim() || undefined;
+  })();
   const shortAddr = `${walletAddress.slice(0, 6)}..${walletAddress.slice(-4)}`;
   const createdAt = createdAtTs ? new Date(Number(createdAtTs) * 1000).toLocaleDateString() : '';
   const dcaAmountDisplay = (() => {
@@ -53,42 +71,76 @@ export default function WalletSummaryCard({ walletAddress, explorerBase, feeClie
 
 
   return (
-    <Card variant="outlined" sx={{ height: '100%' }}>
-      <CardContent sx={{ py: 1.5, px: 1.5 }}>
-        <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-            <Typography variant="body1" color="text.primary" fontWeight="bold" sx={{ flexShrink: 0 }}>Total Value</Typography>
-            <Typography variant="body1" color="text.primary" fontWeight="bold" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
+    <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ py: 2, px: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Strategy header */}
+        <Box>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>{displayName}</Typography>
+          {displayDesc ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, minHeight: '2.3rem' }}>
+              {String(displayDesc)}
+            </Typography>
+          ) : null}
+        </Box>
+        <Box sx={{ mt: 0.5, mb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }} />
+
+        {/* Desktop/Tablet layout */}
+        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 1fr', rowGap: 0.2, columnGap: 2, alignItems: 'center' }}>
+            <Box sx={{ width: 64, height: 64, border: '1px solid', borderColor: 'divider', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gridRow: '1 / span 2' }}>
+              <Jazzicon diameter={40} seed={jsNumberForAddress(walletAddress)} />
+            </Box>
+            <Typography sx={{ fontSize: '1.4rem', fontWeight: 500, lineHeight: 1 }}>
               {valueUsd !== undefined ? formatUsd6(valueUsd as bigint) : '-'}
             </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Wallet Address</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: 'flex-end', flex: 1 }}>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortAddr}</Typography>
+            <Typography sx={{ fontSize: '1rem', lineHeight: 1 }}>{createdAt || '-'}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography sx={{ fontFamily: 'monospace' }}>{shortAddr}</Typography>
               <Tooltip title="Open in block explorer">
                 <a href={`${explorerBase}/address/${walletAddress}`} target="_blank" rel="noopener noreferrer" aria-label="Open on explorer" style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit' }}>
-                  <LaunchIcon sx={{ fontSize: 14, color: 'inherit' }} />
+                  <LaunchIcon sx={{ fontSize: 16, color: 'inherit' }} />
                 </a>
               </Tooltip>
             </Box>
+            {/* Labels row */}
+            <Typography variant="caption" color="text.secondary">Wallet Value</Typography>
+            <Typography variant="caption" color="text.secondary">Created Date</Typography>
+            <Typography variant="caption" color="text.secondary">Wallet Address</Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Strategy</Typography>
-            <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-              {displayName} {dcaAmount ? `- ${dcaAmountDisplay} ${freqDays}` : `- ${freqDays}`}
+        </Box>
+
+        {/* Mobile layout */}
+        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+          {/* Row 1-2: Icon + Value/Label */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '56px 1fr', columnGap: 2, rowGap: 0.2, alignItems: 'center' }}>
+            <Box sx={{ width: 48, height: 48, border: '1px solid', borderColor: 'divider', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gridRow: '1 / span 2' }}>
+              <Jazzicon diameter={36} seed={jsNumberForAddress(walletAddress)} />
+            </Box>
+            <Typography sx={{ fontSize: '1.8rem', fontWeight: 500, lineHeight: 1 }}>
+              {valueUsd !== undefined ? formatUsd6(valueUsd as bigint) : '-'}
             </Typography>
+            <Typography variant="caption" color="text.secondary">Asset Value</Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Created</Typography>
-            <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', flex: 1, minWidth: 0 }}>
-              {createdAt}
-            </Typography>
+
+          {/* Row 3-4: Created + Address */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 2, rowGap: 0.2, alignItems: 'center', mt: 3 }}>
+            <Typography sx={{ fontSize: '0.95rem', lineHeight: 1 }}>{createdAt || '-'}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography sx={{ fontFamily: 'monospace' }}>{shortAddr}</Typography>
+              <Tooltip title="Open in block explorer">
+                <a href={`${explorerBase}/address/${walletAddress}`} target="_blank" rel="noopener noreferrer" aria-label="Open on explorer" style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit' }}>
+                  <LaunchIcon sx={{ fontSize: 16, color: 'inherit' }} />
+                </a>
+              </Tooltip>
+            </Box>
+            <Typography variant="caption" color="text.secondary">Created date</Typography>
+            <Typography variant="caption" color="text.secondary">Wallet Address</Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0, pt: 2 }}>
-            <Button size="small" variant="outlined" href={`/wallet?address=${walletAddress}`}>Open</Button>
-          </Box>
-        </Stack>
+        </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+          <Button size="small" variant="outlined" href={`/wallet?address=${walletAddress}`}>Open</Button>
+        </Box>
       </CardContent>
     </Card>
   );

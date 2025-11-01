@@ -674,7 +674,14 @@ export default function PortfolioPage() {
       {/* Portfolio Summary */}
       {portfolioTotals.totalUsd > 0 && !hideSummary ? (
         <>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>Portfolio Summary</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <Typography sx={{ fontSize: { xs: '1.6rem', sm: '2rem' }, fontWeight: 700 }} fontWeight="bold" gutterBottom>
+              Portfolio Value
+            </Typography>
+            <Typography sx={{ fontSize: { xs: '1.6rem', sm: '2rem' }, fontWeight: 700 }}>
+              {`$${portfolioTotals.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </Typography>
+          </Box>
           <PortfolioSummary totalUsd={portfolioTotals.totalUsd} perAsset={portfolioTotals.perAsset} />
         </>
       ) : null}
