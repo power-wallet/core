@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Box, Button, Container, Grid, Typography, Snackbar, Alert, useMediaQuery, useTheme, Tooltip, Tabs, Tab } from '@mui/material';
+import dynamic from 'next/dynamic';
 import LaunchIcon from '@mui/icons-material/Launch';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
@@ -11,7 +12,7 @@ import WalletHistoryChart from './charts/WalletHistoryChart';
 import { buildWalletHistorySeries } from '@/lib/walletHistory';
 import { powerWalletAbi, FEED_ABI } from '@/lib/abi';
 import { useWalletReads, useStrategyReads } from '@/lib/walletReads';
-import { formatTokenAmountBigint } from '@/lib/format';
+import { formatTokenAmountBigint, formatUsd6Bigint } from '@/lib/format';
 import AssetsCard from './components/AssetsCard';
 import StrategyCard from './components/StrategyCard';
 import WalletConfigCard from './components/WalletConfigCard';
@@ -47,6 +48,10 @@ export default function WalletDetails() {
     return `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`;
   }, [walletAddress]);
   const [copied, setCopied] = React.useState(false);
+  const Jazzicon = dynamic(() => import('react-jazzicon'), { ssr: false });
+  const jsNumberForAddress = (address: string) => {
+    try { return parseInt(address.slice(2, 10), 16); } catch { return 0; }
+  };
   const [tab, setTab] = React.useState(0);
 
   const {
@@ -322,7 +327,17 @@ export default function WalletDetails() {
   <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
 
     <Container maxWidth="lg" sx={{ py: 3 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>My Wallet</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+        <Box sx={{ width: 64, height: 64, borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper' }}>
+          {walletAddress ? (<Jazzicon diameter={44} seed={jsNumberForAddress(walletAddress)} />) : null}
+        </Box>
+        <Box>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ lineHeight: 1, mb: 0.5 }}>Wallet value</Typography>
+          <Typography sx={{ fontSize: { xs: '2.2rem', sm: '3rem' }, fontWeight: 700, lineHeight: 1 }}>
+            {valueUsd !== undefined ? formatUsd6Bigint(valueUsd as bigint) : '-'}
+          </Typography>
+        </Box>
+      </Box>
       <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 3 }}>
         <a
           href="/portfolio"
@@ -396,6 +411,8 @@ export default function WalletDetails() {
               deposits={(Array.isArray(depositsData) ? depositsData : []) as any}
               withdrawals={(Array.isArray(withdrawalsData) ? withdrawalsData : []) as any}
               addressToMeta={addressToMeta as any}
+              onDeposit={() => setDepositOpen(true)}
+              onWithdraw={() => setWithdrawOpen(true)}
             />
           </Grid>
         </Grid>

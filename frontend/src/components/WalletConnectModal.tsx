@@ -49,14 +49,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const [reloadNonce, setReloadNonce] = React.useState<number>(0);
   // removed extra funding modal; we open popup directly
 
-  const explorerBase = (appConfig as any)[getChainKey(chainId)]?.explorer as string | undefined;
-
   const { data: nativeBal } = useBalance({ address: (address || undefined) as `0x${string}` | undefined, chainId });
-
-  const shortAddress = React.useMemo(() => {
-    if (!address || address.length < 10) return address || '';
-    return `${address.slice(0, 6)}…${address.slice(-4)}`;
-  }, [address]);
 
   React.useEffect(() => {
     let cancelled = false;

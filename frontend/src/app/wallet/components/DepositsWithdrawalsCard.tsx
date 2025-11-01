@@ -11,9 +11,11 @@ type Props = {
   deposits: any[];
   withdrawals: any[];
   addressToMeta: (addr: string | undefined) => { symbol: string; decimals: number } | undefined;
+  onDeposit?: () => void;
+  onWithdraw?: () => void;
 };
 
-export default function DepositsWithdrawalsCard({ deposits, withdrawals, addressToMeta }: Props) {
+export default function DepositsWithdrawalsCard({ deposits, withdrawals, addressToMeta, onDeposit, onWithdraw }: Props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [open, setOpen] = React.useState(false);
@@ -53,6 +55,7 @@ export default function DepositsWithdrawalsCard({ deposits, withdrawals, address
             <Button size="small" onClick={() => setOpen(true)}>Show all</Button>
           ) : null}
         </Box>
+        <Box sx={{ mt: 1, mb: 1, borderBottom: '1px solid', borderColor: 'divider' }} />
         <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 520, whiteSpace: 'nowrap' }}>
             <TableHead>
@@ -86,6 +89,14 @@ export default function DepositsWithdrawalsCard({ deposits, withdrawals, address
             </TableBody>
           </Table>
         </TableContainer>
+        {onDeposit || onWithdraw ? (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 'auto' }}>
+            <Box sx={{ display: 'flex', gap: 2, pt: 2 }}>
+              {onDeposit ? (<Button variant="outlined" size="small" onClick={onDeposit}>Deposit</Button>) : null}
+              {onWithdraw ? (<Button variant="outlined" size="small" onClick={onWithdraw}>Withdraw</Button>) : null}
+            </Box>
+          </Box>
+        ) : null}
       </CardContent>
 
       <Dialog
