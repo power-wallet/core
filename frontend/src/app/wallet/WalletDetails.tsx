@@ -156,6 +156,35 @@ export default function WalletDetails() {
   const [walletSeries, setWalletSeries] = React.useState<any[] | null>(null);
   const [historyLoading, setHistoryLoading] = React.useState(false);
 
+  // ROI calculations (USD and %)
+  const walletValueUsdNum = React.useMemo(() => Number(valueUsd ?? 0n) / 1_000_000, [valueUsd]);
+  const totalDepositsUsd = React.useMemo(() => {
+    const ds = Array.isArray(depositsData) ? depositsData : [];
+    // Deposits are in USDC (6 decimals)
+    let sum = 0;
+    for (const d of ds) {
+      try { sum += Number(d.amount) / 1_000_000; } catch {}
+    }
+    return sum;
+  }, [depositsData]);
+  const totalWithdrawalsUsd = React.useMemo(() => {
+    const ws = Array.isArray(withdrawalsData) ? withdrawalsData : [];
+    let sum = 0;
+    for (const w of ws) {
+      try {
+        const meta = addressToMeta(w.asset as string);
+        const symbol = meta?.symbol;
+        const decimals = meta?.decimals ?? 6;
+        const amt = Number(w.amount) / Math.pow(10, Math.min(decimals, 18));
+        const price = symbol ? (prices?.[symbol]?.price ?? (symbol === 'USDC' ? 1 : 0)) : 0;
+        sum += amt * price;
+      } catch {}
+    }
+    return sum;
+  }, [withdrawalsData, addressToMeta, prices]);
+  const roiUsd = React.useMemo(() => (walletValueUsdNum + totalWithdrawalsUsd) - totalDepositsUsd, [walletValueUsdNum, totalWithdrawalsUsd, totalDepositsUsd]);
+  const roiPct = React.useMemo(() => totalDepositsUsd > 0 ? (roiUsd / totalDepositsUsd) * 100 : 0, [roiUsd, totalDepositsUsd]);
+
   React.useEffect(() => {
     (async () => {
       if (!walletAddress || !createdAtTs) return;
@@ -358,7 +387,7 @@ export default function WalletDetails() {
           </a>
         </Tooltip>
       </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', gap: 2, mb: 1.5 }}>
         <Box sx={{ width: 64, height: 64, borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper' }}>
           {walletAddress ? (<Jazzicon diameter={44} seed={jsNumberForAddress(walletAddress)} />) : null}
         </Box>
@@ -367,6 +396,14 @@ export default function WalletDetails() {
           <Typography sx={{ fontSize: { xs: '2.2rem', sm: '3rem' }, fontWeight: 700, lineHeight: 1 }}>
             {valueUsd !== undefined ? formatUsd6Bigint(valueUsd as bigint) : '-'}
           </Typography>
+        </Box>
+        <Box sx={{ textAlign: 'left', ml: 3, display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ lineHeight: 1, mb: 0.5 }}>ROI</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', height: { xs: '2.2rem', sm: '3rem' } }}>
+            <Typography sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, fontWeight: 700, lineHeight: 1, color: roiUsd >= 0 ? 'success.main' : 'error.main' }}>
+              {`${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(2)}% (${roiUsd >= 0 ? '+' : '-'}$${Math.abs(roiUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}
+            </Typography>
+          </Box>
         </Box>
       </Box>
       
