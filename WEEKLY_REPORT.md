@@ -47,7 +47,7 @@ This report summarizes project progress week‑by‑week based on commit history
 ### Highlights & Impact
 - Multiple BTC strategies shipped: Simple DCA, Smart DCA (adaptive), Power DCA (power‑law bands), Trend DCA (SMA50 with hysteresis/slope).
 - End‑to‑end simulator with risk analytics (Sharpe/Sortino), signals, and export; now with per‑chart zooming for long intervals.
-- Robust wallet/portfolio UI with live data, tables, config flows, and on‑chain operations (fees, upkeep, deploy scripts).
+- Robust wallet/portfolio UI with live data, tables, config flows, and on‑chain operations.
 - Documentation and metrics: architecture, strategy docs, journal, COCOMO/scc code metrics.
 
 

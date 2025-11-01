@@ -197,6 +197,13 @@ export async function run(
   let runningPeak = closes[startIdx];
   let prevClose: number | null = null;
 
+  console.log("initialCapital", initialCapital, "depositAmount", depositAmount, "usdc", usdc);
+  console.log("btcHodlQty", btcHodlQty, "btcStartPrice", btcStartPrice);
+  console.log("startDate", startDate, "endDate", endDate);
+  console.log("dates", dates.length > 0 ? dates[0] : "no dates", "to",  dates.length > 0 ? dates[dates.length - 1] : "no dates");
+  console.log("start btc prices", closes[startIdx], "date", dates[startIdx]);
+  console.log("end btc prices", closes[dates.length - 1], "date", dates[dates.length - 1]);
+
   // Initial day perf
   dailyPerformance.push({
     date: dates[startIdx],

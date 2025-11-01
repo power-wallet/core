@@ -172,10 +172,10 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
                 }}
               >
                 <MenuItem value="simple-btc-dca">Pure - Classic DCA</MenuItem>
-                <MenuItem value="smart-btc-dca">Smart - Buy the dip & rebalance</MenuItem>
-                <MenuItem value="power-btc-dca">Power - Fair Value accumulation</MenuItem>
-                <MenuItem value="trend-btc-dca">Trend - Trend Powered accumulation</MenuItem>
-                <MenuItem value="btc-eth-momentum">Momentum - BTC-ETH pump</MenuItem>
+                <MenuItem value="smart-btc-dca">Smart - Buy the Dip & Rebalance</MenuItem>
+                <MenuItem value="power-btc-dca">Power - Fair Value Accumulation</MenuItem>
+                <MenuItem value="trend-btc-dca">Trend - Trend Powered Accumulation</MenuItem>
+                <MenuItem value="btc-eth-momentum">Momentum - BTC-ETH Swing</MenuItem>
               </TextField>
             </Grid>
 

@@ -75,6 +75,13 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     nextDepositDate.setDate(nextDepositDate.getDate() + depositIntervalDays);
   }
 
+  console.log("initialCapital", initialCapital, "depositAmount", depositAmount, "usdc", usdc);
+  console.log("btcHodlQty", btcHodlQty, "btcStartPrice", btcStartPrice);
+  console.log("startDate", startDate, "endDate", endDate);
+  console.log("dates", dates.length > 0 ? dates[0] : "no dates", "to",  dates.length > 0 ? dates[dates.length - 1] : "no dates");
+  console.log("start btc prices", prices[startIdx], "date", dates[startIdx]);
+  console.log("end btc prices", prices[dates.length - 1], "date", dates[dates.length - 1]);
+
   // Initial day
   dailyPerformance.push({
     date: dates[startIdx],
