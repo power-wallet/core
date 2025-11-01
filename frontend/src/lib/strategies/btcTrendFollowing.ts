@@ -233,8 +233,8 @@ export async function run(initialCapital: number, startDate: string, endDate: st
         trades.push({ date, symbol: 'BTC', side: 'SELL', price: btcPrice, quantity: btcQty, value: gross, fee, portfolioValue: usdc + value });
         usdc += value; btcQty = 0;
         inDcaMode = true;
-      } else if (inDcaMode && !enterUp && usdc > minCashUsd) {
-        // DCA gently while trend is not up
+      } else if (inDcaMode && (btcPrice <= dnThresh) && usdc > minCashUsd) {
+        // DCA only while price is below the lower threshold (downtrend)
         let spend = Math.min(usdc, usdc * dcaPct);
         const discount = 1 - (btcPrice / sma);
         if (discount * 100 >= discountBelowSmaPct) {
