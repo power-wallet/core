@@ -19,7 +19,7 @@ function eventLabel(ev: WalletEvent): string {
 export default function WalletHistoryChart({ data }: { data: WalletHistoryPoint[] }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [mode, setMode] = React.useState<'value' | 'assets'>('value');
+  const [mode, setMode] = React.useState<'value' | 'assets'>('assets');
   const hasEth = React.useMemo(() => Array.isArray(data) && data.some((p) => (p as any).ethUsd && (p as any).ethUsd > 0), [data]);
   const [showUsdc, setShowUsdc] = React.useState(false);
   const [showEth, setShowEth] = React.useState(false);
@@ -82,8 +82,8 @@ export default function WalletHistoryChart({ data }: { data: WalletHistoryPoint[
             exclusive
             onChange={(_, v) => { if (v) setMode(v); }}
           >
-            <ToggleButton value="value">Value</ToggleButton>
             <ToggleButton value="assets">Assets</ToggleButton>
+            <ToggleButton value="value">Value</ToggleButton>
           </ToggleButtonGroup>
         </Box>
         <Box sx={{ width: '100%', height: 300 }}>
