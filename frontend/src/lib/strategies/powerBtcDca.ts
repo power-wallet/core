@@ -20,15 +20,69 @@ const N = 5.845;
 
 // Centralized default parameters for the strategy
 export const DEFAULT_PARAMETERS = {
-  tradeIntervalDays: 7,               // evaluate weekly
-  buyPctBelowLower: 0.05,             // buy 5% of available USDC below lower band
-  buyPctBetweenLowerAndModel: 0.01,   // buy 1% between lower band and model
-  sellPctAboveUpper: 0.05,            // sell 5% of BTC above upper band
-  usdcReserveFrac: 0.02,              // keep 2% USDC reserve
-  btcReserveFrac: 0.10,               // keep 10% BTC reserve
-  upperBandMult: 2.0,                 // upper band = model * 2
-  lowerBandMult: 0.5,                 // lower band = model * 0.5
-  tradingFee: 0.003,                  // 0.3% fee assumption
+  tradeIntervalDays: {
+    name: 'Trade interval (days)',
+    defaultValue: 7,
+    type: 'days',
+    description: 'Evaluate every N days (weekly by default)',
+    configurable: true,
+  },
+  upperBandMult: {
+    name: 'Upper band multiplier',
+    defaultValue: 2.0,
+    type: 'number',
+    description: 'Upper band multiplier of model price',
+    configurable: true,
+  },
+  lowerBandMult: {
+    name: 'Lower band multiplier',
+    defaultValue: 0.5,
+    type: 'number',
+    description: 'Lower band multiplier of model price',
+    configurable: true,
+  },
+  buyPctBelowLower: {
+    name: 'Buy % below lower band',
+    defaultValue: 0.05,
+    type: 'percentage',
+    description: 'Buy % of available USDC below lower band',
+    configurable: true,
+  },
+  buyPctBetweenLowerAndModel: {
+    name: 'Buy % between lower and model',
+    defaultValue: 0.01,
+    type: 'percentage',
+    description: 'Buy % between lower band and model',
+    configurable: true,
+  },
+  sellPctAboveUpper: {
+    name: 'Sell % above upper band',
+    defaultValue: 0.05,
+    type: 'percentage',
+    description: 'Sell % of BTC above upper band',
+    configurable: true,
+  },
+  usdcReserveFrac: {
+    name: 'USDC reserve fraction',
+    defaultValue: 0.02,
+    type: 'percentage',
+    description: 'Keep USDC reserve fraction',
+    configurable: true,
+  },
+  btcReserveFrac: {
+    name: 'BTC reserve fraction',
+    defaultValue: 0.10,
+    type: 'percentage',
+    description: 'Keep BTC reserve fraction',
+    configurable: true,
+  },
+  tradingFee: {
+    name: 'Trading fee',
+    defaultValue: 0.003,
+    type: 'percentage',
+    description: 'Trading fee (0.3% assumption)',
+    configurable: true,
+  },
 };
 
 function daysSinceGenesis(dateStr: string): number {
@@ -67,15 +121,15 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   depositIntervalDays?: number;
 }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
-  const tradingFee = options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee;
-  const tradeIntervalDays = Math.max(1, Math.floor(options.tradeIntervalDays ?? DEFAULT_PARAMETERS.tradeIntervalDays));
-  const usdcReserveFrac = Math.max(0, options.usdcReserveFrac ?? DEFAULT_PARAMETERS.usdcReserveFrac);
-  const btcReserveFrac = Math.max(0, options.btcReserveFrac ?? DEFAULT_PARAMETERS.btcReserveFrac);
-  const buyPctBelowLower = Math.max(0, options.buyPctBelowLower ?? DEFAULT_PARAMETERS.buyPctBelowLower);
-  const buyPctBetweenLowerAndModel = Math.max(0, options.buyPctBetweenLowerAndModel ?? DEFAULT_PARAMETERS.buyPctBetweenLowerAndModel);
-  const sellPctAboveUpper = Math.max(0, options.sellPctAboveUpper ?? DEFAULT_PARAMETERS.sellPctAboveUpper);
-  const upperMult = Math.max(0, options.upperBandMult ?? DEFAULT_PARAMETERS.upperBandMult);
-  const lowerMult = Math.max(0, options.lowerBandMult ?? DEFAULT_PARAMETERS.lowerBandMult);
+  const tradingFee = options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee.defaultValue;
+  const tradeIntervalDays = Math.max(1, Math.floor(options.tradeIntervalDays ?? DEFAULT_PARAMETERS.tradeIntervalDays.defaultValue));
+  const usdcReserveFrac = Math.max(0, options.usdcReserveFrac ?? DEFAULT_PARAMETERS.usdcReserveFrac.defaultValue);
+  const btcReserveFrac = Math.max(0, options.btcReserveFrac ?? DEFAULT_PARAMETERS.btcReserveFrac.defaultValue);
+  const buyPctBelowLower = Math.max(0, options.buyPctBelowLower ?? DEFAULT_PARAMETERS.buyPctBelowLower.defaultValue);
+  const buyPctBetweenLowerAndModel = Math.max(0, options.buyPctBetweenLowerAndModel ?? DEFAULT_PARAMETERS.buyPctBetweenLowerAndModel.defaultValue);
+  const sellPctAboveUpper = Math.max(0, options.sellPctAboveUpper ?? DEFAULT_PARAMETERS.sellPctAboveUpper.defaultValue);
+  const upperMult = Math.max(0, options.upperBandMult ?? DEFAULT_PARAMETERS.upperBandMult.defaultValue);
+  const lowerMult = Math.max(0, options.lowerBandMult ?? DEFAULT_PARAMETERS.lowerBandMult.defaultValue);
   const depositAmount = Math.max(0, options.depositAmount ?? 0);
   const depositIntervalDays = Math.max(0, Math.floor(options.depositIntervalDays ?? 0));
 
@@ -265,7 +319,17 @@ const strategy: Strategy = {
   id: 'power-btc-dca',
   name: 'Power DCA',
   run,
-  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
+  getDefaultParameters: () => ({
+    tradeIntervalDays: DEFAULT_PARAMETERS.tradeIntervalDays.defaultValue,
+    buyPctBelowLower: DEFAULT_PARAMETERS.buyPctBelowLower.defaultValue,
+    buyPctBetweenLowerAndModel: DEFAULT_PARAMETERS.buyPctBetweenLowerAndModel.defaultValue,
+    sellPctAboveUpper: DEFAULT_PARAMETERS.sellPctAboveUpper.defaultValue,
+    usdcReserveFrac: DEFAULT_PARAMETERS.usdcReserveFrac.defaultValue,
+    btcReserveFrac: DEFAULT_PARAMETERS.btcReserveFrac.defaultValue,
+    upperBandMult: DEFAULT_PARAMETERS.upperBandMult.defaultValue,
+    lowerBandMult: DEFAULT_PARAMETERS.lowerBandMult.defaultValue,
+    tradingFee: DEFAULT_PARAMETERS.tradingFee.defaultValue,
+  }),
 };
 
 export default strategy;

@@ -111,3 +111,6 @@ export interface StrategyParameters {
   momentumExponent: number;
   tradingFee: number;
 }
+
+// UI/metadata types for strategy configuration defaults
+export type StrategyConfigValueType = 'number' | 'percentage' | 'days' | 'boolean';

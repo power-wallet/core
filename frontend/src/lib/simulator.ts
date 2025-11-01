@@ -16,20 +16,6 @@ import type {
   DailyRsiSignals 
 } from './types';
 
-// Default strategy parameters (from Python)
-const DEFAULT_PARAMETERS: StrategyParameters = {
-  rsiBars: 8,
-  ethBtcRsiBars: 5,
-  bearishRsiEntry: 65,
-  bearishRsiExit: 70,
-  bullishRsiEntry: 80,
-  bullishRsiExit: 65,
-  regimeFilterMaLength: 200,
-  allocation: 0.98,
-  rebalanceThreshold: 0.275,
-  momentumExponent: 3.5,
-  tradingFee: 0.0030,
-};
 
 /**
  * Load pre-calculated data from Python (with indicators already computed)
@@ -67,7 +53,7 @@ export async function runSimulation(
   initialCapital: number,
   startDate: string,
   endDate: string,
-  parameters: StrategyParameters = DEFAULT_PARAMETERS
+  parameters: StrategyParameters
 ): Promise<SimulationResult> {
   // Load data (local JSON + Binance tail) with lookback for indicators
   const { btc: btcData, eth: ethData } = await loadPriceData(startDate, endDate, 210);

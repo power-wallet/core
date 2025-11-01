@@ -17,16 +17,34 @@ export interface Strategy {
 
 // Centralized default parameters for the strategy
 export const DEFAULT_PARAMETERS = {
-  dcaAmount: 100,          // USDC per buy
-  dcaIntervalDays: 7,      // weekly
-  tradingFee: 0.003,       // 0.3% trading fee assumption
+  dcaAmount: {
+    name: 'DCA amount (USDC)',
+    defaultValue: 100,
+    type: 'number',
+    description: 'USDC per buy',
+    configurable: true,
+  },
+  dcaIntervalDays: {
+    name: 'DCA interval (days)',
+    defaultValue: 7,
+    type: 'days',
+    description: 'DCA days interval',
+    configurable: true,
+  },
+  tradingFee: {
+    name: 'Trading fee',
+    defaultValue: 0.003,
+    type: 'percentage',
+    description: 'Trading fee (0.3% assumption)',
+    configurable: true,
+  },
 };
 
 export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaAmount?: number; dcaIntervalDays?: number; tradingFee?: number; depositAmount?: number; depositIntervalDays?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
-  const dcaAmount = Math.max(0, options.dcaAmount ?? DEFAULT_PARAMETERS.dcaAmount);
-  const dcaIntervalDays = Math.max(1, Math.floor(options.dcaIntervalDays ?? DEFAULT_PARAMETERS.dcaIntervalDays));
-  const feePct = options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee;
+  const dcaAmount = Math.max(0, options.dcaAmount ?? DEFAULT_PARAMETERS.dcaAmount.defaultValue);
+  const dcaIntervalDays = Math.max(1, Math.floor(options.dcaIntervalDays ?? DEFAULT_PARAMETERS.dcaIntervalDays.defaultValue));
+  const feePct = options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee.defaultValue;
   const depositAmount = Math.max(0, options.depositAmount ?? 0);
   const depositIntervalDays = Math.max(0, Math.floor(options.depositIntervalDays ?? 0));
 
@@ -172,7 +190,11 @@ const strategy: Strategy = {
   id: 'simple-btc-dca',
   name: 'Simple DCA',
   run,
-  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
+  getDefaultParameters: () => ({
+    dcaAmount: DEFAULT_PARAMETERS.dcaAmount.defaultValue,
+    dcaIntervalDays: DEFAULT_PARAMETERS.dcaIntervalDays.defaultValue,
+    tradingFee: DEFAULT_PARAMETERS.tradingFee.defaultValue,
+  }),
 };
 
 export default strategy;

@@ -15,20 +15,104 @@ export interface Strategy {
 
 // Centralized default parameters (adapted from adaptive_dca_btc.py)
 export const DEFAULT_PARAMETERS = {
-  evalIntervalDays: 7,        // how often to evaluate trading rules (default weekly)
-  baseDcaUsdc: 100.0,         // base DCA amount per evaluation
-  minTradeUsd: 1.0,           // minimum trade to execute/record
-  lookbackDays: 30,           // rolling realized variance window
-  kKicker: 0.05,              // vol/drawdown sizing coefficient
-  winsorizeAbsRet: 0.20,      // clip abs daily log return
-  ewmaLambdaDaily: 0.94,      // EWMA lambda
-  bufferMult: 9.0,            // days of base DCA to keep as USDC buffer
-  cmaxMult: 3.0,              // cap extra buy per day = cmax_mult * base_dca
-  thresholdMode: true,        // optional true threshold rebalancing
-  targetBtcWeight: 0.50,      // target BTC weight
-  bandDelta: 0.30,            // ±10% band around target
-  rebalanceCapFrac: 0.20,     // cap single rebalance to 20% NAV
-  tradingFee: 0.003,          // 0.3% fee assumption for BTC HODL benchmark
+  evalIntervalDays: {
+    name: 'Evaluate interval (days)',
+    defaultValue: 7,
+    type: 'days',
+    description: 'How often to evaluate trading rules (default weekly)',
+    configurable: true,
+  },
+  baseDcaUsdc: {
+    name: 'DCA amount',
+    defaultValue: 100.0,
+    type: 'number',
+    description: 'Base DCA amount per evaluation',
+    configurable: true,
+  },
+  minTradeUsd: {
+    name: 'Minimum trade (USD)',
+    defaultValue: 1.0,
+    type: 'number',
+    description: 'Minimum trade size to execute/record',
+    configurable: false,
+  },
+  lookbackDays: {
+    name: 'Lookback (days)',
+    defaultValue: 30,
+    type: 'days',
+    description: 'Rolling realized variance window',
+    configurable: true,
+  },
+  kKicker: {
+    name: 'Vol/drawdown coefficient',
+    defaultValue: 0.05,
+    type: 'number',
+    description: 'Vol/drawdown sizing coefficient',
+    configurable: true,
+  },
+  winsorizeAbsRet: {
+    name: 'Winsorize abs return',
+    defaultValue: 0.20,
+    type: 'percentage',
+    description: 'Clip absolute daily log return',
+    configurable: true,
+  },
+  ewmaLambdaDaily: {
+    name: 'EWMA lambda',
+    defaultValue: 0.94,
+    type: 'number',
+    description: 'EWMA lambda',
+    configurable: true,
+  },
+  bufferMult: {
+    name: 'Buffer multiplier (days)',
+    defaultValue: 9.0,
+    type: 'number',
+    description: 'Days of base DCA to keep as USDC buffer',
+    configurable: true,
+  },
+  cmaxMult: {
+    name: 'Extra buy cap (× DCA)',
+    defaultValue: 3.0,
+    type: 'number',
+    description: 'Cap extra buy per evaluation = cmaxMult × baseDca',
+    configurable: true,
+  },
+  thresholdMode: {
+    name: 'Threshold rebalancing',
+    defaultValue: true,
+    type: 'boolean',
+    description: 'Enable threshold rebalancing to band boundary',
+    configurable: true,
+  },
+  targetBtcWeight: {
+    name: 'Target BTC weight',
+    defaultValue: 0.50,
+    type: 'percentage',
+    description: 'Target BTC weight',
+    configurable: true,
+  },
+  bandDelta: {
+    name: 'Weight band ±',
+    defaultValue: 0.30,
+    type: 'percentage',
+    description: '± band around target weight',
+    configurable: true,
+  },
+  rebalanceCapFrac: {
+    name: 'Rebalance cap (NAV %)',
+    defaultValue: 0.20,
+    type: 'percentage',
+    description: 'Cap single rebalance as fraction of NAV',
+    configurable: true,
+  },
+  tradingFee: {
+    name: 'Trading fee',
+    defaultValue: 0.003,
+    type: 'percentage',
+    description: 'Trading fee assumption for BTC HODL benchmark',
+    configurable: true,
+  },
 };
 
 function calculateCAGR(startValue: number, endValue: number, startDate: string, endDate: string): number {
@@ -65,20 +149,20 @@ export async function run(
   }
 ): Promise<SimulationResult> {
   const btcData = options.prices.btc;
-  const lookbackDays = Math.max(1, Math.floor(options.lookbackDays ?? DEFAULT_PARAMETERS.lookbackDays));
-  const ewmaLambdaDaily = options.ewmaLambdaDaily ?? DEFAULT_PARAMETERS.ewmaLambdaDaily;
-  const baseDcaUsdc = Math.max(0, options.baseDcaUsdc ?? DEFAULT_PARAMETERS.baseDcaUsdc);
-  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.evalIntervalDays));
-  const targetBtcWeight = Math.min(1, Math.max(0, options.targetBtcWeight ?? DEFAULT_PARAMETERS.targetBtcWeight));
-  const bandDelta = Math.min(1, Math.max(0, options.bandDelta ?? DEFAULT_PARAMETERS.bandDelta));
-  const kKicker = Math.max(0, options.kKicker ?? DEFAULT_PARAMETERS.kKicker);
-  const cmaxMult = Math.max(0, options.cmaxMult ?? DEFAULT_PARAMETERS.cmaxMult);
-  const bufferMult = Math.max(0, options.bufferMult ?? DEFAULT_PARAMETERS.bufferMult);
-  const minTradeUsd = Math.max(0, options.minTradeUsd ?? DEFAULT_PARAMETERS.minTradeUsd);
-  const winsorizeAbsRet = Math.max(0, options.winsorizeAbsRet ?? DEFAULT_PARAMETERS.winsorizeAbsRet);
-  const thresholdMode = options.thresholdMode ?? DEFAULT_PARAMETERS.thresholdMode;
-  const rebalanceCapFrac = Math.min(1, Math.max(0, options.rebalanceCapFrac ?? DEFAULT_PARAMETERS.rebalanceCapFrac));
-  const tradingFee = Math.max(0, options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee);
+  const lookbackDays = Math.max(1, Math.floor(options.lookbackDays ?? DEFAULT_PARAMETERS.lookbackDays.defaultValue));
+  const ewmaLambdaDaily = options.ewmaLambdaDaily ?? DEFAULT_PARAMETERS.ewmaLambdaDaily.defaultValue;
+  const baseDcaUsdc = Math.max(0, options.baseDcaUsdc ?? DEFAULT_PARAMETERS.baseDcaUsdc.defaultValue);
+  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.evalIntervalDays.defaultValue));
+  const targetBtcWeight = Math.min(1, Math.max(0, options.targetBtcWeight ?? DEFAULT_PARAMETERS.targetBtcWeight.defaultValue));
+  const bandDelta = Math.min(1, Math.max(0, options.bandDelta ?? DEFAULT_PARAMETERS.bandDelta.defaultValue));
+  const kKicker = Math.max(0, options.kKicker ?? DEFAULT_PARAMETERS.kKicker.defaultValue);
+  const cmaxMult = Math.max(0, options.cmaxMult ?? DEFAULT_PARAMETERS.cmaxMult.defaultValue);
+  const bufferMult = Math.max(0, options.bufferMult ?? DEFAULT_PARAMETERS.bufferMult.defaultValue);
+  const minTradeUsd = Math.max(0, options.minTradeUsd ?? DEFAULT_PARAMETERS.minTradeUsd.defaultValue);
+  const winsorizeAbsRet = Math.max(0, options.winsorizeAbsRet ?? DEFAULT_PARAMETERS.winsorizeAbsRet.defaultValue);
+  const thresholdMode = options.thresholdMode ?? DEFAULT_PARAMETERS.thresholdMode.defaultValue;
+  const rebalanceCapFrac = Math.min(1, Math.max(0, options.rebalanceCapFrac ?? DEFAULT_PARAMETERS.rebalanceCapFrac.defaultValue));
+  const tradingFee = Math.max(0, options.tradingFee ?? DEFAULT_PARAMETERS.tradingFee.defaultValue);
   const dates = btcData.map(d => d.date);
   const closes = btcData.map(d => d.close);
   const startIdx = dates.findIndex(d => d >= startDate);
@@ -312,7 +396,22 @@ const strategy: Strategy = {
   id: 'smart-btc-dca',
   name: 'Smart DCA',
   run,
-  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
+  getDefaultParameters: () => ({
+    evalIntervalDays: DEFAULT_PARAMETERS.evalIntervalDays.defaultValue,
+    baseDcaUsdc: DEFAULT_PARAMETERS.baseDcaUsdc.defaultValue,
+    minTradeUsd: DEFAULT_PARAMETERS.minTradeUsd.defaultValue,
+    lookbackDays: DEFAULT_PARAMETERS.lookbackDays.defaultValue,
+    kKicker: DEFAULT_PARAMETERS.kKicker.defaultValue,
+    winsorizeAbsRet: DEFAULT_PARAMETERS.winsorizeAbsRet.defaultValue,
+    ewmaLambdaDaily: DEFAULT_PARAMETERS.ewmaLambdaDaily.defaultValue,
+    bufferMult: DEFAULT_PARAMETERS.bufferMult.defaultValue,
+    cmaxMult: DEFAULT_PARAMETERS.cmaxMult.defaultValue,
+    thresholdMode: DEFAULT_PARAMETERS.thresholdMode.defaultValue,
+    targetBtcWeight: DEFAULT_PARAMETERS.targetBtcWeight.defaultValue,
+    bandDelta: DEFAULT_PARAMETERS.bandDelta.defaultValue,
+    rebalanceCapFrac: DEFAULT_PARAMETERS.rebalanceCapFrac.defaultValue,
+    tradingFee: DEFAULT_PARAMETERS.tradingFee.defaultValue,
+  }),
 };
 
 export default strategy;

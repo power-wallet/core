@@ -29,34 +29,91 @@ export interface Strategy {
 
 // Centralized default parameters for the strategy
 export const DEFAULT_PARAMETERS = {
-  evalIntervalDays: 5,        // evaluate roughly weekly
-  dcaMode: true,              // start in DCA mode
-  // Trend filter configuration
-  hystBps: 150,               // 1.5% hysteresis band
-  slopeLookbackDays: 14,      // slope window
-  // DCA configuration
-  dcaPctWhenBearish: 0.05,    // 5% base DCA
-  dcaBoostMultiplier: 2,      // 2x DCA when discounted
-  discountBelowSmaPct: 15,    // boost when price ≥15% below SMA
-  minCashUsd: 1,              // only DCA if we have at least this much USDC
-  minSpendUsd: 1,             // minimum spend per DCA
-
-  feePct: 0.003,              // 0.3%
+  evalIntervalDays: {
+    name: 'Evaluate interval (days)',
+    defaultValue: 5,
+    type: 'days',
+    description: 'Evaluate roughly weekly',
+    configurable: true,
+  },
+  dcaMode: {
+    name: 'Start in DCA mode',
+    defaultValue: true,
+    type: 'boolean',
+    description: 'Start in DCA mode',
+    configurable: false,
+  },
+  hystBps: {
+    name: 'Hysteresis (bps)',
+    defaultValue: 150,
+    type: 'number',
+    description: 'Hysteresis band in basis points (default 150 = 1.5%)',
+    configurable: true,
+  },
+  slopeLookbackDays: {
+    name: 'SMA slope lookback (days)',
+    defaultValue: 14,
+    type: 'days',
+    description: 'SMA slope lookback window',
+    configurable: true,
+  },
+  dcaPctWhenBearish: {
+    name: 'DCA % when bearish',
+    defaultValue: 0.05,
+    type: 'percentage',
+    description: 'Base DCA fraction when bearish',
+    configurable: true,
+  },
+  dcaBoostMultiplier: {
+    name: 'DCA boost multiplier',
+    defaultValue: 2,
+    type: 'number',
+    description: 'DCA boost multiplier when discounted',
+    configurable: true,
+  },
+  discountBelowSmaPct: {
+    name: 'Discount below SMA (%)',
+    defaultValue: 15,
+    type: 'percentage',
+    description: 'Boost when price ≥ discount % below SMA',
+    configurable: true,
+  },
+  minCashUsd: {
+    name: 'Min USDC to DCA (USD)',
+    defaultValue: 1,
+    type: 'number',
+    description: 'Only DCA if we have at least this much USDC',
+    configurable: false,
+  },
+  minSpendUsd: {
+    name: 'Min spend per DCA (USD)',
+    defaultValue: 1,
+    type: 'number',
+    description: 'Minimum spend per DCA',
+    configurable: false,
+  },
+  feePct: {
+    name: 'Trading fee',
+    defaultValue: 0.003,
+    type: 'percentage',
+    description: 'Trading fee (0.3%)',
+    configurable: true,
+  },
 };
 
 const SMA_LENGTH = 50; // SMA period for trend (kept constant for charting consistency)
 
 export async function run(initialCapital: number, startDate: string, endDate: string, options: { prices: { btc: PriceData[] }; dcaPctWhenBearish?: number; evalIntervalDays?: number; feePct?: number; discountBelowSmaPct?: number; dcaBoostMultiplier?: number; minCashUsd?: number; minSpendUsd?: number; hystBps?: number; slopeLookbackDays?: number; dcaMode?: boolean; depositAmount?: number; depositIntervalDays?: number }): Promise<SimulationResult> {
   const btcData = options.prices.btc;
-  const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_PARAMETERS.dcaPctWhenBearish));
-  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.evalIntervalDays));
-  const feePct = options.feePct ?? DEFAULT_PARAMETERS.feePct;
-  const discountBelowSmaPct = Math.max(0, options.discountBelowSmaPct ?? DEFAULT_PARAMETERS.discountBelowSmaPct);
-  const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_PARAMETERS.dcaBoostMultiplier);
-  const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_PARAMETERS.minCashUsd);
-  const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_PARAMETERS.minSpendUsd);
-  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_PARAMETERS.hystBps));
-  const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_PARAMETERS.slopeLookbackDays));
+  const dcaPct = Math.max(0, Math.min(1, options.dcaPctWhenBearish ?? DEFAULT_PARAMETERS.dcaPctWhenBearish.defaultValue));
+  const evalIntervalDays = Math.max(1, Math.floor(options.evalIntervalDays ?? DEFAULT_PARAMETERS.evalIntervalDays.defaultValue));
+  const feePct = options.feePct ?? DEFAULT_PARAMETERS.feePct.defaultValue;
+  const discountBelowSmaPct = Math.max(0, options.discountBelowSmaPct ?? DEFAULT_PARAMETERS.discountBelowSmaPct.defaultValue);
+  const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_PARAMETERS.dcaBoostMultiplier.defaultValue);
+  const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_PARAMETERS.minCashUsd.defaultValue);
+  const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_PARAMETERS.minSpendUsd.defaultValue);
+  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_PARAMETERS.hystBps.defaultValue));
+  const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_PARAMETERS.slopeLookbackDays.defaultValue));
 
   const dates = btcData.map(d => d.date);
   const prices = btcData.map(d => d.close);
@@ -265,7 +322,18 @@ const strategy: Strategy = {
   id: 'trend-btc-dca',
   name: 'Trend aware DCA',
   run,
-  getDefaultParameters: () => ({ ...DEFAULT_PARAMETERS }),
+  getDefaultParameters: () => ({
+    evalIntervalDays: DEFAULT_PARAMETERS.evalIntervalDays.defaultValue,
+    dcaMode: DEFAULT_PARAMETERS.dcaMode.defaultValue,
+    hystBps: DEFAULT_PARAMETERS.hystBps.defaultValue,
+    slopeLookbackDays: DEFAULT_PARAMETERS.slopeLookbackDays.defaultValue,
+    dcaPctWhenBearish: DEFAULT_PARAMETERS.dcaPctWhenBearish.defaultValue,
+    dcaBoostMultiplier: DEFAULT_PARAMETERS.dcaBoostMultiplier.defaultValue,
+    discountBelowSmaPct: DEFAULT_PARAMETERS.discountBelowSmaPct.defaultValue,
+    minCashUsd: DEFAULT_PARAMETERS.minCashUsd.defaultValue,
+    minSpendUsd: DEFAULT_PARAMETERS.minSpendUsd.defaultValue,
+    feePct: DEFAULT_PARAMETERS.feePct.defaultValue,
+  }),
 };
 
 export default strategy;
