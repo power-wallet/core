@@ -18,18 +18,18 @@ export interface Strategy {
 
 // Centralized default parameters for the strategy
 export const DEFAULT_PARAMETERS = {
-  dcaAmount: {
-    name: 'DCA amount (USDC)',
-    defaultValue: 100,
-    type: 'number',
-    description: 'USDC per buy',
-    configurable: true,
-  },
   dcaIntervalDays: {
     name: 'DCA interval (days)',
     defaultValue: 7,
     type: 'days',
     description: 'Strategy evaluation interval (default weekly)',
+    configurable: true,
+  },
+  dcaAmount: {
+    name: 'DCA amount (USDC)',
+    defaultValue: 100,
+    type: 'number',
+    description: 'USDC per buy',
     configurable: true,
   },
   tradingFee: {

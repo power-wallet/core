@@ -127,6 +127,16 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
     return { numDeposits: n, totalInvested: n * depositAmount };
   }, [startDate, endDate, depositAmount, depositIntervalDays]);
 
+  const handleResetOptions = async () => {
+    try {
+      const strat = await loadStrategy(strategy as any);
+      const defaults = strat.getDefaultParameters();
+      setStrategyOptions((prev) => ({ ...prev, [strategy]: defaults }));
+    } catch (_) {
+      // ignore
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -334,7 +344,12 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
 
         <Collapse in={showAdvanced} timeout="auto" unmountOnExit>
           <Divider sx={{ my: 2, borderColor: '#2D2D2D' }} />
-          <Typography variant="subtitle1" sx={{ color: '#D1D5DB', mb: 2 }}>Options</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ color: '#D1D5DB' }}>Options</Typography>
+            <Button size="small" onClick={handleResetOptions} sx={{ textTransform: 'none', color: '#F59E0B', '&:hover': { color: '#FDBA74' } }}>
+              Reset
+            </Button>
+          </Box>
           {(() => {
             const meta = strategyParamMeta ?? {};
             const current = strategyOptions?.[strategy] ?? {};

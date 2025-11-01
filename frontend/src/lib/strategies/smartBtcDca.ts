@@ -24,10 +24,10 @@ export const DEFAULT_PARAMETERS = {
     configurable: true,
   },
   baseDcaUsdc: {
-    name: 'DCA amount',
+    name: 'Base DCA amount',
     defaultValue: 100.0,
     type: 'number',
-    description: 'Base DCA amount per evaluation',
+    description: 'Base DCA amount per evaluation in USDC',
     configurable: true,
   },
   minTradeUsd: {
@@ -59,14 +59,14 @@ export const DEFAULT_PARAMETERS = {
     percInc: 1,
     type: 'percentage',
     description: 'Clip absolute daily log return',
-    configurable: true,
+    configurable: false,
   },
   ewmaLambdaDaily: {
     name: 'EWMA lambda',
     defaultValue: 0.94,
     type: 'number',
     description: 'EWMA lambda',
-    configurable: true,
+    configurable: false,
   },
   bufferMult: {
     name: 'Buffer multiplier (days)',
@@ -83,10 +83,10 @@ export const DEFAULT_PARAMETERS = {
     configurable: true,
   },
   thresholdMode: {
-    name: 'Threshold rebalancing',
+    name: 'Rebalancing mode',
     defaultValue: true,
     type: 'boolean',
-    description: 'Enable threshold rebalancing to band boundary',
+    description: 'Enable threshold rebalancing to target BTC weight (± bandDelta)',
     configurable: true,
   },
   targetBtcWeight: {
@@ -102,21 +102,21 @@ export const DEFAULT_PARAMETERS = {
   bandDelta: {
     name: 'Weight band ±',
     defaultValue: 0.30,
-    minPerc: 0,
+    minPerc: 1,
     maxPerc: 100,
     percInc: 1,
     type: 'percentage',
-    description: '± band around target weight',
+    description: '± band around target BTC weight',
     configurable: true,
   },
   rebalanceCapFrac: {
     name: 'Rebalance cap (NAV %)',
     defaultValue: 0.20,
-    minPerc: 0,
+    minPerc: 1,
     maxPerc: 100,
     percInc: 1,
     type: 'percentage',
-    description: 'Cap single rebalance as fraction of NAV',
+    description: 'Cap single rebalance size as percentage of NAV',
     configurable: true,
   },
   tradingFee: {

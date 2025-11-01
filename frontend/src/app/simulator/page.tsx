@@ -49,7 +49,10 @@ function SimulatorPageInner() {
       const raw = typeof window !== 'undefined' ? localStorage.getItem('simulator:settings') : null;
       if (raw) {
         const saved = JSON.parse(raw);
-        if (saved?.strategy) setStrategyId(saved.strategy);
+        if (saved?.strategy) {
+          setStrategyId(saved.strategy);
+          return;
+        }
       }
     } catch {}
   }, [searchParams]);
@@ -57,6 +60,19 @@ function SimulatorPageInner() {
   // Clear previous result when switching strategy so Overview reflects selection
   useEffect(() => {
     setResult(null);
+  }, [strategyId]);
+
+  // Persist selected strategy to localStorage so it restores on reload
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const raw = localStorage.getItem('simulator:settings');
+      const saved = raw ? JSON.parse(raw) : {};
+      const updated = { ...saved, strategy: strategyId };
+      localStorage.setItem('simulator:settings', JSON.stringify(updated));
+    } catch (_) {
+      // ignore
+    }
   }, [strategyId]);
 
   const handleRunSimulation = async (params: SimulationParams) => {
