@@ -15,6 +15,7 @@ export default function WalletConfigCard({ automationPaused, slippage, onToggleA
     <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Typography variant="subtitle1" fontWeight="bold">Wallet Config</Typography>
+        <Box sx={{ mt: 1, mb: 1, borderBottom: '1px solid', borderColor: 'divider' }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 1 }} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <Box>
             <Typography variant="caption" color="text.secondary">Automation</Typography>

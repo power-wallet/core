@@ -86,6 +86,7 @@ export default function WalletHistoryChart({ data }: { data: WalletHistoryPoint[
             <ToggleButton value="value">Value</ToggleButton>
           </ToggleButtonGroup>
         </Box>
+        <Box sx={{ mt: 1, mb: 1, borderBottom: '1px solid', borderColor: 'divider' }} />
         <Box sx={{ width: '100%', height: 300 }}>
           <ResponsiveContainer>
             {mode === 'value' ? (

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Tooltip } from '@mui/material';
+import { Card, CardContent, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Tooltip, Box } from '@mui/material';
 import { formatDateOnly, formatDateTime } from '@/lib/format';
 
 type Props = {
@@ -15,6 +15,7 @@ export default function SwapsCard({ swaps, addressToMeta, chainAssets }: Props) 
     <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Typography variant="subtitle1" fontWeight="bold">Swaps</Typography>
+        <Box sx={{ mt: 1, mb: 1, borderBottom: '1px solid', borderColor: 'divider' }} />
         <TableContainer sx={{ mt: 1, overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 680, whiteSpace: 'nowrap' }}>
             <TableHead>

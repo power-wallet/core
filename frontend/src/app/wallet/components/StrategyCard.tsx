@@ -28,6 +28,7 @@ export default function StrategyCard({ strategyName, description, strategyAddr, 
             <SettingsIcon fontSize="small" />
           </IconButton>
         </Box>
+        <Box sx={{ mt: 1, mb: 1, borderBottom: '1px solid', borderColor: 'divider' }} />
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
           {(() => {
             const finalDesc = description ? String(description) : '';
