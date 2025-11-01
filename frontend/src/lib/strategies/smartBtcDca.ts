@@ -11,6 +11,7 @@ export interface Strategy {
     options: { prices: { btc: PriceData[] } }
   ) => Promise<SimulationResult>;
   getDefaultParameters: () => Record<string, any>;
+  getParameterMeta: () => Record<string, any>;
 }
 
 // Centralized default parameters (adapted from adaptive_dca_btc.py)
@@ -419,6 +420,7 @@ const strategy: Strategy = {
     rebalanceCapFrac: DEFAULT_PARAMETERS.rebalanceCapFrac.defaultValue,
     tradingFee: DEFAULT_PARAMETERS.tradingFee.defaultValue,
   }),
+  getParameterMeta: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

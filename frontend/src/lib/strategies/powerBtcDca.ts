@@ -12,6 +12,7 @@ export interface Strategy {
     options: { prices: { btc: PriceData[] } }
   ) => Promise<SimulationResult>;
   getDefaultParameters: () => Record<string, any>;
+  getParameterMeta: () => Record<string, any>;
 }
 
 // Power law model: P(t) = C * d^n, with d = days since 2009-01-03
@@ -21,59 +22,59 @@ const N = 5.845;
 // Centralized default parameters for the strategy
 export const DEFAULT_PARAMETERS = {
   tradeIntervalDays: {
-    name: 'Trade interval (days)',
+    name: 'Interval (days)',
     defaultValue: 7,
     type: 'days',
     description: 'Evaluate every N days (weekly by default)',
     configurable: true,
   },
   upperBandMult: {
-    name: 'Upper band multiplier',
+    name: 'Upper multiplier (x)',
     defaultValue: 2.0,
     type: 'number',
-    description: 'Upper band multiplier of model price',
+    description: 'Upper band as multiple of model price',
     configurable: true,
   },
   lowerBandMult: {
-    name: 'Lower band multiplier',
+    name: 'Lower multiplier (x)',
     defaultValue: 0.5,
     type: 'number',
-    description: 'Lower band multiplier of model price',
+    description: 'Lower band as multiple of model price',
     configurable: true,
   },
   buyPctBelowLower: {
-    name: 'Buy % below lower band',
+    name: 'Big Buy (%)',
     defaultValue: 0.05,
     type: 'percentage',
     description: 'Buy % of available USDC below lower band',
     configurable: true,
   },
   buyPctBetweenLowerAndModel: {
-    name: 'Buy % between lower and model',
+    name: 'Small Buy (%)',
     defaultValue: 0.01,
     type: 'percentage',
     description: 'Buy % between lower band and model',
     configurable: true,
   },
   sellPctAboveUpper: {
-    name: 'Sell % above upper band',
+    name: 'Sell (%)',
     defaultValue: 0.05,
     type: 'percentage',
     description: 'Sell % of BTC above upper band',
     configurable: true,
   },
   usdcReserveFrac: {
-    name: 'USDC reserve fraction',
+    name: 'USDC reserve (%)',
     defaultValue: 0.02,
     type: 'percentage',
-    description: 'Keep USDC reserve fraction',
+    description: 'Reserves of USDC to keep as percentage of portfolio',
     configurable: true,
   },
   btcReserveFrac: {
-    name: 'BTC reserve fraction',
+    name: 'BTC reserve (%)',
     defaultValue: 0.10,
     type: 'percentage',
-    description: 'Keep BTC reserve fraction',
+    description: 'Reserves of BTC to keep as percentage of portfolio',
     configurable: true,
   },
   tradingFee: {
@@ -337,6 +338,7 @@ const strategy: Strategy = {
     lowerBandMult: DEFAULT_PARAMETERS.lowerBandMult.defaultValue,
     tradingFee: DEFAULT_PARAMETERS.tradingFee.defaultValue,
   }),
+  getParameterMeta: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

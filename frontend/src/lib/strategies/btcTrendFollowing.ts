@@ -25,6 +25,7 @@ export interface Strategy {
     }
   ) => Promise<SimulationResult>;
   getDefaultParameters: () => Record<string, any>;
+  getParameterMeta: () => Record<string, any>;
 }
 
 // Centralized default parameters for the strategy
@@ -341,6 +342,7 @@ const strategy: Strategy = {
     minSpendUsd: DEFAULT_PARAMETERS.minSpendUsd.defaultValue,
     feePct: DEFAULT_PARAMETERS.feePct.defaultValue,
   }),
+  getParameterMeta: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

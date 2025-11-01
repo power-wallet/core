@@ -14,6 +14,7 @@ export interface Strategy {
     options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
   ) => Promise<SimulationResult>;
   getDefaultParameters: () => Record<string, any>;
+  getParameterMeta: () => Record<string, any>;
 }
 
 export const DEFAULT_PARAMETERS = {
@@ -388,6 +389,7 @@ const strategy: Strategy = {
     momentumExponent: DEFAULT_PARAMETERS.momentumExponent.defaultValue,
     tradingFee: DEFAULT_PARAMETERS.tradingFee.defaultValue,
   }),
+  getParameterMeta: () => ({ ...DEFAULT_PARAMETERS }),
 };
 
 export default strategy;

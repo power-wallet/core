@@ -12,6 +12,7 @@ export interface Strategy {
     options: { prices: { btc?: PriceData[]; eth?: PriceData[] } }
   ) => Promise<SimulationResult>;
   getDefaultParameters: () => Record<string, any>;
+  getParameterMeta: () => Record<string, any>;
 }
 
 // Chart identifiers used by StrategyCharts to determine which charts to render
@@ -67,6 +68,16 @@ export async function loadStrategy(id: StrategyId): Promise<Strategy> {
       return await getTrendFollowingStrategy();
     default:
       throw new Error(`Unknown strategy id: ${id}`);
+  }
+}
+
+// Load parameter metadata (DEFAULT_PARAMETERS) for a given strategy
+export async function loadStrategyMeta(id: StrategyId): Promise<Record<string, any> | null> {
+  try {
+    const strat = await loadStrategy(id);
+    return strat.getParameterMeta ? strat.getParameterMeta() : null;
+  } catch {
+    return null;
   }
 }
 

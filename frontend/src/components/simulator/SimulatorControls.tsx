@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { loadStrategy } from '@/lib/strategies/registry';
+import { loadStrategy, loadStrategyMeta } from '@/lib/strategies/registry';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 interface SimulatorControlsProps {
@@ -43,6 +43,7 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
   const [error, setError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [strategyOptions, setStrategyOptions] = useState<Record<string, any>>({});
+  const [strategyParamMeta, setStrategyParamMeta] = useState<Record<string, any> | null>(null);
 
   // Load saved settings once on mount (client only)
   useEffect(() => {
@@ -85,6 +86,9 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
           if (prev && prev[strategy]) return prev;
           return { ...prev, [strategy]: defaults };
         });
+         // Load parameter metadata via registry helper
+        const meta = await loadStrategyMeta(strategy as any);
+        if (!cancelled) setStrategyParamMeta(meta ?? null);
       } catch (_) {
         // ignore
       }
@@ -332,51 +336,106 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
           <Divider sx={{ my: 2, borderColor: '#2D2D2D' }} />
           <Typography variant="subtitle1" sx={{ color: '#D1D5DB', mb: 2 }}>Options</Typography>
           {(() => {
-            const defaults: Record<string, any> = strategyOptions?.[strategy] ?? {};
-            const current = strategyOptions?.[strategy] ?? defaults;
-
-            const labelize = (k: string) => k
-              .replace(/([a-z])([A-Z])/g, '$1 $2')
-              .replace(/^\w/, c => c.toUpperCase());
+            const meta = strategyParamMeta ?? {};
+            const current = strategyOptions?.[strategy] ?? {};
 
             const handleField = (key: string, val: any) => {
               setStrategyOptions((prev) => ({ ...prev, [strategy]: { ...(prev?.[strategy] ?? {}), [key]: val } }));
             };
 
+            const keys = Object.keys(meta).filter((k) => meta[k]?.configurable);
+            if (keys.length === 0) return (
+              <Typography variant="body2" color="text.secondary">No configurable options.</Typography>
+            );
+
             return (
               <Grid container spacing={2}>
-                {Object.entries(defaults).map(([key, val]) => (
-                  <Grid item xs={12} sm={6} md={4} key={key}>
-                    {typeof val === 'boolean' ? (
-                      <TextField
-                        select
-                        fullWidth
-                        label={labelize(key)}
-                        value={String(current[key] ?? val)}
-                        onChange={(e) => handleField(key, e.target.value === 'true')}
-                        variant="outlined"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            color: 'white',
-                            '& fieldset': { borderColor: '#2D2D2D' },
-                            '&:hover fieldset': { borderColor: '#F59E0B' },
-                            '&.Mui-focused fieldset': { borderColor: '#F59E0B' },
-                          },
-                          '& .MuiInputLabel-root': { color: '#D1D5DB' },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
-                        }}
-                      >
-                        <MenuItem value="true">True</MenuItem>
-                        <MenuItem value="false">False</MenuItem>
-                      </TextField>
-                    ) : (
+                {keys.map((key) => {
+                  const m = meta[key];
+                  const type = m?.type as string;
+                  const name = m?.name || key;
+                  const description = m?.description || '';
+                  const defaultVal = m?.defaultValue;
+                  const value = current[key] != null ? current[key] : defaultVal;
+
+                  if (type === 'boolean') {
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={key}>
+                        <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                          {description}
+                        </Typography>
+                        <TextField
+                          select
+                          fullWidth
+                          label={name}
+                          value={String(Boolean(value))}
+                          onChange={(e) => handleField(key, e.target.value === 'true')}
+                          variant="outlined"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              color: 'white',
+                              '& fieldset': { borderColor: '#2D2D2D' },
+                              '&:hover fieldset': { borderColor: '#F59E0B' },
+                              '&.Mui-focused fieldset': { borderColor: '#F59E0B' },
+                            },
+                            '& .MuiInputLabel-root': { color: '#D1D5DB' },
+                            '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
+                          }}
+                        >
+                          <MenuItem value="true">True</MenuItem>
+                          <MenuItem value="false">False</MenuItem>
+                        </TextField>
+                      </Grid>
+                    );
+                  }
+
+                  if (type === 'percentage') {
+                    const pct = Math.round((Number(value) || 0) * 100);
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={key}>
+                        <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                          {description}
+                        </Typography>
+                        <TextField
+                          select
+                          fullWidth
+                          label={name}
+                          value={String(pct)}
+                          onChange={(e) => handleField(key, Number(e.target.value) / 100)}
+                          variant="outlined"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              color: 'white',
+                              '& fieldset': { borderColor: '#2D2D2D' },
+                              '&:hover fieldset': { borderColor: '#F59E0B' },
+                              '&.Mui-focused fieldset': { borderColor: '#F59E0B' },
+                            },
+                            '& .MuiInputLabel-root': { color: '#D1D5DB' },
+                            '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
+                          }}
+                        >
+                          {Array.from({ length: 101 }, (_, i) => (
+                            <MenuItem key={i} value={String(i)}>{i}%</MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                    );
+                  }
+
+                  // days or number -> numeric input
+                  return (
+                    <Grid item xs={12} sm={6} md={4} key={key}>
+                      <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                        {description}
+                      </Typography>
                       <TextField
                         fullWidth
                         type="number"
-                        label={labelize(key)}
-                        value={Number(current[key] ?? val)}
+                        label={name}
+                        value={Number(value)}
                         onChange={(e) => handleField(key, Number(e.target.value))}
                         variant="outlined"
+                        inputProps={{ min: 0, step: type === 'number' ? 1 : 1 }}
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             color: 'white',
@@ -388,9 +447,9 @@ const SimulatorControls: React.FC<SimulatorControlsProps & { strategy: string; o
                           '& .MuiInputLabel-root.Mui-focused': { color: '#F59E0B' },
                         }}
                       />
-                    )}
-                  </Grid>
-                ))}
+                    </Grid>
+                  );
+                })}
               </Grid>
             );
           })()}
