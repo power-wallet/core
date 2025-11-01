@@ -48,14 +48,13 @@ export default function Onboarding({ isBaseSepolia, address, connectorId, needsF
   const whitelistLoading = whitelistChecksNeeded && (whitelistEnabled === undefined || (whitelistEnabled === true && isWhitelisted === undefined));
 
   return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 4, sm: 6 } }}>
       <Stack spacing={3}>
-        <Typography variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
+        <Typography sx={{ fontSize: { xs: '1.6rem', sm: '2rem' } }} variant="h4" fontWeight="bold">Welcome to Power Wallet</Typography>
         {!gatedOnBaseMainnet && !whitelistLoading && (
           <Typography variant="body2" color="text.secondary">
-            Create your first Power Wallet: an on-chain vault that can hold USDC and BTC, rebalancing these assets according to a strategy you choose.
-            You will be the &quot;owner&quot; of the wallet &amp; strategy smart contracts, 
-            which means only you interact with the wallet and your funds will be safe.
+            Create your first Power Wallet — an on-chain vault for USDC and BTC that follows a strategy you choose.
+            You are the sole owner of the wallet and strategy contracts, so your funds stay safe under your control.
           </Typography>
         )}
 

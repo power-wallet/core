@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, Alert, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, Alert, Button, Box } from '@mui/material';
 
 type Props = {
   open: boolean;
@@ -14,6 +14,7 @@ export default function CloseWalletDialog({ open, onClose, hasAnyFunds, onConfir
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle>Close Wallet</DialogTitle>
+      <Box sx={{ mt: 0, mb: 1, borderBottom: '1px solid', borderColor: 'divider' }} />
       <DialogContent>
         <Typography variant="body2" sx={{ mb: 1 }}>
           This will pause automation and permanently delete this wallet.
