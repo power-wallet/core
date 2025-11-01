@@ -46,7 +46,7 @@ export const DEFAULT_PARAMETERS = {
   },
   hystBps: {
     name: 'SMA Hysteresis Band (%)',
-    defaultValue: 1.5,
+    defaultValue: 0.015,
     type: 'percentage',
     minPerc: 0.1,
     maxPerc: 10,
@@ -80,7 +80,7 @@ export const DEFAULT_PARAMETERS = {
   },
   discountBelowSmaPct: {
     name: 'Discount below SMA (%)',
-    defaultValue: 15,
+    defaultValue: 0.15,
     minPerc: 1,
     maxPerc: 100,
     percInc: 1,
@@ -125,7 +125,8 @@ export async function run(initialCapital: number, startDate: string, endDate: st
   const dcaBoostMultiplier = Math.max(1, options.dcaBoostMultiplier ?? DEFAULT_PARAMETERS.dcaBoostMultiplier.defaultValue);
   const minCashUsd = Math.max(0, options.minCashUsd ?? DEFAULT_PARAMETERS.minCashUsd.defaultValue);
   const minSpendUsd = Math.max(0, options.minSpendUsd ?? DEFAULT_PARAMETERS.minSpendUsd.defaultValue);
-  const hystBps = Math.max(0, Math.floor(options.hystBps ?? DEFAULT_PARAMETERS.hystBps.defaultValue));
+  // Hysteresis band is configured as a percentage fraction (e.g., 0.015 = 1.5%)
+  const hystPct = Math.max(0, (options.hystBps ?? DEFAULT_PARAMETERS.hystBps.defaultValue));
   const slopeLookback = Math.max(1, Math.floor(options.slopeLookbackDays ?? DEFAULT_PARAMETERS.slopeLookbackDays.defaultValue));
 
   const dates = btcData.map(d => d.date);
@@ -211,8 +212,8 @@ export async function run(initialCapital: number, startDate: string, endDate: st
     }
     if (sma !== null && currDate >= nextEvalDate) {
       // Hysteresis thresholds and slope gate
-      const upThresh = sma * (1 + hystBps / 10_000);
-      const dnThresh = sma * (1 - hystBps / 10_000);
+      const upThresh = sma * (1 + hystPct);
+      const dnThresh = sma * (1 - hystPct);
       const slopeOk = i - slopeLookback >= 0 ? smaAt(i, SMA_LENGTH)! > smaAt(i - slopeLookback, SMA_LENGTH)! : true;
       const enterUp = btcPrice > upThresh && slopeOk;
       const exitUp = btcPrice < dnThresh || !slopeOk;
