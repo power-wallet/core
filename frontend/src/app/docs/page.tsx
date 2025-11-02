@@ -1,3 +1,7 @@
-export { default } from '../contracts/page';
+import { redirect } from 'next/navigation';
+
+export default function DocsIndex() {
+  redirect('/docs/getting-started');
+}
 
 

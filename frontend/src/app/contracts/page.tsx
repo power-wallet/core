@@ -314,89 +314,9 @@ export default function SmartContractsPage() {
   }
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh', py: 4 }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '60vh', py: 0 }}>
       <Container maxWidth="lg">
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">Docs</Typography>
-        </Box>
-
-        {/* Getting started */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom>Getting started</Typography>
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Stack spacing={1.25}>
-                <Typography variant="body2">
-                  1) Connect a wallet on Base or Base Sepolia. Fund USDC if you plan to deposit.
-                </Typography>
-                <Typography variant="body2">
-                  2) Create a Power Wallet and pick a strategy (Pure, Power, Smart, or Trend). You own the wallet and the strategy instance.
-                </Typography>
-                <Typography variant="body2">
-                  3) Deposit USDC. Automation will execute the strategy on schedule. You can pause automation or withdraw anytime.
-                </Typography>
-                <Typography variant="body2">
-                  4) Track performance in My Wallet → Wallet History. Switch between Value and Assets views, and export data as needed.
-                </Typography>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Box>
-
-        {/* Concepts */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom>Concepts</Typography>
-          <Card sx={{ bgcolor: '#1A1A1A', border: '1px solid #2D2D2D' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle1" fontWeight="bold">What is a Power Wallet?</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  A Power Wallet is a digital vault on the Base blockchain that holds USDC and BTC in the form of Coinbase's wrapped Bitcoin (cbBTC). 
-                  <br />
-                  Each wallet is controlled by its owner’s address and linked to a strategy contract that automates rebalancing of assets.
-                </Typography>
-
-                <Typography variant="subtitle1" fontWeight="bold">Ownership and control</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  You are the sole owner of both the wallet and strategy instances. No one can move funds without your signature.
-                  You can deposit, withdraw, pause automation, update parameters, or close the wallet at any time.
-                </Typography>
-
-                <Typography variant="subtitle1" fontWeight="bold">Strategies</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Strategies define the rules, encoded as smart contracts, for dollar‑cost averaging and rebalancing. 
-                  Available strategies include Pure (classic DCA),
-                  Power (adaptive buys and sells with bitcoin's power-law price model), Smart (adaptive buys with volatility/drawdown kicker and optional rebalancing), 
-                  and Trend (DCA in downtrends and goes all‑in in uptrends).
-                  You control the strategy and can tweak the parameters as needed.
-                </Typography>
-
-                <Typography variant="subtitle1" fontWeight="bold">Automation</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Chainlink Automation calls strategy functions on a schedule, e.g., executing DCA, computing indicators, or rebalancing pools.
-                  You can pause/unpause automation per wallet. Failed upkeeps are retried; actions still require parameters you set.
-                </Typography>
-
-                <Typography variant="subtitle1" fontWeight="bold">Pricing and valuation</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Chainlink price feeds for BTC,ETH and USDC are used to ensure swaps are executed at the correct price. 
-                </Typography>
-
-                <Typography variant="subtitle1" fontWeight="bold">Safety</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Contracts are open source and verified on chain. The user controls the wallet and strategy instances. 
-                  <br />
-                  All assets remain in your Power Wallet. Strategies are automated by Chainlink Automation and do not custody assets. 
-                  <br />
-                  Always verify chain, addresses, and transactions. Market, oracle, and smart contract risks apply.
-                </Typography>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Box>
-
         <Box sx={{ mb: 2 }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom>Tech</Typography>
           <Typography variant="body1" color="text.secondary">On-chain components powering Power Wallet on Base Sepolia</Typography>
         </Box>
         <Box sx={{ mb: 2 }}>

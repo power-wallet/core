@@ -49,7 +49,7 @@ export default function About() {
               From Hackathon to Product
             </Typography>
             <Typography variant="body1" paragraph>
-              The Power Wallet project started at the <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>ETH Global Bangkok Hackathon</Box> in November 2024. <br />
+              The Power Wallet project started at the <Box component="a" href="https://ethglobal.com/showcase/power-wallet-8gkxo" target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'underline', color: 'secondary.main', '&:hover': { color: 'secondary.light' } }}>ETHGlobal Bangkok</Box> hackathon in November 2024. <br />
             </Typography>
             <Box sx={{ mb: 2 }}>
               <TeamCarousel />

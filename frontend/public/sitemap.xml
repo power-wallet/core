@@ -8,32 +8,27 @@
   <url>
     <loc>https://powerwallet.finance/about</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://powerwallet.finance/portfolio</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://powerwallet.finance/wallet</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://powerwallet.finance/pools</loc>
+    <loc>https://powerwallet.finance/docs/getting-started</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://powerwallet.finance/contracts</loc>
+    <loc>https://powerwallet.finance/docs/concepts</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://powerwallet.finance/docs/tech</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://powerwallet.finance/users</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
   <url>
     <loc>https://powerwallet.finance/faucet</loc>
@@ -43,7 +38,7 @@
   <url>
     <loc>https://powerwallet.finance/simulator</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.6</priority>
   </url>
 </urlset>
 
