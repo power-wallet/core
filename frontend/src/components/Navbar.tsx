@@ -59,7 +59,7 @@ const Navbar = () => {
   const menuItems = [
     { text: 'My Wallets', href: '/portfolio' },
     { text: 'Simulator', href: '/simulator' },
-    { text: 'Smart Contracts', href: '/contracts' },
+    { text: 'Docs', href: '/docs' },
     { text: 'About', href: '/about' },
   ];
 

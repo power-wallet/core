@@ -674,7 +674,7 @@ export default function Client() {
     <Box sx={{ bgcolor: 'background.default', minHeight: '60vh' }}>
       <Container maxWidth="lg">
         {!poolAddress ? (
-          <Typography variant="body2" color="text.secondary">No pool address provided. Go back to{' '}<MuiLink href="/contracts">Smart Contracts</MuiLink>.</Typography>
+          <Typography variant="body2" color="text.secondary">No pool address provided. Go back to{' '}<MuiLink href="/docs">Docs</MuiLink>.</Typography>
         ) : (
           <>
             <Typography variant="h4" fontWeight="bold" gutterBottom>Pool Management</Typography>
