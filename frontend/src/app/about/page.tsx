@@ -14,17 +14,8 @@ import TeamCarousel from '@/components/TeamCarousel';
 
 export default function About() {
   return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
+    <Container  sx={{ py: 4 }}>
       <Stack spacing={4}>
-        <Box>
-          <Typography variant="h3" component="h1" gutterBottom fontWeight="bold">
-            About Power Wallet
-          </Typography>
-          <Typography variant="h6" color="text.secondary" paragraph>
-            Bitcoin accumulation strategies on autopilot
-          </Typography>
-        </Box>
-
         <Card>
           <CardContent sx={{ p: 4 }}>
             <Typography variant="h5" gutterBottom fontWeight="bold">
@@ -56,7 +47,7 @@ export default function About() {
             </Box>
             <Typography variant="body1" paragraph>
               Over an intense weekend we prototyped a fully on-chain, automated Bitcoin investing experience: seamsless onboarding with Coinbase Smart Wallet, 
-              live market data via Chainlink oracles, Uniswap V3 execution on Base, and Chainlink Automation to keep the DCA strategies running 24/7.
+              live market data via Chainlink oracles, Uniswap V3 execution on Base, and Chainlink Automation to keep the DCA strategies running.
             </Typography>
             <Typography variant="body1" paragraph>
               We presented our prototype in front of judges and sponsors, and the response reinforced our belief: <br/>

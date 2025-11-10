@@ -17,6 +17,8 @@ import {
   Alert,
   Grid
 } from '@mui/material';
+
+import { getOnrampBuyUrl, getCoinbaseSmartWalletFundUrl, setupOnrampEventListeners } from '@coinbase/onchainkit/fund';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -209,7 +211,6 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                     size="small"
                                     onClick={async () => {
                                       try {
-                                        const fundMod = await import('@coinbase/onchainkit/fund');
                                         // Create server-side v2 session to get Hosted UI onrampUrl (deep-links to Buy USDC)
                                         const resp = await fetch('/.netlify/functions/create-onramp-session', {
                                           method: 'POST',
@@ -221,9 +222,9 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                         }
                                         const json = resp.ok ? await resp.json() : {} as any;
                                         let url = (json as any)?.onrampUrl as string | undefined;
-                                        // if (url) {
-                                        //   console.log('Created onramp session: url:', url, "resp:", json);
-                                        // }
+                                        if (url) {
+                                          console.log('Created onramp session: url:', url, "resp:", json);
+                                        }
                                         if (!url) {
                                           console.warn('Failed to create onramp session: no onrampUrl');
                                           // Fallback to token flow if function is older
@@ -231,12 +232,12 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                           if (!token) {
                                             console.warn('Failed to create onramp session: no sessionToken');
                                           }
-                                          url = token ? fundMod.getOnrampBuyUrl({ sessionToken: token, defaultAsset: 'USDC', defaultNetwork: 'base', originComponentName: 'PowerWallet' }) : undefined;
+                                          url = token ? getOnrampBuyUrl({ sessionToken: token, defaultAsset: 'USDC', defaultNetwork: 'base', originComponentName: 'PowerWallet' }) : undefined;
                                         }
                                         if (!url) {
-                                          url = fundMod.getCoinbaseSmartWalletFundUrl();
+                                          url = getCoinbaseSmartWalletFundUrl();
                                         }
-                                        const unsubscribe = fundMod.setupOnrampEventListeners({
+                                        const unsubscribe = setupOnrampEventListeners({
                                           onSuccess: () => { setReloadNonce((n) => n + 1); },
                                           onExit: () => {},
                                           onEvent: () => {},

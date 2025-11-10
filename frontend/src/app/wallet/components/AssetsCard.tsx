@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { Card, CardContent, Typography, Stack, Box, Grid, Button, Alert } from '@mui/material';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { useChainId } from 'wagmi';
@@ -51,7 +52,7 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
         <Box sx={{ mt: 1, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box sx={{ p: 1 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: '48px 1fr', gridTemplateRows: 'auto auto', columnGap: 1, alignItems: 'center' }}>
-              <img src="/img/wallet/usdc.svg" alt="USDC" width={36} height={36} style={{ gridRow: '1 / span 2' }} />
+              <Image src="/img/wallet/usdc.svg" alt="USDC" width={36} height={36} style={{ gridRow: '1 / span 2' }} />
               <Typography sx={{ fontSize: { xs: '1.6rem', sm: '1.8rem' }, fontWeight: 600, lineHeight: 1.1 }}>
                 {usdcMeta ? (usdcAmtRaw === undefined ? '-' : formatTokenAmountBigint(usdcAmtRaw, usdcMeta.decimals)) : '-'}
               </Typography>
@@ -62,7 +63,7 @@ export default function AssetsCard({ chainAssets, riskAssets, stableBal, riskBal
           </Box>
           <Box sx={{ p: 1 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: '48px 1fr', gridTemplateRows: 'auto auto', columnGap: 1, alignItems: 'center' }}>
-              <img src="/img/wallet/btc.svg" alt="cbBTC" width={36} height={36} style={{ gridRow: '1 / span 2' }} />
+              <Image src="/img/wallet/btc.svg" alt="cbBTC" width={36} height={36} style={{ gridRow: '1 / span 2' }} />
               <Typography sx={{ fontSize: { xs: '1.6rem', sm: '1.8rem' }, fontWeight: 600, lineHeight: 1.1 }}>
                 {btcMeta ? (btcAmtRaw === undefined ? '-' : formatTokenAmountBigint(btcAmtRaw, btcMeta.decimals)) : '-'}
               </Typography>

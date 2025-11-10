@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Button, CircularProgress, Container, Stack, Typography, ToggleButtonGroup, ToggleButton, TextField, Grid, Snackbar, Alert, MenuItem, Select, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
@@ -77,7 +77,7 @@ export default function PortfolioPage() {
 
   // Gentle RPC helpers: throttle and retry on 429
   const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
-  const readWithRetry = async <T,>(label: string, fn: () => Promise<T>, attempt = 0): Promise<T> => {
+  const readWithRetry = useCallback(async <T,>(label: string, fn: () => Promise<T>, attempt = 0): Promise<T> => {
     try {
       return await fn();
     } catch (e: any) {
@@ -94,7 +94,7 @@ export default function PortfolioPage() {
       }
       throw e;
     }
-  };
+  }, []);
 
   // Balances for onboarding funding check
   const { data: nativeBal } = useBalance({ address: address as `0x${string}` | undefined, chainId });

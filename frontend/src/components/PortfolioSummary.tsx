@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, Typography, Box, Stack } from '@mui/material';
+import Image from 'next/image';
 
 type PerAsset = Record<string, { amount: number; usd: number }>;
 
@@ -27,7 +28,7 @@ export default function PortfolioSummary({ totalUsd, perAsset }: Props) {
                   const icon = sym === 'USDC' ? '/img/wallet/usdc.svg' : (sym === 'cbBTC' ? '/img/wallet/btc.svg' : undefined);
                   return (
                     <Box key={sym} sx={{ display: 'grid', gridTemplateColumns: '48px 1fr', gridTemplateRows: 'auto auto', columnGap: 1, alignItems: 'center' }}>
-                      {icon ? (<img src={icon} alt={sym} width={36} height={36} style={{ gridRow: '1 / span 2' }} />) : (<span />)}
+                      {icon ? (<Image src={icon} alt={sym} width={36} height={36} style={{ gridRow: '1 / span 2' }} />) : (<span />)}
                       <Typography sx={{ fontSize: { xs: '1.6rem', sm: '1.8rem' }, fontWeight: 600, lineHeight: 1 }}>
                         {v.amount.toLocaleString('en-US', { maximumFractionDigits: sym === 'USDC' ? 2 : 8 })}
                       </Typography>

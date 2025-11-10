@@ -28,15 +28,18 @@ export default function ConceptsPage() {
 
                 <Typography variant="subtitle1" fontWeight="bold">Strategies</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Strategies define the rules, encoded as smart contracts, for dollar‑cost averaging and rebalancing.
+                  Strategies define the rules, encoded as smart contracts, for dollar‑cost averaging into Bitcoin and rebalancing your portfolio.
+                  <br />
                   Available strategies include Pure (classic DCA), Power (adaptive buys and sells with bitcoin&apos;s power-law price model),
                   Smart (adaptive buys with volatility/drawdown kicker and optional rebalancing), and Trend (DCA in downtrends and goes all‑in in uptrends).
+                  <br />
                   You control the strategy and can tweak the parameters as needed.
                 </Typography>
 
                 <Typography variant="subtitle1" fontWeight="bold">Automation</Typography>
                 <Typography variant="body2" color="text.secondary">
                   Chainlink Automation calls strategy functions on a schedule, e.g., executing DCA, computing indicators, or rebalancing pools.
+                  <br />
                   You can pause/unpause automation per wallet. Failed upkeeps are retried; actions still require parameters you set.
                 </Typography>
 
@@ -47,8 +50,10 @@ export default function ConceptsPage() {
 
                 <Typography variant="subtitle1" fontWeight="bold">Safety</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Contracts are open source and verified on‑chain. You control the wallet and strategy instances.
+                  Contracts are open source and verified on‑chain. You control your own Power Wallets and strategy instances.
+                  <br />
                   All assets remain in your Power Wallet; strategies do not custody assets. Always verify chain, addresses, and transactions.
+                  <br />
                   Market, oracle, and smart contract risks apply.
                 </Typography>
               </Stack>

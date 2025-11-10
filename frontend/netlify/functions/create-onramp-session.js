@@ -41,15 +41,7 @@ exports.handler = async function(event) {
       paymentCurrency: userFiat || undefined,
     };
 
-    const endpoint = process.env.CDP_ONRAMP_API_URL || 'https://api.cdp.coinbase.com/platform/v2/onramp/sessions';
-
-    // Auth header via official v2 JWT (generateJwt)
-    let headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-
+    // Generate JWT for authentication
     const { generateJwt } = await import('@coinbase/cdp-sdk/auth');
     const jwt = await generateJwt({
       apiKeyId: apiKeyId,
@@ -59,8 +51,15 @@ exports.handler = async function(event) {
       requestPath: '/platform/v2/onramp/sessions',
       expiresIn: 120,
     });
+    
+    // Auth header via official v2 JWT (generateJwt)
+    let headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
     headers.Authorization = `Bearer ${jwt}`;
-
+    
+    const endpoint = process.env.CDP_ONRAMP_API_URL || 'https://api.cdp.coinbase.com/platform/v2/onramp/sessions';
     const res = await fetch(endpoint, {
       method: 'POST',
       headers,
@@ -74,6 +73,7 @@ exports.handler = async function(event) {
       };
     }
     const data = await res.json();
+    console.log('CDP onramp session response:', data);
     const url = (data && (
       data.onrampUrl || data.onramp_url || data.url ||
       (data.session && (data.session.onrampUrl || data.session.onramp_url))
