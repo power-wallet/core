@@ -18,18 +18,17 @@ import {
   Grid
 } from '@mui/material';
 
-import { getOnrampBuyUrl, getCoinbaseSmartWalletFundUrl, setupOnrampEventListeners } from '@coinbase/onchainkit/fund';
+import { getOnrampBuyUrl, getCoinbaseSmartWalletFundUrl, fetchOnrampConfig, setupOnrampEventListeners } from '@coinbase/onchainkit/fund';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import AddIcon from '@mui/icons-material/Add';
-import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain, useBalance } from 'wagmi';
+import { useConnect, useAccount, useDisconnect, useChainId, useSwitchChain, useBalance, useSignMessage } from 'wagmi';
 import { getChainKey } from '@/config/networks';
 import { baseSepolia, base } from 'wagmi/chains';
 import { getFriendlyChainName, switchOrAddPrimaryChain } from '@/lib/web3';
 import { getViemChain } from '@/config/networks';
-import appConfig from '@/config/appConfig.json';
 import { addresses as contractAddresses } from '@/../../contracts/config/addresses';
 import { ERC20_READ_ABI } from '@/lib/abi';
 import { createPublicClient, http } from 'viem';
@@ -45,10 +44,12 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+  const { signMessageAsync } = useSignMessage();
   const [copied, setCopied] = React.useState(false);
   const [usdc, setUsdc] = React.useState<bigint | null>(null);
   const [usdcDecimals, setUsdcDecimals] = React.useState<number>(6);
   const [reloadNonce, setReloadNonce] = React.useState<number>(0);
+  const [errorToast, setErrorToast] = React.useState<string | null>(null);
   // removed extra funding modal; we open popup directly
 
   const { data: nativeBal } = useBalance({ address: (address || undefined) as `0x${string}` | undefined, chainId });
@@ -211,37 +212,13 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                     size="small"
                                     onClick={async () => {
                                       try {
-                                        // Create server-side v2 session to get Hosted UI onrampUrl (deep-links to Buy USDC)
-                                        const resp = await fetch('/.netlify/functions/create-onramp-session', {
-                                          method: 'POST',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ address, fiatCurrency: (Intl.NumberFormat().resolvedOptions().currency || '').toUpperCase() }),
-                                        });
-                                        if (!resp.ok) {
-                                          console.warn('Failed to create onramp session:', resp.statusText, "status:", resp.status);
-                                        }
-                                        const json = resp.ok ? await resp.json() : {} as any;
-                                        let url = (json as any)?.onrampUrl as string | undefined;
-                                        if (url) {
-                                          console.log('Created onramp session: url:', url, "resp:", json);
-                                        }
-                                        if (!url) {
-                                          console.warn('Failed to create onramp session: no onrampUrl');
-                                          // Fallback to token flow if function is older
-                                          const token = (json as any)?.sessionToken as string | undefined;
-                                          if (!token) {
-                                            console.warn('Failed to create onramp session: no sessionToken');
-                                          }
-                                          url = token ? getOnrampBuyUrl({ sessionToken: token, defaultAsset: 'USDC', defaultNetwork: 'base', originComponentName: 'PowerWallet' }) : undefined;
-                                        }
-                                        if (!url) {
-                                          url = getCoinbaseSmartWalletFundUrl();
-                                        }
-                                        const unsubscribe = setupOnrampEventListeners({
-                                          onSuccess: () => { setReloadNonce((n) => n + 1); },
-                                          onExit: () => {},
-                                          onEvent: () => {},
-                                        });
+                                        // 1) Sign a short-lived authorization message
+                                        const origin = window.location.origin;
+                                        const ts = Math.floor(Date.now() / 1000);
+                                        const message = `PowerWallet Onramp Authorization; origin=${origin}; ts=${ts}; address=${address}`;
+                                        const signature = await signMessageAsync({ message });
+
+                                        // Open a placeholder popup after signing (before backend requests) to minimize overlap with wallet UI
                                         const w = 480, h = 720;
                                         const dualScreenLeft = window.screenLeft ?? (window as any).screenX ?? 0;
                                         const dualScreenTop = window.screenTop ?? (window as any).screenY ?? 0;
@@ -249,12 +226,90 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                         const height = window.innerHeight ?? document.documentElement.clientHeight ?? screen.height;
                                         const left = Math.max(0, (width - w) / 2 + dualScreenLeft);
                                         const top = Math.max(0, (height - h) / 2 + dualScreenTop);
-                                        const popup = window.open(
-                                          url,
+                                        let pendingPopup: Window | null = window.open(
+                                          '',
                                           '_blank',
                                           `scrollbars=yes,width=${w},height=${h},top=${top},left=${left}`
                                         );
-                                        if (popup) {
+                                        try { pendingPopup?.document.write('<div style="font-family:system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif; padding:16px;">Opening Coinbase Onramp...</div>'); } catch {}
+
+                                        // 2) Mint app JWT from backend
+                                        const mintResp = await fetch('/.netlify/functions/mint-app-jwt', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ address, message, signature, expSec: 300 }),
+                                        });
+                                        if (!mintResp.ok) {
+                                          console.warn('Failed to mint app JWT:', mintResp.statusText, 'status:', mintResp.status);
+                                          setErrorToast('Could not authorize purchase. Please try again.');
+                                          return;
+                                        }
+                                        const mintJson = await mintResp.json();
+                                        const token = (mintJson as any)?.token as string | undefined;
+                                        if (!token) {
+                                          console.warn('Mint-app-jwt: missing token in response');
+                                          setErrorToast('Authorization token missing. Please try again.');
+                                          return;
+                                        }
+
+                                        // 3) Create server-side v2 session to get Hosted UI onrampUrl
+                                        const resp = await fetch('/.netlify/functions/create-onramp-session', {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`,
+                                          },
+                                          body: JSON.stringify({
+                                            address,
+                                            fiatCurrency: (Intl.NumberFormat().resolvedOptions().currency || '').toUpperCase(),
+                                            partnerUserRef: address ? `${address}:${ts}` : undefined,
+                                          }),
+                                        });
+                                        if (!resp.ok) {
+                                          console.warn('Failed to create onramp session:', resp.statusText, "status:", resp.status);
+                                          setErrorToast('Failed to create onramp session. Please try again.');
+                                          return;
+                                        }
+                                         const json = await resp.json();
+                                        let url = (json as any)?.onrampUrl as string | undefined;
+                                        if (url) {
+                                          console.log('Created onramp session: url:', url, "resp:", json);
+                                        }
+                                        if (!url) {
+                                          console.warn('Failed to create onramp session: no onrampUrl');
+                                          setErrorToast('Onramp URL not available. Please try again.');
+                                          // // Fallback to token flow if function is older
+                                          // const token = (json as any)?.sessionToken as string | undefined;
+                                          // if (!token) {
+                                          //   console.warn('Failed to create onramp session: no sessionToken');
+                                          // }
+                                          // url = token ? getOnrampBuyUrl({ sessionToken: token, defaultAsset: 'USDC', defaultNetwork: 'base', originComponentName: 'PowerWallet' }) : undefined;
+                                          // Close placeholder popup if it was opened
+                                          try { pendingPopup?.close(); } catch {}
+                                          pendingPopup = null;
+                                          return;
+                                        }
+                                         // if (!url) {
+                                         //   url = getCoinbaseSmartWalletFundUrl();
+                                         // }
+                                         const unsubscribe = setupOnrampEventListeners({
+                                          onSuccess: () => { setReloadNonce((n) => n + 1); },
+                                          onExit: () => {},
+                                          onEvent: () => {},
+                                        });
+                                         // Reuse placeholder popup if available; otherwise try opening a new one
+                                         let popup: Window | null = pendingPopup;
+                                         if (popup) {
+                                           try { popup.location.href = url; } catch { popup = null; }
+                                         }
+                                         if (!popup) {
+                                           popup = window.open(
+                                             url,
+                                             '_blank',
+                                             `scrollbars=yes,width=${w},height=${h},top=${top},left=${left}`
+                                           );
+                                         }
+                                         if (popup) {
                                           const interval = window.setInterval(() => {
                                             if (popup.closed) {
                                               window.clearInterval(interval);
@@ -262,6 +317,8 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                               setReloadNonce((n) => n + 1);
                                             }
                                           }, 750);
+                                         } else {
+                                           setErrorToast('Popup was blocked. Please allow popups for this site and try again.');
                                         }
                                       } catch {}
                                     }}
@@ -408,6 +465,11 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
       <Snackbar open={copied} autoHideDuration={2000} onClose={() => setCopied(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={() => setCopied(false)} severity="success" sx={{ width: '100%' }}>
           Address copied to clipboard
+        </Alert>
+      </Snackbar>
+      <Snackbar open={!!errorToast} autoHideDuration={3500} onClose={() => setErrorToast(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={() => setErrorToast(null)} severity="error" sx={{ width: '100%' }}>
+          {errorToast}
         </Alert>
       </Snackbar>
     </>
