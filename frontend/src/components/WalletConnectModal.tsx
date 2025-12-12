@@ -273,7 +273,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
                                          const json = await resp.json();
                                         let url = (json as any)?.onrampUrl as string | undefined;
                                         if (url) {
-                                          console.log('Created onramp session: url:', url, "resp:", json);
+                                          console.log('Created onramp session: url:', url);
                                         }
                                         if (!url) {
                                           console.warn('Failed to create onramp session: no onrampUrl');
