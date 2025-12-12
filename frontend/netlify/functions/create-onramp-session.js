@@ -135,6 +135,8 @@ exports.handler = async function(event) {
       || (event.headers && (event.headers['x-forwarded-for'] || '')).split(',')[0].trim()
       || undefined;
 
+    console.log('[create-onramp-session] clientIp:', clientIp, 'address:', checksumAddress);
+
     // v2 Create Onramp Session payload for Hosted UI Onramp
     // TODO: add partnerUserRef
     const payload = {
@@ -186,16 +188,18 @@ exports.handler = async function(event) {
     }
 
     // Optionally append partnerUserRef
+    
     let finalUrl = url;
-    try {
-      const u = new URL(url);
-      const partnerUserRef = partnerUserRefInput || `${checksumAddress}:${issuedAt}`;
-      u.searchParams.set('partnerUserRef', partnerUserRef);
-      finalUrl = u.toString();
-    } catch (_) {
-      // leave as-is if URL parsing fails
-    }
-
+    // try {
+    //   const u = new URL(url);
+    //   const partnerUserRef = partnerUserRefInput || `${checksumAddress}:${issuedAt}`;
+    //   u.searchParams.set('partnerUserRef', partnerUserRef);
+    //   finalUrl = u.toString();
+    // } catch (_) {
+    //   // leave as-is if URL parsing fails
+    // }
+        
+    console.log('[create-onramp-session] url:', finalUrl);
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ onrampUrl: finalUrl }) };
   } catch (e) {
     return { statusCode: 500, headers: corsHeaders, body: e && e.message ? e.message : 'Internal Error' };

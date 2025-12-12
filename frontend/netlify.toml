@@ -3,6 +3,9 @@
   publish = "out"
   functions = "netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+
 [dev]
   command = "npm run dev"        # run Next.js dev server
   targetPort = 3000               # Next dev server port

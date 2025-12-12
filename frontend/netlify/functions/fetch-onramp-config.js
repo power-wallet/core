@@ -3,7 +3,7 @@
 //
 // Env vars (set in Netlify):
 // - ALLOWED_ORIGINS (comma-separated; e.g., "https://powerwallet.finance")
-// - ONCHAINKIT_API_KEY (preferred) or CDP_API_KEY (fallback)
+// - CDP_CLIENT_API_KEY
 //
 exports.handler = async function(event) {
   // ---- CORS handling ----
@@ -20,6 +20,9 @@ exports.handler = async function(event) {
     'Access-Control-Max-Age': '600',
     'Vary': 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers',
   };
+  try {
+    console.log('[fetch-onramp-config] Method=', event.httpMethod, 'Origin=', reqOrigin || '(none)', 'Allowed=', originAllowed);
+  } catch {}
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders };
   }
@@ -27,18 +30,27 @@ exports.handler = async function(event) {
     return { statusCode: 405, headers: corsHeaders, body: 'Method Not Allowed' };
   }
   if (!originAllowed) {
+    try { console.log('[fetch-onramp-config] Blocked by CORS: origin not allowed'); } catch {}
     return { statusCode: 403, headers: corsHeaders, body: 'Forbidden: origin not allowed' };
   }
 
   try {
-    const apiKey = (process.env.ONCHAINKIT_API_KEY || process.env.CDP_API_KEY || '').trim();
+    const apiKey = (process.env.CDP_CLIENT_API_KEY || '').trim();
     if (!apiKey) {
-      return { statusCode: 500, headers: corsHeaders, body: 'Missing ONCHAINKIT_API_KEY/CDP_API_KEY' };
+      try { console.error('[fetch-onramp-config] Missing CDP_CLIENT_API_KEY'); } catch {}
+      return { statusCode: 500, headers: corsHeaders, body: 'Missing CDP_CLIENT_API_KEY' };
     }
+    try { console.log('[fetch-onramp-config] Using API key present=true length=', apiKey.length); } catch {}
     const { fetchOnrampConfig } = await import('@coinbase/onchainkit/fund');
+    
     const data = await fetchOnrampConfig(apiKey);
+    try {
+      const count = Array.isArray(data && data.countries) ? data.countries.length : 'n/a';
+      console.log('[fetch-onramp-config] Success countries=', count);
+    } catch {}
     return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
   } catch (e) {
+    try { console.error('[fetch-onramp-config] Error:', e && e.message ? e.message : e); } catch {}
     return { statusCode: 500, headers: corsHeaders, body: e && e.message ? e.message : 'Internal Error' };
   }
 };
