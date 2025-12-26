@@ -78,7 +78,6 @@ export default function WalletDetails() {
   const { dcaAmount, baseDcaAmount, freq, desc, strategyName, strategyIdStr } = useStrategyReads(strategyAddr as any);
 
   // Transactions moved into useWalletReads
-
   const riskAssets = React.useMemo(() => (assets as string[] | undefined) || [], [assets]);
   const stableBal = (balances as any)?.[0] as bigint | undefined;
   const riskBals = ((balances as any)?.[1] as bigint[] | undefined) || [];
@@ -93,6 +92,31 @@ export default function WalletDetails() {
     const entries = Object.values(chainAssets);
     return entries.find(a => a.address.toLowerCase() === lower);
   }, [chainAssets]);
+
+  const breadcrumbStrategyLabel = React.useMemo(() => {
+    try {
+      const strategies = (appConfig as any)[chainKey]?.strategies || {};
+      const onChainId = String(strategyIdStr || '').trim();
+      let matchedKey: string | null = null;
+      if (onChainId && strategies[onChainId]) matchedKey = onChainId;
+      if (!matchedKey && onChainId) {
+        for (const [key, st] of Object.entries<any>(strategies)) {
+          if (String((st as any).id || '').trim() === onChainId) { matchedKey = key; break; }
+        }
+      }
+      const key = matchedKey || onChainId || '';
+      const k = key.toLowerCase();
+      if (k.includes('trend')) return 'Trend';
+      if (k.includes('smart')) return 'Smart';
+      if (k.includes('power') || k.includes('power-law')) return 'Power';
+      if (k.includes('simple') || k.includes('pure')) return 'Pure';
+      // Fallback: use the on-chain name if available, but keep it short
+      const nm = String(strategyName || '').trim();
+      return nm ? nm : null;
+    } catch {
+      return null;
+    }
+  }, [chainKey, strategyIdStr, strategyName]);
 
   const formatTokenAmount = formatTokenAmountBigint;
 
@@ -133,7 +157,7 @@ export default function WalletDetails() {
   const [prices, setPrices] = React.useState<Record<string, { price: number; decimals: number }>>({});
   const { writeContractAsync } = useWriteContract();
   const [txHash, setTxHash] = React.useState<`0x${string}` | undefined>(undefined);
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
+  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
   const [toast, setToast] = React.useState<{ open: boolean; message: string; severity: 'info' | 'success' | 'error' }>({ open: false, message: '', severity: 'info' });
 
   const [depositOpen, setDepositOpen] = React.useState(false);
@@ -155,6 +179,26 @@ export default function WalletDetails() {
   // Build wallet value time series for chart
   const [walletSeries, setWalletSeries] = React.useState<any[] | null>(null);
   const [historyLoading, setHistoryLoading] = React.useState(false);
+
+  const refreshAllWalletData = React.useCallback(async () => {
+    const doOne = async () => {
+      await Promise.allSettled([
+        Promise.resolve().then(() => refetchBalances?.()),
+        Promise.resolve().then(() => refetchValueUsd?.()),
+        Promise.resolve().then(() => refetchDeposits?.()),
+        Promise.resolve().then(() => refetchWithdrawals?.()),
+        Promise.resolve().then(() => refetchSwaps?.()),
+        Promise.resolve().then(() => refetchUserUsdc?.()),
+      ]);
+    };
+
+    // First refresh ASAP, then retry a few times to handle RPC propagation lag.
+    await doOne();
+    for (const delayMs of [600, 1400, 2600]) {
+      await new Promise((res) => setTimeout(res, delayMs));
+      await doOne();
+    }
+  }, [refetchBalances, refetchValueUsd, refetchDeposits, refetchWithdrawals, refetchSwaps, refetchUserUsdc]);
 
   // ROI calculations (USD and %)
   const walletValueUsdNum = React.useMemo(() => Number(valueUsd ?? 0n) / 1_000_000, [valueUsd]);
@@ -235,17 +279,8 @@ export default function WalletDetails() {
   React.useEffect(() => {
     if (isConfirmed && txHash) {
       setToast({ open: true, message: `Transaction confirmed: ${txHash}`, severity: 'success' });
-      // After confirmation, refetch key wallet data (with a brief delay to allow RPC/state propagation)
-      setTimeout(() => {
-        try { refetchBalances?.(); } catch { }
-        try { refetchValueUsd?.(); } catch { }
-        try { refetchDeposits?.(); } catch { }
-        try { refetchWithdrawals?.(); } catch { }
-        try { refetchSwaps?.(); } catch { }
-        try { refetchUserUsdc?.(); } catch { }
-      }, 1200);
     }
-  }, [isConfirmed, txHash, refetchBalances, refetchValueUsd, refetchDeposits, refetchWithdrawals, refetchSwaps, refetchUserUsdc]);
+  }, [isConfirmed, txHash]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -330,7 +365,11 @@ export default function WalletDetails() {
             Portfolio
           </a>
           {` / `}
-          <span>{shortAddress}</span>
+          {breadcrumbStrategyLabel ? (
+            <span>{breadcrumbStrategyLabel} [{shortAddress}]</span>
+          ) : (
+            <span>{shortAddress}</span>
+          )}
           <a
             href={`${explorerBase}/address/${walletAddress}`}
             target="_blank"
@@ -364,7 +403,11 @@ export default function WalletDetails() {
           Portfolio
         </a>
         {` / `}
-        <span>{shortAddress}</span>
+        {breadcrumbStrategyLabel ? (
+          <span>{breadcrumbStrategyLabel} [{shortAddress}]</span>
+        ) : (
+          <span>{shortAddress}</span>
+        )}
         <Tooltip title="Copy address">
           <a
             href="#"
@@ -513,7 +556,7 @@ export default function WalletDetails() {
                 if (!walletAddress) return;
                 try {
                   const fn = automationPaused ? 'unpauseAutomation' : 'pauseAutomation';
-                  const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: fn as any, args: [] });
+                  const hash = await writeWithFees({ write: writeContractAsync as any, client, account: connected as `0x${string}` | undefined, address: walletAddress, abi: powerWalletAbi as any, functionName: fn as any, args: [] });
                   setTxHash(hash as `0x${string}`);
                 } catch (e: any) {
                   setToast({ open: true, message: e?.shortMessage || e?.message || 'Transaction failed', severity: 'error' });
@@ -556,14 +599,16 @@ export default function WalletDetails() {
               const erc20WriteAbi = [
                 { type: 'function', name: 'approve', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] },
               ] as const;
-              const approveHash = await writeWithFees({ write: writeContractAsync as any, client, address: stableTokenAddr as `0x${string}`, abi: erc20WriteAbi as any, functionName: 'approve', args: [walletAddress, amt] });
+              const approveHash = await writeWithFees({ write: writeContractAsync as any, client, account: connected as `0x${string}` | undefined, address: stableTokenAddr as `0x${string}`, abi: erc20WriteAbi as any, functionName: 'approve', args: [walletAddress, amt] });
               setTxHash(approveHash as `0x${string}`);
               await client.waitForTransactionReceipt({ hash: approveHash as `0x${string}` });
             }
-            const depositHash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'deposit', args: [amt] });
+            const depositHash = await writeWithFees({ write: writeContractAsync as any, client, account: connected as `0x${string}` | undefined, address: walletAddress, abi: powerWalletAbi as any, functionName: 'deposit', args: [amt] });
             setTxHash(depositHash as `0x${string}`);
             setDepositOpen(false);
             setDepositAmount('');
+            await client.waitForTransactionReceipt({ hash: depositHash as `0x${string}` });
+            await refreshAllWalletData();
           } catch (e: any) {
             const msg = e?.shortMessage || e?.message || 'Deposit failed';
             setToast({ open: true, message: msg, severity: 'error' });
@@ -587,7 +632,7 @@ export default function WalletDetails() {
             return;
           }
           try {
-            const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'setSlippageBps', args: [val] });
+            const hash = await writeWithFees({ write: writeContractAsync as any, client, account: connected as `0x${string}` | undefined, address: walletAddress, abi: powerWalletAbi as any, functionName: 'setSlippageBps', args: [val] });
             setTxHash(hash as `0x${string}`);
             await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             await refetchSlippage();
@@ -622,10 +667,12 @@ export default function WalletDetails() {
           const amt = BigInt(Math.round(amount * scale));
           setIsWithdrawing(true);
           try {
-            const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'withdrawAsset', args: [withdrawAssetAddr, amt] });
+            const hash = await writeWithFees({ write: writeContractAsync as any, client, account: connected as `0x${string}` | undefined, address: walletAddress, abi: powerWalletAbi as any, functionName: 'withdrawAsset', args: [withdrawAssetAddr, amt] });
             setTxHash(hash as `0x${string}`);
             setWithdrawOpen(false);
             setWithdrawAmount('');
+            await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            await refreshAllWalletData();
           } catch (e) {
             setToast({ open: true, message: 'Withdraw failed', severity: 'error' });
           } finally {
@@ -717,7 +764,7 @@ export default function WalletDetails() {
         onConfirm={async () => {
           if (!walletAddress) return;
           try {
-            const hash = await writeWithFees({ write: writeContractAsync as any, client, address: walletAddress, abi: powerWalletAbi as any, functionName: 'closeWallet', args: [] });
+            const hash = await writeWithFees({ write: writeContractAsync as any, client, account: connected as `0x${string}` | undefined, address: walletAddress, abi: powerWalletAbi as any, functionName: 'closeWallet', args: [] });
             setTxHash(hash as `0x${string}`);
             await client.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             // After closing, request factory to delete the wallet reference
@@ -727,7 +774,7 @@ export default function WalletDetails() {
                 const factoryAbi = [
                   { type: 'function', name: 'deleteWallet', stateMutability: 'nonpayable', inputs: [{ name: 'walletAddr', type: 'address' }], outputs: [] },
                 ] as const;
-                const delHash = await writeWithFees({ write: writeContractAsync as any, client, address: factory, abi: factoryAbi as any, functionName: 'deleteWallet', args: [walletAddress] });
+                const delHash = await writeWithFees({ write: writeContractAsync as any, client, account: connected as `0x${string}` | undefined, address: factory, abi: factoryAbi as any, functionName: 'deleteWallet', args: [walletAddress] });
                 setTxHash(delHash as `0x${string}`);
               }
             } catch (e) { }

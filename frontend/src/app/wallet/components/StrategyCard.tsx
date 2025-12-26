@@ -18,7 +18,6 @@ type Props = {
 };
 
 export default function StrategyCard({ strategyName, description, strategyAddr, explorerBase, dcaAmount, frequency, strategyIdStr, onOpenConfig }: Props) {
-  console.log("strategyIdStr", strategyIdStr);
   return (
     <Card variant="outlined" sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

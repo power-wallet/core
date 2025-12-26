@@ -29,9 +29,35 @@ export type WalletHistoryPoint = {
   events?: WalletEvent[];
 };
 
-function toDateKey(tsSec: number): string {
-  // Use UTC date to align with price data and iteration keys
-  return new Date(tsSec * 1000).toISOString().split('T')[0];
+function toLocalDateKeyFromMs(ms: number): string {
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function toLocalDateKey(tsSec: number): string {
+  // Use LOCAL date so the chart always includes "today" for the user, and events are bucketed by the user's day.
+  return toLocalDateKeyFromMs(tsSec * 1000);
+}
+
+function localDateFromKey(dateStr: string): Date {
+  // dateStr is YYYY-MM-DD
+  const [y, m, d] = dateStr.split('-').map((x) => Number(x));
+  return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
+}
+
+async function fetchBinanceSpot(symbol: 'BTCUSDT' | 'ETHUSDT'): Promise<number | undefined> {
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+    if (!res.ok) return undefined;
+    const json: any = await res.json();
+    const px = Number(json?.price);
+    return Number.isFinite(px) && px > 0 ? px : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function numFromBig(amount: bigint, decimals: number): number {
@@ -65,8 +91,8 @@ export async function buildWalletHistorySeries(args: {
 }): Promise<WalletHistoryPoint[]> {
   const { createdAt, stable, risks } = args;
   const createdTs = typeof createdAt === 'number' ? createdAt : Number(createdAt);
-  const startDate = toDateKey(createdTs);
-  const endDate = toDateKey(Math.floor(Date.now() / 1000));
+  const startDate = toLocalDateKey(createdTs);
+  const endDate = toLocalDateKey(Math.floor(Date.now() / 1000));
 
   // Build unified chronological event list
   const events: WalletEvent[] = [];
@@ -85,6 +111,12 @@ export async function buildWalletHistorySeries(args: {
   const { btc, eth } = await loadPriceData(startDate, endDate, 2);
   const btcByDate = new Map(btc.map((p) => [p.date, p.close]));
   const ethByDate = new Map(eth.map((p) => [p.date, p.close]));
+  const endHasBtc = btcByDate.has(endDate);
+  const endHasEth = ethByDate.has(endDate);
+  const [btcSpot, ethSpot] = await Promise.all([
+    endHasBtc ? Promise.resolve<number | undefined>(undefined) : fetchBinanceSpot('BTCUSDT'),
+    endHasEth ? Promise.resolve<number | undefined>(undefined) : fetchBinanceSpot('ETHUSDT'),
+  ]);
 
   // Prepare balances
   let stableBal: bigint = BigInt(0);
@@ -97,7 +129,7 @@ export async function buildWalletHistorySeries(args: {
   // Group events by day
   const eventsByDate = new Map<string, WalletEvent[]>();
   for (const e of events) {
-    const dk = toDateKey(e.ts);
+    const dk = toLocalDateKey(e.ts);
     const arr = eventsByDate.get(dk) || [];
     arr.push(e);
     eventsByDate.set(dk, arr);
@@ -107,10 +139,10 @@ export async function buildWalletHistorySeries(args: {
   const out: WalletHistoryPoint[] = [];
   let btcFallbackCount = 0;
   let ethFallbackCount = 0;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = localDateFromKey(startDate);
+  const end = localDateFromKey(endDate);
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const dk = d.toISOString().split('T')[0];
+    const dk = toLocalDateKeyFromMs(d.getTime());
     const todays = eventsByDate.get(dk) || [];
     // Apply today's events
     for (const ev of todays) {
@@ -161,10 +193,17 @@ export async function buildWalletHistorySeries(args: {
       if (!key) continue;
       let px = key === 'BTC' ? btcByDate.get(dk) : ethByDate.get(dk);
       if (px === undefined) {
+        // If we're on "today", prefer a live spot price so the chart includes today's value up to now.
+        if (dk === endDate) {
+          const spot = key === 'BTC' ? btcSpot : ethSpot;
+          if (spot !== undefined) px = spot;
+        }
+      }
+      if (px === undefined) {
         // Fallback to previous day's close if today's price isn't available yet
         const prev = new Date(d);
         prev.setDate(prev.getDate() - 1);
-        const prevKey = prev.toISOString().split('T')[0];
+        const prevKey = toLocalDateKeyFromMs(prev.getTime());
         px = key === 'BTC' ? btcByDate.get(prevKey) : ethByDate.get(prevKey);
         if (px !== undefined) {
           if (key === 'BTC') btcFallbackCount++; else ethFallbackCount++;

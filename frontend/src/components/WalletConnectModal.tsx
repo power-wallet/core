@@ -52,7 +52,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
   const [errorToast, setErrorToast] = React.useState<string | null>(null);
   // removed extra funding modal; we open popup directly
 
-  const { data: nativeBal } = useBalance({ address: (address || undefined) as `0x${string}` | undefined, chainId });
+  const { data: nativeBal, refetch: refetchNativeBal } = useBalance({ address: (address || undefined) as `0x${string}` | undefined, chainId });
 
   React.useEffect(() => {
     let cancelled = false;
@@ -74,6 +74,12 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ open, onClose }
     readUsdc();
     return () => { cancelled = true; };
   }, [address, chainId, reloadNonce]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    setReloadNonce((n) => n + 1);
+    try { refetchNativeBal?.(); } catch {}
+  }, [open]);
 
   const formatEth = (wei?: bigint) => {
     if (wei == null) return '-';
