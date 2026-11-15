@@ -1,5 +1,6 @@
 import { ethers, upgrades, network, run } from "hardhat";
 import { addresses } from "../../config/addresses";
+import { deployIndicatorsWithHistory } from "../lib/deploy-indicators-with-history";
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -52,8 +53,8 @@ async function main() {
   if (isLocal) {
     console.log("Deploying local mocks for tokens and price feeds...");
     const MockToken = await ethers.getContractFactory("MockERC20");
-    const wbtc = await MockToken.deploy("Wrapped Bitcoin", "WBTC");
-    const weth = await MockToken.deploy("Wrapped Ether", "WETH");
+    const wbtc = await MockToken.deploy("Wrapped Bitcoin", "WBTC", 8);
+    const weth = await MockToken.deploy("Wrapped Ether", "WETH", 18);
     const btcLatest = btcHistoricalPrices[btcHistoricalPrices.length - 1];
     const ethLatest = ethHistoricalPrices[ethHistoricalPrices.length - 1];
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
@@ -83,21 +84,15 @@ async function main() {
   // process.exit(0); // temporary
 
 
-  // Get contract factory
-  const TechnicalIndicators = await ethers.getContractFactory("TechnicalIndicators");
-
-  // Deploy proxy
-  const proxy = await upgrades.deployProxy(
-    TechnicalIndicators,
-    [tokens, priceFeeds, historicalPrices, startTimes],
-    {
-      kind: "uups",
-      initializer: "initialize",
-      timeout: 0
-    }
+  // Deploy proxy: initialize with the first chunk of history, then backfill the rest,
+  // so no transaction exceeds the EIP-7825 per-transaction gas cap (16,777,216).
+  const proxy = await deployIndicatorsWithHistory(
+    tokens,
+    priceFeeds,
+    historicalPrices,
+    startTimes,
+    { timeout: 0 }
   );
-
-    await proxy.waitForDeployment();
     const proxyAddress = await proxy.getAddress();
 
     console.log("TechnicalIndicators deployed to:", proxyAddress);
