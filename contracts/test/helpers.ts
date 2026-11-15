@@ -1,6 +1,7 @@
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
+import { deployIndicatorsWithHistory } from "../scripts/lib/deploy-indicators-with-history";
 
 interface PriceData {
     timestamp: number;
@@ -46,8 +47,6 @@ export async function deployWithHistoricalDataFixture() {
     const endTimestamp = parseUtcMidnight(last200Dates[last200Dates.length - 1]);
     const btcPrices = last200Dates.map(d => ethers.parseUnits(btcByDate.get(d)!.toString(), 8));
     const ethPrices = last200Dates.map(d => ethers.parseUnits(ethByDate.get(d)!.toString(), 8));
-    const btcTimestamps = ethers.getBigInt(startTimestamp);
-    const ethTimestamps = ethers.getBigInt(startTimestamp);
 
     // No need to manipulate time - loadFixture resets the EVM state for each test
     // Tests will handle time progression as needed
@@ -60,17 +59,12 @@ export async function deployWithHistoricalDataFixture() {
     const ethFeed = await MockV3Aggregator.deploy(8, ethLatest);
     const day = 24 * 60 * 60;
 
-    // Deploy TechnicalIndicators
-    const TechnicalIndicators = await ethers.getContractFactory("TechnicalIndicators");
-    const indicators = await upgrades.deployProxy(
-        TechnicalIndicators,
-        [
-            [await wbtc.getAddress(), await weth.getAddress()],
-            [await btcFeed.getAddress(), await ethFeed.getAddress()],
-            [btcPrices, ethPrices],
-            [btcTimestamps, ethTimestamps]
-        ],
-        { kind: "uups" }
+    // Deploy TechnicalIndicators (history split across initialize + backfill to stay under the EIP-7825 gas cap)
+    const indicators = await deployIndicatorsWithHistory(
+        [await wbtc.getAddress(), await weth.getAddress()],
+        [await btcFeed.getAddress(), await ethFeed.getAddress()],
+        [btcPrices, ethPrices],
+        [startTimestamp, startTimestamp]
     );
 
     return {
@@ -120,8 +114,6 @@ export async function deployDeterministicSep28Fixture() {
     const startTimestamp = parseUtcMidnight(last200Dates[0]);
     const btcPrices = last200Dates.map(d => ethers.parseUnits(btcByDate.get(d)!.toString(), 8));
     const ethPrices = last200Dates.map(d => ethers.parseUnits(ethByDate.get(d)!.toString(), 8));
-    const btcTimestamps = ethers.getBigInt(startTimestamp);
-    const ethTimestamps = ethers.getBigInt(startTimestamp);
 
     const btcLatest = btcPrices[btcPrices.length - 1];
     const ethLatest = ethPrices[ethPrices.length - 1];
@@ -130,16 +122,11 @@ export async function deployDeterministicSep28Fixture() {
     const ethFeed = await MockV3Aggregator.deploy(8, ethLatest);
     const day = 24 * 60 * 60;
 
-    const TechnicalIndicators = await ethers.getContractFactory("TechnicalIndicators");
-    const indicators = await upgrades.deployProxy(
-        TechnicalIndicators,
-        [
-            [await wbtc.getAddress(), await weth.getAddress()],
-            [await btcFeed.getAddress(), await ethFeed.getAddress()],
-            [btcPrices, ethPrices],
-            [btcTimestamps, ethTimestamps]
-        ],
-        { kind: "uups" }
+    const indicators = await deployIndicatorsWithHistory(
+        [await wbtc.getAddress(), await weth.getAddress()],
+        [await btcFeed.getAddress(), await ethFeed.getAddress()],
+        [btcPrices, ethPrices],
+        [startTimestamp, startTimestamp]
     );
 
     return {

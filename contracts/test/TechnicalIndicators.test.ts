@@ -36,11 +36,13 @@ describe("TechnicalIndicators - Core Functionality", function () {
             ts += 86400n;
         }
         
-        if (timestamps.length > 0) {
+        // Backfill in chunks so each transaction stays under the EIP-7825 gas cap
+        const CHUNK = 100;
+        for (let i = 0; i < timestamps.length; i += CHUNK) {
             await indicators.connect(owner).backfillDailyPrices(
                 await token.getAddress(),
-                timestamps,
-                prices
+                timestamps.slice(i, i + CHUNK),
+                prices.slice(i, i + CHUNK)
             );
         }
     }
