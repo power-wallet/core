@@ -86,12 +86,15 @@ async function main() {
 
   // Deploy proxy: initialize with the first chunk of history, then backfill the rest,
   // so no transaction exceeds the EIP-7825 per-transaction gas cap (16,777,216).
+  // Progress is logged as it happens; if a backfill fails, finish the run against the
+  // logged proxy address with scripts/backfill-prices.ts instead of redeploying.
   const proxy = await deployIndicatorsWithHistory(
     tokens,
     priceFeeds,
     historicalPrices,
     startTimes,
-    { timeout: 0 }
+    { timeout: 0 },
+    console.log
   );
     const proxyAddress = await proxy.getAddress();
 
